@@ -72,43 +72,47 @@
       [(:date cost) (:cur cost) (:per-unit cost) (:label cost) (:merge cost)]
       [])))
 
-(defn update-or-set
+(defn update-or-set!
   [m k f v1]
-  (let [v0 (get m k)] (if v0 (assoc m k (f v0)) (assoc m k v1))))
+  (let [v0 (get m k)] (if v0 (assoc! m k (f v0)) (assoc! m k v1))))
 
 (defn single-currency-accumulator
   "Position accumulator for a single currency"
   [rule]
   (case rule
-    :merge {:accumulate-f (fn [positions p1]
-                            (let [k (position-key p1)]
-                              (update-or-set
-                                positions
-                                k
-                                (fn [p0]
-                                  (assoc p0 :units (+ (:units p0) (:units p1))))
-                                p1))),
+    :merge {:accumulate-f
+              (fn [positions p1]
+                (let [k (position-key p1)]
+                  (update-or-set!
+                    positions
+                    k
+                    (fn [p0] (assoc! p0 :units (+ (:units p0) (:units p1))))
+                    (transient p1)))),
             :reduce-f (fn [rf result positions]
-                        (let [cost-keys (sort compare-cost-keys
+                        (let [positions (persistent! positions)
+                              cost-keys (sort compare-cost-keys
                                               (keys positions))]
-                          (reduce (fn [result k] (rf result (get positions k)))
+                          (reduce (fn [result k]
+                                    (rf result (persistent! (get positions k))))
                             result
                             cost-keys))),
-            :positions {}}
+            :positions (transient {})}
     :append {:accumulate-f
                (fn [positions p1]
                  (if (contains? p1 :cost)
-                   (assoc positions :at-cost (conj (:at-cost positions) p1))
-                   (assoc positions
-                     :simple (if-let [p0 (:simple positions)]
-                               (assoc p0 :units (+ (:units p0) (:units p1)))
-                               p1)))),
-             :reduce-f (fn [rf result positions]
-                         (let [result1 (if-let [simple (:simple positions)]
-                                         (rf result simple)
-                                         result)]
-                           (reduce rf result1 (:at-cost positions)))),
-             :positions {:simple nil, :at-cost []}}))
+                   (assoc! positions :at-cost (conj! (:at-cost positions) p1))
+                   (assoc! positions
+                           :simple
+                           (if-let [p0 (:simple positions)]
+                             (assoc! p0 :units (+ (:units p0) (:units p1)))
+                             (transient p1))))),
+             :reduce-f
+               (fn [rf result positions]
+                 (let [result1 (if-let [simple (:simple positions)]
+                                 (rf result simple)
+                                 result)]
+                   (reduce rf result1 (persistent! (:at-cost positions))))),
+             :positions (transient {:simple nil, :at-cost (transient [])})}))
 
 (defn sca-accumulate
   [sca pos]
@@ -121,7 +125,9 @@
 
 (defn accumulator
   "Create an inventory accumulator, which must be finalized after accumulation is complete, using finalize-inventory."
-  ([method] (let [rule (booking-rule method)] {:rule rule, :scas {}})))
+  ([method]
+   (let [rule (booking-rule method)]
+     (transient {:rule rule, :scas (transient {})}))))
 
 (defn accumulate
   "Accumulate a position into an inventory"
@@ -134,18 +140,21 @@
         sca (if-let [sca (get scas cur)]
               sca
               (single-currency-accumulator rule))]
-    (assoc inv :scas (assoc scas cur (sca-accumulate sca p)))))
+    (assoc! inv :scas (assoc! scas cur (sca-accumulate sca p)))))
 
 (defn finalize
   "Finalize an inventory accumulator into a list of positions"
   [inv]
   (let [{:keys [scas]} inv
-        currencies (sort (keys scas))]
-    (reduce (fn [result cur]
-              (sca-reduce (fn [result p]
-                            ;; only keep the non-zero positions
-                            (if (zero? (:units p)) result (conj result p)))
-                          result
-                          (get scas cur)))
-      []
-      currencies)))
+        scas (persistent! scas)
+        currencies (sort (keys scas))
+        positions (reduce (fn [result cur]
+                            (sca-reduce
+                              (fn [result p]
+                                ;; only keep the non-zero positions
+                                (if (zero? (:units p)) result (conj! result p)))
+                              result
+                              (get scas cur)))
+                    (transient [])
+                    currencies)]
+    (persistent! positions)))
