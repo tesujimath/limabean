@@ -2,7 +2,6 @@
   (:require [clojure.edn :as edn]
             [clojure.java.shell :as shell]
             [java-time.api :as jt]
-            [lima.core.count :as count]
             [cheshire.core :as cheshire]
             [clojure.string :as str]))
 
