@@ -6,6 +6,7 @@ use std::{collections::HashSet, io::Write, path::Path};
 
 #[derive(Debug)]
 pub(crate) struct Digest {
+    pub(crate) accids: hashbrown::HashMap<String, String>,
     pub(crate) txnids: HashSet<String>,
     pub(crate) payees: hashbrown::HashMap<String, hashbrown::HashMap<String, usize>>,
     pub(crate) narrations: hashbrown::HashMap<String, hashbrown::HashMap<String, usize>>,
@@ -14,6 +15,7 @@ pub(crate) struct Digest {
 impl Digest {
     pub(crate) fn load_from<W>(
         path: &Path,
+        accid_key: String,
         txnid_keys: Vec<String>,
         payee2_key: String,
         narration2_key: String,
@@ -33,7 +35,8 @@ impl Digest {
                 warnings,
             }) => {
                 sources.write_errors_or_warnings(error_w, warnings)?;
-                let mut builder = DigestBuilder::new(txnid_keys, payee2_key, narration2_key);
+                let mut builder =
+                    DigestBuilder::new(accid_key, txnid_keys, payee2_key, narration2_key);
 
                 for directive in &directives {
                     builder.directive(directive);
@@ -58,9 +61,11 @@ impl Digest {
 
 #[derive(Default, Debug)]
 struct DigestBuilder<'a> {
+    accid_key: String,
     txnid_keys: Vec<String>,
     payee2_key: String,
     narration2_key: String,
+    accids: hashbrown::HashMap<&'a str, &'a str>,
     txnids: HashSet<String>,
     payees: hashbrown::HashMap<&'a str, hashbrown::HashMap<&'a str, usize>>,
     narrations: hashbrown::HashMap<&'a str, hashbrown::HashMap<&'a str, usize>>,
@@ -68,11 +73,18 @@ struct DigestBuilder<'a> {
 }
 
 impl<'a> DigestBuilder<'a> {
-    fn new(txnid_keys: Vec<String>, payee2_key: String, narration2_key: String) -> Self {
+    fn new(
+        accid_key: String,
+        txnid_keys: Vec<String>,
+        payee2_key: String,
+        narration2_key: String,
+    ) -> Self {
         Self {
+            accid_key,
             txnid_keys,
             payee2_key,
             narration2_key,
+            accids: hashbrown::HashMap::default(),
             txnids: HashSet::default(),
             payees: hashbrown::HashMap::default(),
             narrations: hashbrown::HashMap::default(),
@@ -86,6 +98,7 @@ impl<'a> DigestBuilder<'a> {
     {
         if self.errors.is_empty() {
             let Self {
+                accids,
                 txnids,
                 payees,
                 narrations,
@@ -93,6 +106,7 @@ impl<'a> DigestBuilder<'a> {
             } = self;
 
             Ok(Digest {
+                accids: hashmap_to_strings(accids),
                 txnids,
                 payees: hashmap_of_hashmaps_to_strings(payees),
                 narrations: hashmap_of_hashmaps_to_strings(narrations),
@@ -106,8 +120,41 @@ impl<'a> DigestBuilder<'a> {
     fn directive(&mut self, directive: &'a Spanned<parser::Directive<'a>>) {
         use parser::DirectiveVariant::*;
 
+        if let Open(open) = directive.variant() {
+            self.open(open, directive)
+        }
         if let Transaction(transaction) = directive.variant() {
             self.transaction(transaction, directive)
+        }
+    }
+
+    fn open<'s, 'b>(&'s mut self, open: &'b parser::Open, directive: &'b Spanned<parser::Directive>)
+    where
+        'b: 's,
+        'b: 'a,
+    {
+        if let Some(accid) = directive
+            .metadata()
+            .key_value(parser::Key::try_from(self.accid_key.as_str()).unwrap())
+        {
+            if let parser::MetaValue::Simple(parser::SimpleValue::String(accid)) = accid.item() {
+                use hashbrown::hash_map::Entry::*;
+                // ugh, borrow checker can't cope, so leak the string
+                let accid = accid.to_string().leak();
+                let account = open.account().item().as_ref();
+                match self.accids.entry(accid) {
+                    Occupied(entry) => {
+                        self.errors.push(directive.error(format!(
+                            "accid {} also used for {}",
+                            accid,
+                            entry.get()
+                        )));
+                    }
+                    Vacant(entry) => {
+                        entry.insert(account);
+                    }
+                }
+            }
         }
     }
 
@@ -199,6 +246,15 @@ impl<'a> DigestBuilder<'a> {
             }
         }
     }
+}
+
+fn hashmap_to_strings(
+    borrowed: hashbrown::HashMap<&str, &str>,
+) -> hashbrown::HashMap<String, String> {
+    borrowed
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect::<hashbrown::HashMap<_, _>>()
 }
 
 fn hashmap_of_hashmaps_to_strings<T>(

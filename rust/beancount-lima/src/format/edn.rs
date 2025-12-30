@@ -600,9 +600,15 @@ impl FmtEdn for &Digest {
         map_begin(f)?;
 
         (
+            Keyword::Accids,
+            EdnMap(self.accids.iter().map(|(k, v)| (k.as_str(), v.as_str()))),
+            Flush,
+        )
+            .fmt_edn(f)?;
+        (
             Keyword::Txnids,
             EdnSet(self.txnids.iter().map(|x| x.as_str())),
-            Flush,
+            Spaced,
         )
             .fmt_edn(f)?;
         (
@@ -680,6 +686,7 @@ impl FmtEdn for parser::Flag {
 #[derive(EnumString, EnumIter, IntoStaticStr, Clone, Debug)]
 #[strum(serialize_all = "kebab-case")]
 enum Keyword {
+    Accids,
     #[strum(to_string = "acc")]
     Account,
     AccountCurrentConversions,

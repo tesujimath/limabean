@@ -97,6 +97,7 @@ fn main() -> Result<()> {
         Command::Digest { beanpath: ledger } => {
             let digest = Digest::load_from(
                 ledger,
+                ACCID_KEY.to_string(),
                 vec![TXNID_KEY.to_string(), TXNID2_KEY.to_string()],
                 PAYEE2_KEY.to_string(),
                 NARRATION2_KEY.to_string(),
@@ -133,6 +134,7 @@ fn main() -> Result<()> {
     }
 }
 
+const ACCID_KEY: &str = "accid";
 const TXNID_KEY: &str = "txnid";
 const TXNID2_KEY: &str = "txnid2";
 const PAYEE2_KEY: &str = "payee2";
