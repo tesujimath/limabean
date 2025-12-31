@@ -9,4 +9,3 @@ rust-build:
 [working-directory: 'rust']
 rust-test: rust-build
     cargo test
-    # TODO ./run-import-tests

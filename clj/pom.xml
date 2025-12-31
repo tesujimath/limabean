@@ -9,8 +9,12 @@
   <url>https://github.com/lima/lima</url>
   <licenses>
     <license>
-      <name>Eclipse Public License</name>
-      <url>http://www.eclipse.org/legal/epl-v10.html</url>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+    <license>
+      <name>MIT license</name>
+      <url>http://opensource.org/licenses/MIT</url>
     </license>
   </licenses>
   <developers>

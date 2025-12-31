@@ -1,10 +1,7 @@
 use rust_decimal::Decimal;
 use time::Date;
 
-use crate::{
-    book::{pad_flag, types::*},
-    digest::Digest,
-};
+use crate::book::{pad_flag, types::*};
 use beancount_parser_lima as parser;
 use color_eyre::eyre::Result;
 use std::fmt::{self, Display, Formatter, Write};
@@ -39,18 +36,6 @@ where
     writeln!(buffered_out_w, "{} {}", Edn(Keyword::Options), Edn(options))?;
 
     writeln!(buffered_out_w, "{MAP_END}")?;
-
-    Ok(())
-}
-
-pub(crate) fn write_digest_as_edn<W>(digest: &Digest, out_w: W) -> Result<()>
-where
-    W: std::io::Write + Copy,
-{
-    use std::io::{BufWriter, Write};
-
-    let mut buffered_out_w = BufWriter::new(out_w);
-    writeln!(buffered_out_w, "{}\n", Edn(digest))?;
 
     Ok(())
 }
@@ -593,48 +578,6 @@ impl<'a> FmtEdn for &parser::Options<'a> {
     }
 }
 
-impl FmtEdn for &Digest {
-    fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
-        use Separator::*;
-
-        map_begin(f)?;
-
-        (
-            Keyword::Accids,
-            EdnMap(self.accids.iter().map(|(k, v)| (k.as_str(), v.as_str()))),
-            Flush,
-        )
-            .fmt_edn(f)?;
-        (
-            Keyword::Txnids,
-            EdnSet(self.txnids.iter().map(|x| x.as_str())),
-            Spaced,
-        )
-            .fmt_edn(f)?;
-        (
-            Keyword::Payees,
-            EdnMap(
-                self.payees
-                    .iter()
-                    .map(|(x, m)| (x.as_str(), EdnMap(m.iter().map(|(k, v)| (k.as_str(), *v))))),
-            ),
-            Spaced,
-        )
-            .fmt_edn(f)?;
-        (
-            Keyword::Narrations,
-            EdnMap(
-                self.narrations
-                    .iter()
-                    .map(|(x, m)| (x.as_str(), EdnMap(m.iter().map(|(k, v)| (k.as_str(), *v))))),
-            ),
-            Spaced,
-        )
-            .fmt_edn(f)?;
-        map_end(f)
-    }
-}
-
 impl FmtEdn for Date {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, r#"#time/date{SPACE}"{self}""#)
@@ -819,27 +762,6 @@ where
             item.fmt_edn(f)?;
         }
         f.write_str(SET_END)
-    }
-}
-
-// a homgeneous map
-struct EdnMap<I, K, V>(I)
-where
-    I: Iterator<Item = (K, V)>;
-
-impl<I, K, V> FmtEdn for EdnMap<I, K, V>
-where
-    I: Iterator<Item = (K, V)>,
-    K: FmtEdn,
-    V: FmtEdn,
-{
-    fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(MAP_BEGIN)?;
-
-        for ((k, v), sep) in self.0.zip(separators()) {
-            (k, v, sep).fmt_edn(f)?;
-        }
-        f.write_str(MAP_END)
     }
 }
 

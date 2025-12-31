@@ -89,7 +89,7 @@
             ] ++ ci-packages;
 
             shellHook = ''
-              PATH=$PATH:$(pwd)/rust/target/debug
+              PATH=$PATH:$(pwd)/scripts.dev:$(pwd)/rust/target/debug
             '';
           };
 

@@ -13,7 +13,7 @@ This is a work-in-progress.  Check back early in the new year!
 
 ## Import
 
-[Import](doc/import.md) is particularly convenient and addresses pain points I encountered with import using classic Beancount tools.
+For a new approach to import see [lima-harvest](https://github.com/tesujimath/beancount-lima-harvest).
 
 ## Balance assertions
 
@@ -27,7 +27,7 @@ Unless the plugin is enabled, the default behaviour is not to do this.
 
 ## Plugins
 
-Lima does not support externally provided plugins.  The intention is that all desired behaviour may be implemented by the end user in Clojure. It remains to be seen whether auto-loading of Clojure plugins will be a useful feature.
+Lima does not (yet) support externally provided plugins.  The intention is that all desired behaviour may be implemented by the end user in Clojure. It remains to be seen whether auto-loading of Clojure plugins will be a useful feature.
 
 That said, there are a handful of internal plugins, as follows.
 
