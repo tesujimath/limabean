@@ -3,10 +3,13 @@ name = "beancount-lima-booking"
 version.workspace = true
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "Beancount booking algorithms for Lima"
-homepage = "https://github.com/tesujimath/beancount-lima"
-repository = "https://github.com/tesujimath/beancount-lima"
+description = "Crate renamed as limabean-booking"
+homepage = "https://github.com/tesujimath/limabean"
+repository = "https://github.com/tesujimath/limabean"
 readme = "../README.md"
+
+[badges]
+maintenance = { status = "deprecated" }
 
 [dependencies]
 beancount-parser-lima = { workspace = true, optional = true }
