@@ -1,6 +1,6 @@
-(ns lima.main
+(ns limabean.main
   (:require [cli-matic.core :refer [run-cmd]])
-  (:require [lima.cli :refer [CONFIGURATION]])
+  (:require [limabean.cli :refer [CONFIGURATION]])
   (:gen-class))
 
 (defn -main [& args] (run-cmd args CONFIGURATION))

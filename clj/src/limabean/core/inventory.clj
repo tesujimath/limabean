@@ -1,4 +1,4 @@
-(ns lima.core.inventory)
+(ns limabean.core.inventory)
 
 ;; TODO instead of explicit delay/force these functions should be macros,
 ;; except that gave me errors from spec, which may be the CIDER integration

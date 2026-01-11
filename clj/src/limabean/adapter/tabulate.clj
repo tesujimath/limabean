@@ -1,4 +1,4 @@
-(ns lima.adapter.tabulate
+(ns limabean.adapter.tabulate
   (:require [clojure.edn :as edn]
             [clojure.java.shell :as shell]
             [java-time.api :as jt]
@@ -6,14 +6,14 @@
             [clojure.string :as str]))
 
 (defn tabulate-cell
-  "Tabulate a cell using lima-pod"
+  "Tabulate a cell using limabean-pod"
   [cell]
   (let [cell-json (cheshire/generate-string cell)
-        tabulated (shell/sh "lima-pod" "tabulate" :in cell-json)]
+        tabulated (shell/sh "limabean-pod" "tabulate" :in cell-json)]
     (if (= (tabulated :exit) 0)
       (tabulated :out)
-      (do (println "lima-pod error" (tabulated :err))
-          (throw (Exception. "lima-pod failed"))))))
+      (do (println "limabean-pod error" (tabulated :err))
+          (throw (Exception. "limabean-pod failed"))))))
 
 (def EMPTY {:empty nil})
 (def SPACE-MINOR " ")
@@ -72,6 +72,6 @@
              accounts))))
 
 (defn inventory
-  "Tabulate an inventory using lima-pod"
+  "Tabulate an inventory using limabean-pod"
   [inv]
   (tabulate-cell (inventory->cell inv)))

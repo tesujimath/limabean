@@ -1,19 +1,19 @@
 [package]
-name = "beancount-lima"
+name = "limabean"
 version.workspace = true
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "Beancount frontend using Lima parser"
-homepage = "https://github.com/tesujimath/beancount-lima"
-repository = "https://github.com/tesujimath/beancount-lima"
+description = "Beancount frontend using Rust and Clojure and the Lima parser"
+homepage = "https://github.com/tesujimath/limabean"
+repository = "https://github.com/tesujimath/limabean"
 readme = "../README.md"
 
 [[bin]]
-name = "lima-pod"
+name = "limabean-pod"
 path = "src/main.rs"
 
 [dependencies]
-beancount-lima-booking = { workspace = true, features = [
+limabean-booking = { workspace = true, features = [
   "lima-parser-types",
   "rust-decimal",
 ] }

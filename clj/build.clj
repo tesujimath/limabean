@@ -2,9 +2,9 @@
   (:refer-clojure :exclude [test])
   (:require [clojure.tools.build.api :as b]))
 
-(def lib 'net.clojars.lima/lima)
+(def lib 'net.clojars.limabean/lima)
 (def version "0.1.0-SNAPSHOT")
-(def main 'lima.main)
+(def main 'limabean.main)
 (def class-dir "target/classes")
 
 (defn test "Run all the tests." [opts]

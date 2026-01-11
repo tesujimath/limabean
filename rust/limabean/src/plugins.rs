@@ -6,7 +6,7 @@ pub(crate) struct InternalPlugins {
     pub(crate) auto_accounts: bool,
     pub(crate) implicit_prices: bool,
 
-    // Lima specific
+    // limabean specific
     pub(crate) balance_rollup: bool, // whether balance directives apply to the rollup of all subaccounts
 }
 
@@ -23,7 +23,7 @@ impl<'a> FromIterator<&'a parser::Plugin<'a>> for InternalPlugins {
                     internal_plugins.implicit_prices = true;
                 }
 
-                "lima.balance_rollup" => {
+                "limabean.balance_rollup" => {
                     internal_plugins.balance_rollup = true;
                 }
                 _ => (),

@@ -1,6 +1,6 @@
-(ns lima.core.inventory-test
+(ns limabean.core.inventory-test
   (:require [clojure.test :refer :all]
-            [lima.core.inventory :refer :all]))
+            [limabean.core.inventory :refer :all]))
 
 (defn cmp-eq? [cmp] (= cmp 0))
 (defn cmp-lt? [cmp] (< cmp 0))

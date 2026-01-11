@@ -200,7 +200,7 @@ impl From<parser::Booking> for Booking {
 }
 
 // TODO where should default_inferred_tolerance_multiplier be defined?
-// (we can't depend on the main beancount-lima crate here)
+// (we can't depend on the main limabean crate here)
 fn default_inferred_tolerance_multiplier() -> Decimal {
     Decimal::new(5, 1) // 0.5
 }

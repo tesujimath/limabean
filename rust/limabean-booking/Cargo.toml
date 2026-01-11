@@ -1,11 +1,11 @@
 [package]
-name = "beancount-lima-booking"
+name = "limabean-booking"
 version.workspace = true
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "Beancount booking algorithms for Lima"
-homepage = "https://github.com/tesujimath/beancount-lima"
-repository = "https://github.com/tesujimath/beancount-lima"
+description = "Beancount booking algorithms for limabean"
+homepage = "https://github.com/tesujimath/limabean"
+repository = "https://github.com/tesujimath/limabean"
 readme = "../README.md"
 
 [dependencies]

@@ -1,5 +1,5 @@
 {
-  description = "A development environment flake for beancount-lima.";
+  description = "A development environment flake for limabean.";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -45,11 +45,11 @@
             clojure
           ];
 
-          beancount-lima-pod =
+          limabean-pod =
             let cargo = builtins.fromTOML (builtins.readFile ./rust/Cargo.toml);
             in pkgs.rustPlatform.buildRustPackage
               {
-                pname = "beancount-lima-pod";
+                pname = "limabean-pod";
                 version = cargo.workspace.package.version;
 
                 src = ./rust;
@@ -59,8 +59,8 @@
                 };
 
                 meta = with pkgs.lib; {
-                  description = "Beancount frontend using Lima parser";
-                  homepage = "https://github.com/tesujimath/beancount-lima";
+                  description = "Beancount frontend using Rust and Clojure and the Lima parser";
+                  homepage = "https://github.com/tesujimath/limabean";
                   license = with licenses; [ asl20 mit ];
                   # maintainers = [ maintainers.tesujimath ];
                 };
@@ -93,13 +93,13 @@
             '';
           };
 
-          packages.default = beancount-lima-pod;
+          packages.default = limabean-pod;
 
           apps = {
             tests = {
               type = "app";
-              program = "${writeShellScript "beancount-lima-tests" ''
-                export PATH=${pkgs.lib.makeBinPath (ci-packages ++ [beancount-lima-pod])}
+              program = "${writeShellScript "limabean-tests" ''
+                export PATH=${pkgs.lib.makeBinPath (ci-packages ++ [limabean-pod])}
                 just test
               ''}";
             };

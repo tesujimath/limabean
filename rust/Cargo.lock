@@ -137,49 +137,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "beancount-lima"
-version = "0.6.0"
-dependencies = [
- "beancount-lima-booking",
- "beancount-parser-lima",
- "build-deps",
- "clap",
- "color-eyre",
- "csv",
- "hashbrown 0.15.4",
- "joinery",
- "regex",
- "rstest",
- "rust_decimal",
- "rust_decimal_macros",
- "serde",
- "serde_json",
- "sgmlish",
- "slugify",
- "strum",
- "strum_macros",
- "tabulator",
- "time",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "beancount-lima-booking"
-version = "0.6.0"
-dependencies = [
- "beancount-parser-lima",
- "hashbrown 0.15.4",
- "rstest",
- "rust_decimal",
- "rust_decimal_macros",
- "strum_macros",
- "time",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "beancount-parser-lima"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -651,6 +608,49 @@ name = "libc"
 version = "0.2.173"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8cfeafaffdbc32176b64fb251369d52ea9f0a8fbc6f8759edffef7b525d64bb"
+
+[[package]]
+name = "limabean"
+version = "0.6.0"
+dependencies = [
+ "beancount-parser-lima",
+ "build-deps",
+ "clap",
+ "color-eyre",
+ "csv",
+ "hashbrown 0.15.4",
+ "joinery",
+ "limabean-booking",
+ "regex",
+ "rstest",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "serde",
+ "serde_json",
+ "sgmlish",
+ "slugify",
+ "strum",
+ "strum_macros",
+ "tabulator",
+ "time",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "limabean-booking"
+version = "0.6.0"
+dependencies = [
+ "beancount-parser-lima",
+ "hashbrown 0.15.4",
+ "rstest",
+ "rust_decimal",
+ "rust_decimal_macros",
+ "strum_macros",
+ "time",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "linux-raw-sys"

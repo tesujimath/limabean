@@ -1,8 +1,8 @@
-(ns lima.cli
+(ns limabean.cli
   (:require [cli-matic.core :as cli-matic]
-            [lima.adapter.beanfile :as beanfile]
-            [lima.adapter.tabulate :as tabulate]
-            [lima.core.inventory :as inv]))
+            [limabean.adapter.beanfile :as beanfile]
+            [limabean.adapter.tabulate :as tabulate]
+            [limabean.core.inventory :as inv]))
 
 (defn report
   "Run the named report"
@@ -14,11 +14,11 @@
               (println tab))))
 
 (def CONFIGURATION
-  {:command "lima",
+  {:command "limabean",
    :description "A new implementation of Beancount in Clojure/Rust",
    :version "0.0.1",
    :subcommands [{:command "report",
-                  :description "Run a canned Lima report",
+                  :description "Run a canned limabean report",
                   :opts [{:as "Name",
                           :option "name",
                           :short 0,

@@ -48,7 +48,7 @@ pub(crate) struct Posting<'a> {
 }
 
 pub(crate) type Cost<'a> =
-    beancount_lima_booking::Cost<Date, Decimal, parser::Currency<'a>, &'a str>;
+    limabean_booking::Cost<Date, Decimal, parser::Currency<'a>, &'a str>;
 
 pub(crate) fn cost_to_cell<'a, 'b>(cost: &'b Cost<'a>) -> Cell<'a, 'static>
 where
@@ -68,7 +68,7 @@ where
     Cell::Row(cells, GUTTER_MINOR)
 }
 
-pub(crate) type PostingCost<'a> = beancount_lima_booking::PostingCost<Date, Decimal, &'a str>;
+pub(crate) type PostingCost<'a> = limabean_booking::PostingCost<Date, Decimal, &'a str>;
 
 pub(crate) fn cur_posting_cost_to_cost<'a>(
     currency: parser::Currency<'a>,
@@ -84,9 +84,9 @@ pub(crate) fn cur_posting_cost_to_cost<'a>(
 }
 
 pub(crate) type PostingCosts<'a> =
-    beancount_lima_booking::PostingCosts<Date, Decimal, parser::Currency<'a>, &'a str>;
+    limabean_booking::PostingCosts<Date, Decimal, parser::Currency<'a>, &'a str>;
 
-pub(crate) type Price<'a> = beancount_lima_booking::Price<Decimal, parser::Currency<'a>>;
+pub(crate) type Price<'a> = limabean_booking::Price<Decimal, parser::Currency<'a>>;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct Amount<'a> {
@@ -140,7 +140,7 @@ where
 }
 
 pub(crate) type Positions<'a> =
-    beancount_lima_booking::Positions<Date, Decimal, parser::Currency<'a>, &'a str>;
+    limabean_booking::Positions<Date, Decimal, parser::Currency<'a>, &'a str>;
 
 // should be From, but both types are third-party
 pub(crate) fn positions_to_cell<'a, 'b>(positions: &'b Positions<'a>) -> Cell<'a, 'static>
@@ -151,7 +151,7 @@ where
 }
 
 pub(crate) type Position<'a> =
-    beancount_lima_booking::Position<Date, Decimal, parser::Currency<'a>, &'a str>;
+    limabean_booking::Position<Date, Decimal, parser::Currency<'a>, &'a str>;
 
 pub(crate) fn position_to_cell<'a, 'b>(position: &'b Position<'a>) -> Cell<'a, 'static>
 where

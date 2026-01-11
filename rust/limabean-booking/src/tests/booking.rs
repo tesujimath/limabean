@@ -10,7 +10,7 @@ use super::{booking_test_err, booking_test_ok, Booking, BookingError, PostingBoo
 // #apply may occur on more than one transaction;  each one is an independent test with these common previous positions
 // #ex is used to build an expected inventory, with each of possible multiple apply's being expected to result in the same
 // #booked is currently ignored, but could be added
-// #reduced is ignored because the Lima booking API does not expose this
+// #reduced is ignored because the limabean booking API does not expose this
 // #apply-combined is a new tag;  all transactions tagged as such are combined into a single test
 
 #[test]

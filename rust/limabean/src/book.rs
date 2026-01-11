@@ -1,7 +1,7 @@
 // TODO remove dead code suppression
 #![allow(dead_code, unused_variables)]
 
-use beancount_lima_booking::{is_supported_method, Booking, Bookings, Interpolated};
+use limabean_booking::{is_supported_method, Booking, Bookings, Interpolated};
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
 };
@@ -184,7 +184,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     pub(crate) fn collect<I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
         I: IntoIterator<Item = &'a Spanned<parser::Directive<'a>>>,
-        T: beancount_lima_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
     {
         let mut errors = Vec::default();
 
@@ -210,7 +210,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         directive: &'a Spanned<parser::Directive<'a>>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: beancount_lima_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
     {
         use parser::DirectiveVariant::*;
 
@@ -240,7 +240,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: beancount_lima_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
     {
         let description = transaction.payee().map_or_else(
             || {
@@ -274,9 +274,9 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         parser::AnnotatedError,
     >
     where
-        T: beancount_lima_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
     {
-        match beancount_lima_booking::book(
+        match limabean_booking::book(
             date,
             postings,
             &self.tolerance,
@@ -407,7 +407,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
             }
             Err(e) => {
                 tracing::error!("booking error {}", &e);
-                use beancount_lima_booking::BookingError::*;
+                use limabean_booking::BookingError::*;
 
                 match &e {
                     Transaction(e) => Err(element.error(e.to_string()).into()),
@@ -522,7 +522,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: beancount_lima_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
     {
         let account_name = balance.account().item().as_ref();
         let balance_currency = *balance.atol().amount().currency().item();
