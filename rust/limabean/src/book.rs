@@ -1,11 +1,11 @@
 // TODO remove dead code suppression
 #![allow(dead_code, unused_variables)]
 
-use limabean_booking::{is_supported_method, Booking, Bookings, Interpolated};
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
 };
 use color_eyre::eyre::{eyre, Result, WrapErr};
+use limabean_booking::{is_supported_method, Booking, Bookings, Interpolated};
 use std::{io::Write, path::Path};
 
 use rust_decimal::Decimal;
@@ -301,6 +301,24 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
                 let mut prices: HashSet<(parser::Currency, parser::Currency, Decimal)> =
                     HashSet::default();
+
+                // check all postings have valid accounts and currencies
+                // returning the first error
+                if let Some(error) = interpolated_postings
+                    .iter()
+                    .zip(postings)
+                    .filter_map(|(interpolated, posting)| {
+                        self.validate_account_and_currency(
+                            &into_spanned_element(posting),
+                            posting.account().item().as_ref(),
+                            interpolated.currency,
+                        )
+                        .map_or_else(Some, |_| None)
+                    })
+                    .next()
+                {
+                    return Err(error);
+                }
 
                 // an interpolated posting arising from a reduction with multiple costs is mapped here to several postings,
                 // each with a simple cost, so we don't have to deal with composite costs for a posting elsewhere
