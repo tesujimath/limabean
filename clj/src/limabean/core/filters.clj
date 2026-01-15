@@ -32,7 +32,7 @@
 (defn date>=
   "Predicate for :date field to be >= begin-date, or false if no date field"
   [begin-date]
-  (let [begin-date [begin-date (ensure-local-date begin-date)]]
+  (let [begin-date (ensure-local-date begin-date)]
     #(let [date (:date %)] (and date (jt/not-before? date begin-date)))))
 
 (defn date-between

@@ -120,7 +120,7 @@
   (let [{:keys [reduce-f positions]} sca] (reduce-f rf result positions)))
 
 (defn accumulator
-  "Create an inventory accumulator, which must be finalized after accumulation is complete, using finalize-inventory."
+  "Create an inventory accumulator."
   ([method] (let [rule (booking-rule method)] {:rule rule, :scas {}})))
 
 (defn accumulate
@@ -136,8 +136,8 @@
               (single-currency-accumulator rule))]
     (assoc inv :scas (assoc scas cur (sca-accumulate sca p)))))
 
-(defn finalize
-  "Finalize an inventory accumulator into a list of positions"
+(defn balance
+  "Return the current balance of an inventory accumulator as a list of positions"
   [inv]
   (let [{:keys [scas]} inv
         currencies (sort (keys scas))]
@@ -165,7 +165,7 @@
                       postings))
         accounts (sort (keys cumulated))]
     (reduce (fn [result account]
-              (let [account-positions (finalize (get cumulated account))]
+              (let [account-positions (balance (get cumulated account))]
                 (if (seq account-positions)
                   ;; only keep the non-empty positions
                   (assoc result account account-positions)

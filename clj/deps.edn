@@ -3,7 +3,9 @@
                                       refactor-nrepl/refactor-nrepl
                                         {:mvn/version "3.11.0"}}}, ; clj-refactor
                                                                    ; middleware
-           :dev {:extra-paths ["dev"], :main-opts ["-m" "user"]},
+           :dev {:extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}},
+                 :extra-paths ["dev"],
+                 :main-opts ["-m" "user"]},
            :run-m {:main-opts ["-m" "limabean.main"]},
            :run-x {:exec-args {:name "Clojure"},
                    :exec-fn greet,

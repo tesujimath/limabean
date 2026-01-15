@@ -2,7 +2,7 @@
   (:require [limabean.adapter.beanfile :as beanfile]
             [limabean.adapter.tabulate :as tabulate]
             [limabean.core.filters :as f]
-            [limabean.core.inventory :as inventory]
+            [limabean.core.inventory :as inv]
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]))
 
@@ -29,6 +29,14 @@
                                            (:name-assets *options*)
                                            (:name-liabilities *options*))))
                            *directives*)
-        inv (inventory/build postings (:acc-booking *registry*))]
+        inv (inv/build postings (:acc-booking *registry*))]
     (println (tabulate/inventory inv)))
+  :ok)
+
+(defn print-register
+  "Print a register of postings with running balance"
+  [& filters]
+  (let [reg (eduction (comp (xf/postings) (xf/all-of filters) (xf/register))
+                      *directives*)]
+    (println (tabulate/register (into [] reg))))
   :ok)
