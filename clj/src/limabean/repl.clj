@@ -1,0 +1,34 @@
+(ns limabean.repl
+  (:require [limabean.adapter.beanfile :as beanfile]
+            [limabean.adapter.tabulate :as tabulate]
+            [limabean.core.filters :as f]
+            [limabean.core.inventory :as inventory]
+            [limabean.core.registry :as registry]
+            [limabean.core.xf :as xf]))
+
+(def ^:dynamic *directives* nil)
+(def ^:dynamic *options* nil)
+(def ^:dynamic *registry* nil)
+
+(defn load-beanfile
+  [path]
+  (let [beans (beanfile/book path)]
+    (alter-var-root #'*directives* (constantly (:directives beans)))
+    (alter-var-root #'*options* (constantly (:options beans)))
+    (alter-var-root #'*registry*
+                    (constantly (registry/build *directives* *options*)))
+    (println (count *directives*) "directives loaded"))
+  :ok)
+
+(defn print-inventory [inv] (println (tabulate/inventory inv)) :ok)
+
+(defn print-balances
+  []
+  (let [postings (eduction (comp (xf/postings)
+                                 (filter (f/some-sub-acc
+                                           (:name-assets *options*)
+                                           (:name-liabilities *options*))))
+                           *directives*)
+        inv (inventory/build postings (:acc-booking *registry*))]
+    (println (tabulate/inventory inv)))
+  :ok)

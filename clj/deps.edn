@@ -21,8 +21,10 @@
  :deps {cheshire/cheshire {:mvn/version "6.1.0"},
         cli-matic/cli-matic {:mvn/version "0.5.4"},
         clojure.java-time/clojure.java-time {:mvn/version "1.4.3"},
+        com.fasterxml.jackson.datatype/jackson-datatype-jsr310 {:mvn/version
+                                                                  "2.18.4"},
+        com.taoensso/telemere {:mvn/version "1.2.1"},
         io.forward/yaml {:mvn/version "1.0.11"},
-        metosin/malli {:mvn/version "0.19.1"},
         org.clojure/clojure {:mvn/version "1.11.1"},
         org.clojure/data.csv {:mvn/version "1.1.0"}},
  :paths ["src" "resources"]}

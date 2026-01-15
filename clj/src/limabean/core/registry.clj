@@ -1,4 +1,5 @@
-(ns limabean.core.registry)
+(ns limabean.core.registry
+  (:require [taoensso.telemere :as tel]))
 
 (defn build
   "Accumulate directives into registry"
@@ -39,7 +40,11 @@
         acc-curs (into {} (map (fn [[k v]] [k (vec (sort v))]) acc-cur-sets))
         curs (vec (sort (into #{} (mapcat (fn [[_ v]] v) acc-cur-sets))))
         accs (vec (sort (keys acc-booking)))]
-    {:acc-booking (fn [acc] (get acc-booking acc)),
+    {:acc-booking (fn [acc]
+                    (let [booking (get acc-booking acc)
+                          _ (tel/log! {:id ::acc-booking,
+                                       :data {:acc acc, :booking booking}})]
+                      booking)),
      :acc-curs (fn [acc] (get acc-curs acc)),
      :accs (fn [] accs),
      :curs (fn [] curs)}))

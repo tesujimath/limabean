@@ -19,22 +19,3 @@
       (read-edn-string (booked :out))
       (do (println "limabean-pod error" (booked :err))
           (throw (Exception. "limabean-pod failed"))))))
-
-(defn digest
-  "Read EDN from limabean-pod digest and return or throw"
-  [beancount-path]
-  (let [digested (shell/sh "limabean-pod" "digest" beancount-path)]
-    (if (= (digested :exit) 0)
-      (read-edn-string (digested :out))
-      (do (println "limabean-pod error" (digested :err))
-          (throw (Exception. "limabean-pod failed"))))))
-
-(defn inventory
-  "Read EDN from limabean-pod book and return or throw"
-  [beancount-path]
-  (let [booked (shell/sh "limabean-pod" "book" "-f" "edn" beancount-path)]
-    (if (= (booked :exit) 0)
-      (let [{:keys [directives options]} (read-edn-string (booked :out))]
-        (inv/build directives options))
-      (do (println "limabean-pod error" (booked :err))
-          (throw (Exception. "limabean-pod failed"))))))

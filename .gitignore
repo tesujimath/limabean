@@ -4,3 +4,4 @@ target/
 /*log
 **/tests/**/*.actual.beancount
 /result
+*-log.json

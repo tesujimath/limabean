@@ -90,6 +90,8 @@
 
             shellHook = ''
               PATH=$PATH:$(pwd)/scripts.dev:$(pwd)/rust/target/debug
+
+              export LIMABEAN_LOGPATH=$(pwd)/limabean-log.json
             '';
           };
 
