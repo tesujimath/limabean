@@ -1,4 +1,4 @@
-(ns limabean.core.register
+(ns limabean.core.journal
   (:require [limabean.core.inventory :as inventory]
             [limabean.core.tabulate :refer
              [stack row align-left date->cell decimal->cell positions->cell
@@ -18,7 +18,7 @@
         ;; step
         ([result p]
          (let [acc (:acc p)
-               p (dissoc p :cost) ;; register excludes cost
+               p (dissoc p :cost) ;; journal excludes cost
                accumulated (inventory/accumulate @state p)
                bal (inventory/balance accumulated)]
            (vreset! state accumulated)
@@ -26,9 +26,9 @@
 
 (defn build
   [postings]
-  (tabular {:postings (into [] (with-bal) postings)} ::register))
+  (tabular {:postings (into [] (with-bal) postings)} ::journal))
 
-(defmethod tabulate ::register
+(defmethod tabulate ::journal
   [reg]
   (stack (mapv (fn [p]
                  (row [(date->cell (:date p)) (align-left (:acc p))

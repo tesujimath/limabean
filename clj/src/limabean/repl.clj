@@ -7,7 +7,7 @@
             [limabean.core.inventory :as inventory]
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
-            [limabean.core.register :as register]))
+            [limabean.core.journal :as journal]))
 
 (def ^:dynamic *directives* nil)
 (def ^:dynamic *options* nil)
@@ -41,9 +41,9 @@
           (f/some-sub-acc (:name-assets *options*)
                           (:name-liabilities *options*)))))
 
-(defn register
-  "Build a register of postings with running balance"
+(defn journal
+  "Build a journal of postings with running balance"
   [& filters]
-  (register/build (postings filters)))
+  (journal/build (postings filters)))
 
 (def show show/show)
