@@ -20,7 +20,7 @@
          (let [acc (:acc p)
                p (dissoc p :cost) ;; journal excludes cost
                accumulated (inventory/accumulate @state p)
-               bal (inventory/balance accumulated)]
+               bal (inventory/positions accumulated)]
            (vreset! state accumulated)
            (rf result (assoc p :bal bal))))))))
 

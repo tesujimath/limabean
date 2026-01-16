@@ -6,7 +6,7 @@
 ;; TODO instead of explicit delay/force these functions should be macros,
 ;; except that gave me errors from spec, which may be the CIDER integration
 
-(defn compare-empty-first-or*
+(defn- compare-empty-first-or*
   "If either x or y is empty, that compares first, otherwise else."
   [x y else]
   (cond (and (empty? x) (empty? y)) 0
@@ -14,7 +14,7 @@
         (empty? y) 1
         :else (force else)))
 
-(defn compare-nil-first-or*
+(defn- compare-nil-first-or*
   "If either x or y is nil, that compares first, otherwise else."
   [x y else]
   (cond (and (nil? x) (nil? y)) 0
@@ -22,22 +22,22 @@
         (nil? y) 1
         :else (force else)))
 
-(defn compare-nil-first
+(defn- compare-nil-first
   "If either x or y is nil, that compares first, otherwise standard compare."
   [x y]
   (compare-nil-first-or* x y (delay (compare x y))))
 
-(defn compare-different-or*
+(defn- compare-different-or*
   "If the values compare different return that, else return the else."
   [x y else]
   (let [cmp (compare x y)] (if (not= 0 cmp) cmp (force else))))
 
-(defn compare-nil-first-different-or*
+(defn- compare-nil-first-different-or*
   "If the values compare different return that, else return the else."
   [x y else]
   (let [cmp (compare-nil-first x y)] (if (not= 0 cmp) cmp (force else))))
 
-(defn compare-cost-keys
+(defn- compare-cost-keys
   "Compare cost keys"
   [x y]
   (compare-empty-first-or*
@@ -60,14 +60,14 @@
                                    (delay (compare-nil-first merge-x
                                                              merge-y))))))))))))
 
-(defn booking-rule
+(defn- booking-rule
   "Map a booking method to the rule for combining positions, :merge or :append."
   [method]
   (cond (method #{:strict :strict-with-size :fifo :lifo :hifo}) :merge
         (= method :none) :append
         :else (throw (Exception. (format "unsupported booking method"
                                          method)))))
-(defn position-key
+(defn- position-key
   "Return a key for a position which separates out by cost."
   [pos]
   (let [cost (:cost pos)]
@@ -75,11 +75,11 @@
       [(:date cost) (:cur cost) (:per-unit cost) (:label cost) (:merge cost)]
       [])))
 
-(defn update-or-set
+(defn- update-or-set
   [m k f v1]
   (let [v0 (get m k)] (if v0 (assoc m k (f v0)) (assoc m k v1))))
 
-(defn single-currency-accumulator
+(defn- single-currency-accumulator
   "Position accumulator for a single currency"
   [rule]
   (case rule
@@ -113,12 +113,12 @@
                            (reduce rf result1 (:at-cost positions)))),
              :positions {:simple nil, :at-cost []}}))
 
-(defn sca-accumulate
+(defn- sca-accumulate
   [sca pos]
   (let [{:keys [accumulate-f positions]} sca]
     (assoc sca :positions (accumulate-f positions pos))))
 
-(defn sca-reduce
+(defn- sca-reduce
   [rf result sca]
   (let [{:keys [reduce-f positions]} sca] (reduce-f rf result positions)))
 
@@ -139,7 +139,7 @@
               (single-currency-accumulator rule))]
     (assoc inv :scas (assoc scas cur (sca-accumulate sca p)))))
 
-(defn balance
+(defn positions
   "Return the current balance of an inventory accumulator as a list of positions"
   [inv]
   (let [{:keys [scas]} inv
@@ -168,7 +168,7 @@
                       postings))
         accounts (sort (keys cumulated))]
     (reduce (fn [result account]
-              (let [account-positions (balance (get cumulated account))]
+              (let [account-positions (positions (get cumulated account))]
                 (if (seq account-positions)
                   ;; only keep the non-empty positions
                   (assoc result account account-positions)

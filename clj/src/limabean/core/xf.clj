@@ -1,5 +1,4 @@
-(ns limabean.core.xf
-  (:require [limabean.core.inventory :as inv]))
+(ns limabean.core.xf)
 
 (defn all-of
   "Transducer to filter items selected by all filters"

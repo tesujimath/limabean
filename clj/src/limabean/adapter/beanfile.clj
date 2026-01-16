@@ -1,8 +1,7 @@
 (ns limabean.adapter.beanfile
   (:require [clojure.edn :as edn]
             [clojure.java.shell :as shell]
-            [java-time.api :as jt]
-            [limabean.core.inventory :as inv]))
+            [java-time.api :as jt]))
 
 (def readers {'time/date #(jt/local-date %)})
 
