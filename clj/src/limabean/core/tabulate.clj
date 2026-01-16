@@ -1,4 +1,4 @@
-(ns limabean.core.cell
+(ns limabean.core.tabulate
   (:require [java-time.api :as jt]
             [clojure.string :as str]))
 
@@ -57,23 +57,14 @@
     1 (position->cell (first positions))
     (stack (mapv position->cell positions))))
 
-(defn inventory->cell
-  "Format an inventory into a cell ready for tabulation"
-  [inv]
-  (let [accounts (sort (keys inv))]
-    (stack (mapv (fn [account]
-                   (row [(align-left account)
-                         (positions->cell (get inv account))]
-                        SPACE-MEDIUM))
-             accounts))))
+(defn untabular-keys [x] (remove #(= :limabean/tabular %) (keys x)))
 
-(defn register->cell
-  "Format a register into a cell ready for tabulation"
-  [reg]
-  (stack (mapv (fn [p]
-                 (row [(date->cell (:date p)) (align-left (:acc p))
-                       (align-left (:payee p)) (align-left (:narration p))
-                       (decimal->cell (:units p)) (align-left (:cur p))
-                       (positions->cell (:bal p))]
-                      SPACE-MEDIUM))
-           reg)))
+(defn tabular [m tag] (assoc m :limabean/tabular tag))
+
+(defmulti tabulate
+  "Tabulate to a cell, or nil if not tabular"
+  (fn [x & _]
+    (cond (map? x) (:limabean/tabular x)
+          :else ::default)))
+
+(defmethod tabulate ::default [x] nil)

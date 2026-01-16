@@ -2,7 +2,7 @@
   (:require [limabean.adapter.beanfile :as beanfile]
             [limabean.adapter.tabulate :as tabulate]
             [limabean.core.filters :as f]
-            [limabean.core.inventory :as inv]
+            [limabean.core.inventory :as inventory]
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
             [taoensso.telemere :as tel]))
@@ -23,5 +23,5 @@
                                                         (:name-liabilities
                                                           options))))
                                         directives)
-                     inv (inv/build postings (:acc-booking registry))]
+                     inv (inventory/build postings (:acc-booking registry))]
                  (println (tabulate/inventory inv)))))

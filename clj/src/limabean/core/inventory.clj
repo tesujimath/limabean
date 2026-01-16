@@ -1,4 +1,7 @@
-(ns limabean.core.inventory)
+(ns limabean.core.inventory
+  (:require [limabean.core.tabulate :refer
+             [stack row align-left date->cell decimal->cell positions->cell
+              SPACE-MEDIUM tabular untabular-keys tabulate]]))
 
 ;; TODO instead of explicit delay/force these functions should be macros,
 ;; except that gave me errors from spec, which may be the CIDER integration
@@ -170,5 +173,14 @@
                   ;; only keep the non-empty positions
                   (assoc result account account-positions)
                   result)))
-      {}
+      (tabular {} ::inventory)
       accounts)))
+
+(defmethod tabulate ::inventory
+  [inv]
+  (let [accounts (sort (untabular-keys inv))]
+    (stack (mapv (fn [account]
+                   (row [(align-left account)
+                         (positions->cell (get inv account))]
+                        SPACE-MEDIUM))
+             accounts))))
