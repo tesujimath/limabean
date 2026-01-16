@@ -46,16 +46,29 @@
 (defn some-acc
   "Predicate for :acc field to be equal to one of target-accs, or false if no acc field"
   [& target-accs]
-  #(let [acc (:acc %)]
-     (and acc)
-     (contains? (set target-accs) acc)))
+  #(let [acc (:acc %)] (and acc (contains? (set target-accs) acc))))
 
 (defn some-sub-acc
   "Predicate for :acc field to be equal to acc or a subaccount of it, or false if no acc field"
   [& target-accs]
   #(let [acc (:acc %)]
-     (and acc)
-     (boolean (some (fn [target-acc]
-                      (or (= acc target-acc)
-                          (str/starts-with? acc (str target-acc ":"))))
-                    target-accs))))
+     (and acc
+          (boolean (some (fn [target-acc]
+                           (or (= acc target-acc)
+                               (str/starts-with? acc (str target-acc ":"))))
+                         target-accs)))))
+
+(defn- field-match
+  "Helper for whether the given field matches the regex"
+  [key regex]
+  #(let [field (get % key)] (and field (seq (re-seq regex field)) true)))
+
+(defn payee-match
+  "Predicate for whether the payee matches the given regex"
+  [regex]
+  (field-match :payee regex))
+
+(defn narration-match
+  "Predicate for whether the narration matches the given regex"
+  [regex]
+  (field-match :narration regex))
