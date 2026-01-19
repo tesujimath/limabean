@@ -1,7 +1,5 @@
 (ns limabean.core.inventory
-  (:require [limabean.core.tabulate :refer
-             [stack row align-left date->cell decimal->cell positions->cell
-              SPACE-MEDIUM tabular untabular-keys tabulate]]))
+  (:require [limabean.core.cell :as cell :refer [cell]]))
 
 ;; TODO instead of explicit delay/force these functions should be macros,
 ;; except that gave me errors from spec, which may be the CIDER integration
@@ -147,7 +145,9 @@
     (reduce (fn [result cur]
               (sca-reduce (fn [result p]
                             ;; only keep the non-zero positions
-                            (if (zero? (:units p)) result (conj result p)))
+                            (if (zero? (:units p))
+                              result
+                              (conj result (cell/mark p :position))))
                           result
                           (get scas cur)))
       []
@@ -166,21 +166,38 @@
                                 (assoc! result acc (accumulate inv p))))
                       init
                       postings))
-        accounts (sort (keys cumulated))]
-    (reduce (fn [result account]
-              (let [account-positions (positions (get cumulated account))]
-                (if (seq account-positions)
-                  ;; only keep the non-empty positions
-                  (assoc result account account-positions)
-                  result)))
-      (tabular {} ::inventory)
-      accounts)))
+        accounts (sort (keys cumulated))
+        inv (reduce (fn [result account]
+                      (let [account-positions (positions (get cumulated
+                                                              account))]
+                        (if (seq account-positions)
+                          ;; only keep the non-empty positions
+                          (assoc result account account-positions)
+                          result)))
+              {}
+              accounts)]
+    (cell/mark inv :inventory)))
 
-(defmethod tabulate ::inventory
+(defmethod cell :inventory
   [inv]
-  (let [accounts (sort (untabular-keys inv))]
-    (stack (mapv (fn [account]
-                   (row [(align-left account)
-                         (positions->cell (get inv account))]
-                        SPACE-MEDIUM))
-             accounts))))
+  (let [accounts (sort (cell/real-keys inv))]
+    (cell/stack (mapv (fn [account]
+                        (cell/row [(cell account) (cell (get inv account))]
+                                  cell/SPACE-MEDIUM))
+                  accounts))))
+
+
+(defn cost->cell
+  "Format a cost into a cell, avoiding the clutter of cell/type tagging"
+  [cost]
+  (cell/row [(cell (:date cost)) (cell (:cur cost)) (cell (:per-unit cost))
+             (cell (:label cost)) (cell (if (:merge cost) "*" nil))]
+            cell/SPACE-MINOR))
+
+(defmethod cell :position
+  [pos]
+  (let [units (cell/row [(cell (:units pos)) (cell (:cur pos))]
+                        cell/SPACE-MINOR)]
+    (if-let [cost (:cost pos)]
+      (cell/row [units (cost->cell cost)] cell/SPACE-MEDIUM)
+      (cell/row [units] cell/SPACE-MEDIUM))))

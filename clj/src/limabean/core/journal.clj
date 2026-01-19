@@ -1,8 +1,7 @@
 (ns limabean.core.journal
   (:require [limabean.core.inventory :as inventory]
-            [limabean.core.tabulate :refer
-             [stack row align-left date->cell decimal->cell positions->cell
-              SPACE-MEDIUM tabular tabulate]]))
+            [limabean.core.cell :refer [cell]]
+            [limabean.core.cell :as cell]))
 
 (defn with-bal
   "Return a (stateful) transducer to add a running total of units to postings.
@@ -22,18 +21,13 @@
                accumulated (inventory/accumulate @state p)
                bal (inventory/positions accumulated)]
            (vreset! state accumulated)
-           (rf result (assoc p :bal bal))))))))
+           (rf result (cell/mark (assoc p :bal bal) :journal/entry))))))))
 
-(defn build
-  [postings]
-  (tabular {:postings (into [] (with-bal) postings)} ::journal))
+(defn build [postings] (into [] (with-bal) postings))
 
-(defmethod tabulate ::journal
-  [reg]
-  (stack (mapv (fn [p]
-                 (row [(date->cell (:date p)) (align-left (:acc p))
-                       (align-left (:payee p)) (align-left (:narration p))
-                       (decimal->cell (:units p)) (align-left (:cur p))
-                       (positions->cell (:bal p))]
-                      SPACE-MEDIUM))
-           (:postings reg))))
+(defmethod cell :journal/entry
+  [p]
+  (cell/row [(cell (:date p)) (cell (:acc p)) (cell (:payee p))
+             (cell (:narration p)) (cell (:units p)) (cell (:cur p))
+             (cell (:bal p))]
+            cell/SPACE-MEDIUM))

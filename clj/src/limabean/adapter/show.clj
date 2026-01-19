@@ -1,10 +1,10 @@
 (ns limabean.adapter.show
   (:require [clojure.pprint :refer [pprint]]
             [limabean.adapter.tabulate :refer [render]]
-            [limabean.core.tabulate :refer [tabulate]]))
+            [limabean.core.cell :refer [cell]]))
 
 (defn show
-  "Generic pretty printer"
+  "Show anything which can be rendered as a cell, with fallback to pprint"
   [x]
-  (let [cell (tabulate x)] (if cell (println (render cell)) (pprint x)))
+  (let [c (cell x)] (if c (println (render c)) (pprint x)))
   :ok)

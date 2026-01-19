@@ -1,6 +1,6 @@
 (ns limabean.app
   (:require [limabean.adapter.beanfile :as beanfile]
-            [limabean.adapter.tabulate :as tabulate]
+            [limabean.adapter.show :refer [show]]
             [limabean.core.filters :as f]
             [limabean.core.inventory :as inventory]
             [limabean.core.registry :as registry]
@@ -24,4 +24,4 @@
                                                           options))))
                                         directives)
                      inv (inventory/build postings (:acc-booking registry))]
-                 (println (tabulate/inventory inv)))))
+                 (show inv))))
