@@ -20,9 +20,7 @@
                        (reduce (fn [result p]
                                  (let [acc-curs (:acc-curs result)
                                        acc (:acc p)
-                                       curs (if-let [curs (get acc-curs acc)]
-                                              curs
-                                              (transient #{}))]
+                                       curs (get acc-curs acc (transient #{}))]
                                    (assoc! result
                                            :acc-curs
                                            (assoc! acc-curs

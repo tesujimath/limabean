@@ -132,9 +132,7 @@
         p (select-keys p [:units :cur :cost])
         cur (:cur p)
         ;; lookup the sca for this currency, or create a new one
-        sca (if-let [sca (get scas cur)]
-              sca
-              (single-currency-accumulator rule))]
+        sca (get scas cur (single-currency-accumulator rule))]
     (assoc inv :scas (assoc scas cur (sca-accumulate sca p)))))
 
 (defn positions
@@ -156,7 +154,7 @@
 (defn- positions->units-by-currency
   [ps]
   (reduce (fn [result p]
-            (let [units (or (get result (:cur p)) 0M)]
+            (let [units (get result (:cur p) 0M)]
               (assoc result (:cur p) (+ units (:units p)))))
     {}
     ps))
@@ -177,7 +175,7 @@
 (defn positions->units-of
   "Collapse positions down to units only of the specified currency with no costs, or zero if none"
   [ps cur]
-  (let [by-cur (positions->units-by-currency ps)] (or (get by-cur cur) 0M)))
+  (let [by-cur (positions->units-by-currency ps)] (get by-cur cur 0M)))
 
 (defn build
   "Cumulate postings into inventory according to booking method"

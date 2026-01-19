@@ -38,7 +38,7 @@
   [inv cur]
   (let [acc-units (into {} (account-units cur) (cell/unmark inv))
         rollup-units (reduce (fn [r [acc units]]
-                               (assoc r acc (+ units (or (get r acc) 0M))))
+                               (assoc r acc (+ units (get r acc 0M))))
                        {}
                        (eduction (with-ancestors-units) acc-units))
         max-depth (let [depths (map account-depth (keys acc-units))]
