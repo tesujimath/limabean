@@ -16,7 +16,7 @@ plugin "a_mythical_plugin_with_config" "the config"
   ;   ; New Zealand Dollar
 
 ; taken from Beancount docs, with added tag/link/metadata
-2014-07-09 price HOOL 579.18 USD #watcha ^cool.co
+2014-07-09 price HOOL                                     579.18 USD #watcha ^cool.co
   heat: "on"
 
 1972-05-28 open Assets:AccountsReceivable:Taxes    USD,CAD
@@ -25,7 +25,7 @@ plugin "a_mythical_plugin_with_config" "the config"
 
 1972-05-28 open Equity:Opening-Balances
 
-2016-03-01 open Assets:Bank:Unspecified
+2016-03-01 open Assets:Bank:Savings
 
 2016-03-01 open Assets:Bank:Current NZD #money ^www.bank.com
   ;   check commodity == "NZD"
@@ -35,7 +35,6 @@ plugin "a_mythical_plugin_with_config" "the config"
 
 ; TODO this should be an error, can only open an account once:
 ; 2025-03-01 open Assets:Bank:Current
-
 
 2016-03-01 open Expenses:Groceries NZD "FIFO"
   ;   check commodity == "NZD"
@@ -48,7 +47,7 @@ pushtag #essential
 pushmeta price: "expensive"
 
 2017-11-17 pad Assets:US:TD:Checking Equity:Opening-Balances
-2017-11-18 balance Assets:US:TD:Checking                               23954.04 USD
+2017-11-18 balance Assets:US:TD:Checking                23954.04 USD
 
 2012-01-09 * "VISA DDA PUR 444500     WHOLEFDS -- VISA DDA PUR 444500     WHOLEFDS HOU 10236          NEW YORK      * NY"
 
@@ -56,13 +55,17 @@ pushmeta price: "expensive"
 
 ; Martin
 2013-01-01 * "Buy CRA shares" ^old-transactions-008
-  Assets:CA:RBC-Investing:Taxable-CAD:Cash                             -1395.43 CAD @ 1/1.4576 USD
+  Assets:CA:RBC-Investing:Taxable-CAD:Cash              -1395.43 CAD @ 1/1.4576 USD
   Assets:US:TD:Checking
 
 2023-05-29 * "New World Gardens North East Va ;" ^newworld.co.nz
   Assets:Bank:Current                        -30 -9.65 NZD
   ofxid: "0.12-3456-1234567-01.29May2023.1"  ; from ledger-autosync
   Expenses:Groceries
+
+2023-06-10 * "Transfer"
+  Assets:Bank:Current                                    -100.00 NZD
+  Assets:Bank:Savings
 
 popmeta price:
 
@@ -71,16 +74,16 @@ poptag #essential
 2023-05-29 pad Assets:Bank:Current Equity:Opening-Balances #fudge
   evil: "unseen"
 
-2023-05-30 balance Assets:Bank:Current          1000 ~ 0.01 NZD #richman
+2023-05-30 balance Assets:Bank:Current          1000 ~      0.01 NZD #richman
 
-2023-05-30 balance Expenses:Groceries                                     39.65 NZD
+2023-05-30 balance Expenses:Groceries                      39.65 NZD
   meals: "cheap"
 
 pushmeta drink: "alcoholic"
 
 2023-05-31 * "EMERSON S TAPROOM DUNEDIN ;"
   ; indented comment
-  Assets:Bank:Current                                                    -25.00 NZD
+  Assets:Bank:Current                                     -25.00 NZD
   ofxid: "0.12-3456-1234567-01.31May2023.3"
   Expenses:Entertainment:Drinks-and-snacks
   #mytag1
@@ -108,7 +111,7 @@ popmeta drink:
 
 2022-01-30 * "Z Energy ;" #petrol
   #car
-  Assets:Bank:Current                                                   -125.00 NZD
+  Assets:Bank:Current                                    -125.00 NZD
   ofxid: "0.12-3456-1234567-01.31May2023.3"
   Expenses:Car:Fuel
 

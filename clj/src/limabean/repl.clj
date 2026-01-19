@@ -7,7 +7,8 @@
             [limabean.core.inventory :as inventory]
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
-            [limabean.core.journal :as journal]))
+            [limabean.core.journal :as journal]
+            [limabean.core.rollup :as rollup]))
 
 (def ^:dynamic *directives* nil)
 (def ^:dynamic *options* nil)
@@ -32,6 +33,13 @@
   "Build inventory after applying filters, if any"
   [& filters]
   (inventory/build (postings filters) (:acc-booking *registry*)))
+
+(defn rollup
+  "Build a rollup for the primary currency"
+  [& filters]
+  (let [inv (apply inventory filters)
+        primary-cur (first (apply max-key val (inventory/currency-freqs inv)))]
+    (rollup/build inv primary-cur)))
 
 (defn balances
   "Build balances, optionally further filtered"

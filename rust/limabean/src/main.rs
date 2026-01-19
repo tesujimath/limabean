@@ -83,7 +83,7 @@ fn main() -> Result<()> {
                     println!("{}", &cell);
                 }
                 Err(e) => {
-                    eprintln!("JSON decode error: {}", &e);
+                    eprintln!("JSON decode error: {}\n{}", &e, &input);
                     exit(1);
                 }
             };

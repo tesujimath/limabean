@@ -58,6 +58,11 @@
                                (str/starts-with? acc (str target-acc ":"))))
                          target-accs)))))
 
+(defn cur
+  "Predicate for :cur field to be equal to target-cur, or false if no cur field"
+  [target-cur]
+  #(let [cur (:cur %)] (and cur (= cur target-cur))))
+
 (defn- field-match
   "Helper for whether the given field matches the regex"
   [key regex]

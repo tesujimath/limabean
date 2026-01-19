@@ -153,6 +153,32 @@
       []
       currencies)))
 
+(defn- positions->units-by-currency
+  [ps]
+  (reduce (fn [result p]
+            (let [units (or (get result (:cur p)) 0M)]
+              (assoc result (:cur p) (+ units (:units p)))))
+    {}
+    ps))
+
+(defn- positions->currencies
+  [ps]
+  (let [by-cur (positions->units-by-currency ps)
+        curs (sort (keys by-cur))]
+    curs))
+
+(defn positions->units
+  "Collapse positions down to units only with no costs"
+  [ps]
+  (let [by-cur (positions->units-by-currency ps)
+        curs (sort (keys by-cur))]
+    (mapv (fn [cur] {:units (get by-cur cur), :cur cur}) curs)))
+
+(defn positions->units-of
+  "Collapse positions down to units only of the specified currency with no costs, or zero if none"
+  [ps cur]
+  (let [by-cur (positions->units-by-currency ps)] (or (get by-cur cur) 0M)))
+
 (defn build
   "Cumulate postings into inventory according to booking method"
   [postings acc-booking-fn]
@@ -177,6 +203,16 @@
               {}
               accounts)]
     (cell/mark inv :inventory)))
+
+(defn currency-freqs
+  "Return map of frequency of currency use by currency"
+  [inv]
+  (reduce (fn [curs acc]
+            (reduce (fn [curs cur] (assoc curs cur (inc (get curs cur 0))))
+              curs
+              (positions->currencies (get inv acc))))
+    {}
+    (cell/real-keys inv)))
 
 (defmethod cell :inventory
   [inv]
