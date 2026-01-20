@@ -17,11 +17,11 @@
                           :short 0,
                           :type app/reports,
                           :default app/default-report}
-                         {:as "Beancount file path",
-                          :option "beanpath",
+                         {:as "Beancount file",
+                          :option "beanfile",
                           :short 1,
                           :type :string,
-                          :env "LIMA_BEANPATH",
+                          :env "LIMABEAN_BEANFILE",
                           :default :present}],
                   :runs app/report}]})
 

@@ -9,8 +9,12 @@ repository = "https://github.com/tesujimath/limabean"
 readme = "../README.md"
 
 [[bin]]
+name = "limabean"
+path = "src/bin/limabean/main.rs"
+
+[[bin]]
 name = "limabean-pod"
-path = "src/main-pod.rs"
+path = "src/bin/limabean-pod/main.rs"
 
 [dependencies]
 limabean-booking = { path = "../limabean-booking", version = "0.6.0", features = [
@@ -39,6 +43,8 @@ tabulator = { version = "0.5.0", features = [
   "num-bigint",
   "rust_decimal",
 ] }
+itertools = "0.14.0"
+real_parent = "0.4.0"
 # tabulator = { path = "../../../tabulator", features = [
 #   "bin",
 #   "num-bigint",

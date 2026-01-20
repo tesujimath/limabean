@@ -39,9 +39,9 @@
   (comp f (xf opts)))
 
 (defn initialize
-  "Initialize logging, only if environment variable LIMABEAN_LOGPATH is defined."
+  "Initialize logging, only if environment variable LIMABEAN_LOG is defined."
   []
   (tel/remove-handler! :default/console)
-  (if-let [logpath (System/getenv "LIMABEAN_LOGPATH")]
+  (if-let [logpath (System/getenv "LIMABEAN_LOG")]
     (do (tel/add-handler! :json-file (json-file-handler logpath))
         (tel/call-on-shutdown! (fn [] (tel/stop-handlers!))))))

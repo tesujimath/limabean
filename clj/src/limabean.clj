@@ -1,4 +1,4 @@
-(ns limabean.repl
+(ns limabean
   (:require [limabean.adapter.beanfile :as beanfile]
             [limabean.adapter.logging :as logging]
             [limabean.adapter.show :as show]

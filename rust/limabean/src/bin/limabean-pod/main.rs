@@ -21,7 +21,7 @@ enum Command {
     /// Calculate all the bookings
     Book {
         /// Beancount file path
-        beanpath: PathBuf,
+        beanfile: PathBuf,
 
         /// Output format, defaults to beancount
         #[clap(short)]
@@ -63,8 +63,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Command::Book { beanpath, format } => book::write_bookings_from(
-            beanpath,
+        Command::Book { beanfile, format } => book::write_bookings_from(
+            beanfile,
             format.unwrap_or(Format::default()).into(),
             out_w,
             error_w,

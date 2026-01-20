@@ -1,14 +1,18 @@
-build: rust-build
+build: build-rust build-clj
 
 test: rust-test clj-test
 
 [working-directory: 'rust']
-rust-build:
+build-rust:
     cargo build
 
 [working-directory: 'rust']
-rust-test: rust-build
+rust-test: build-rust
     cargo test
+
+[working-directory: 'clj']
+build-clj:
+    clj -T:build uberjar
 
 [working-directory: 'clj']
 clj-test:

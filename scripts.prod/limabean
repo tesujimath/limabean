@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-test -r "$LIMA_JAR" || {
-    echo >&2 "lima JAR not found, please define environment variable LIMA_JAR"
-    exit 1
-}
-
-exec java -jar "$LIMA_JAR" "$@"
