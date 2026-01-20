@@ -1,6 +1,6 @@
 [package]
 name = "limabean"
-version.workspace = true
+version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Beancount frontend using Rust and Clojure and the Lima parser"
@@ -10,10 +10,10 @@ readme = "../README.md"
 
 [[bin]]
 name = "limabean-pod"
-path = "src/main.rs"
+path = "src/main-pod.rs"
 
 [dependencies]
-limabean-booking = { workspace = true, features = [
+limabean-booking = { path = "../limabean-booking", version = "0.6.0", features = [
   "lima-parser-types",
   "rust-decimal",
 ] }
