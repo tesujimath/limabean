@@ -1,0 +1,6 @@
+{:deps {org.tesujimath/limabean
+          {:local/root
+             ;; alas using a relative path here means that this can only be
+             ;; used from the repo root
+             "./clj/target/net.clojars.limabean/limabean-0.1.0-SNAPSHOT.jar"}},
+ :paths ["src"]}

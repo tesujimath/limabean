@@ -46,10 +46,7 @@ fn clj_health() -> Result<String> {
             Err(_) => Ok("clj: not required because $LIMABEAN_DEPS undefined".to_string()),
         },
         Deps::DefinedButUnavailable(path) => {
-            bail!(
-                "$LIMABEAN_DEPS is {} which cannot be read - use limabean init-clj to create",
-                &path
-            )
+            bail!("$LIMABEAN_DEPS is {} which cannot be read", &path)
         }
         Deps::Available(path) => match clj_version {
             Ok(description) => Ok(format!("clj: {}", description)),

@@ -1,10 +1,28 @@
 use color_eyre::eyre::{bail, Result, WrapErr};
-use std::{ffi::OsStr, process::Command};
+use std::{ffi::OsStr, fmt::Display, process::Command};
 
 use super::{
     env::{get_deps, Deps},
     jar::locate_jar,
 };
+
+fn run_or_fail_with_message<S>(mut cmd: Command, error_message: S) -> Result<()>
+where
+    S: Display + Sync + Send + 'static,
+{
+    let exit_status = cmd
+        .spawn()
+        .wrap_err(error_message)?
+        .wait()
+        .unwrap_or_else(|e| panic!("Failed to wait: {}", e));
+
+    // any error message is already written on stderr, so we're done
+    // TODO improve error path here, early exit is nasty
+    if !exit_status.success() {
+        std::process::exit(exit_status.code().unwrap_or(1));
+    }
+    Ok(())
+}
 
 pub(crate) fn run(args: &[String]) -> Result<()> {
     match get_deps() {
@@ -17,22 +35,25 @@ pub(crate) fn run(args: &[String]) -> Result<()> {
                     .map(|s| OsStr::new(s.as_str()))
                     .collect::<Vec<_>>(),
             );
-
-            let exit_status = java_cmd
-                .spawn()
-                .wrap_err("java: not found")?
-                .wait()
-                .unwrap_or_else(|e| panic!("Failed to wait: {}", e));
-
-            // any error message is already written on stderr, so we're done
-            std::process::exit(exit_status.code().unwrap_or(1));
+            run_or_fail_with_message(java_cmd, "java: not found")
         }
         Deps::DefinedButUnavailable(path) => {
-            bail!("Fatal error: cannot read $LIMABEAN_DEPS={}", &path)
+            bail!("Fatal error: cannot read $LIMABEAN_DEPS={}", &path);
         }
-        Deps::Available(_path) => {
-            // run with clj
-            todo!("running with deps.edn not yet supported")
+        Deps::Available(deps_path) => {
+            let mut clj_cmd = Command::new("clj");
+            clj_cmd
+                .arg("-Sdeps")
+                .arg(deps_path)
+                .arg("-M")
+                .arg("-m")
+                .arg("limabean.main")
+                .args(
+                    args.iter()
+                        .map(|s| OsStr::new(s.as_str()))
+                        .collect::<Vec<_>>(),
+                );
+            run_or_fail_with_message(clj_cmd, "clj: not found")
         }
     }
 }
