@@ -1,6 +1,8 @@
 use color_eyre::eyre::{self, Result};
-use real_parent::PathExt;
-use std::{borrow::Cow, fs::File};
+use std::{
+    borrow::Cow,
+    fs::{canonicalize, File},
+};
 
 use super::env;
 
@@ -24,7 +26,7 @@ pub(crate) fn locate_jar() -> Result<String> {
     let exe_dir = env::exe_dir()?;
     let jar_candidates = jar_candidate_relpaths
         .into_iter()
-        .filter_map(|relpath| exe_dir.join(relpath).real_clean().ok())
+        .filter_map(|relpath| canonicalize(exe_dir.join(relpath)).ok())
         .collect::<Vec<_>>();
 
     let jar = jar_candidates
