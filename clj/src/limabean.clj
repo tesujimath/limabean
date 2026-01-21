@@ -1,4 +1,4 @@
-(ns limabean
+(ns limabean.user
   (:require [limabean.adapter.beanfile :as beanfile]
             [limabean.adapter.logging :as logging]
             [limabean.adapter.show :as show]
@@ -22,7 +22,7 @@
     (alter-var-root #'*options* (constantly (:options beans)))
     (alter-var-root #'*registry*
                     (constantly (registry/build *directives* *options*)))
-    (println (count *directives*) "directives loaded"))
+    (println (count *directives*) "directives loaded from" path))
   :ok)
 
 (defn- postings

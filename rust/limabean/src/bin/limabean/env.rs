@@ -1,8 +1,5 @@
 use color_eyre::eyre::{Result, WrapErr};
-use std::{
-    fs::File,
-    path::{Path, PathBuf},
-};
+use std::{fs::File, path::PathBuf};
 
 pub(crate) enum Deps {
     Undefined,

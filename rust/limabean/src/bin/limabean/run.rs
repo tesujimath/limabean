@@ -1,4 +1,4 @@
-use color_eyre::eyre::{self, bail, Result, WrapErr};
+use color_eyre::eyre::{bail, Result, WrapErr};
 use std::{ffi::OsStr, process::Command};
 
 use super::{
@@ -12,7 +12,7 @@ pub(crate) fn run(args: &[String]) -> Result<()> {
             // run with Java
             let jar = locate_jar()?;
             let mut java_cmd = Command::new("java");
-            java_cmd.arg("-jar").arg(&jar).arg("--").args(
+            java_cmd.arg("-jar").arg(&jar).args(
                 args.iter()
                     .map(|s| OsStr::new(s.as_str()))
                     .collect::<Vec<_>>(),
@@ -30,7 +30,7 @@ pub(crate) fn run(args: &[String]) -> Result<()> {
         Deps::DefinedButUnavailable(path) => {
             bail!("Fatal error: cannot read $LIMABEAN_DEPS={}", &path)
         }
-        Deps::Available(path) => {
+        Deps::Available(_path) => {
             // run with clj
             todo!("running with deps.edn not yet supported")
         }

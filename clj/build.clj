@@ -18,6 +18,8 @@
     (when-not (zero? exit) (throw (ex-info "Tests failed" {}))))
   opts)
 
+(defn clean [] (b/delete {:path "target"}))
+
 (defn- uber-opts
   [opts]
   (assoc opts
@@ -32,7 +34,7 @@
 (defn uberjar
   "Build the uberjar."
   [opts]
-  (b/delete {:path "target"})
+  (clean)
   (let [opts (uber-opts opts)]
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
@@ -46,7 +48,7 @@
   "Run the CI pipeline of tests (and build the uberjar)."
   [opts]
   (test opts)
-  (b/delete {:path "target"})
+  (clean)
   (let [opts (uber-opts opts)]
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
