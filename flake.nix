@@ -43,14 +43,15 @@
             gcc
 
             clojure
+            neil
           ];
 
-          limabean-pod =
-            let cargo = builtins.fromTOML (builtins.readFile ./rust/Cargo.toml);
+          limabean =
+            let cargo = builtins.fromTOML (builtins.readFile ./rust/limabean/Cargo.toml);
             in pkgs.rustPlatform.buildRustPackage
               {
-                pname = "limabean-pod";
-                version = cargo.workspace.package.version;
+                pname = "limabean";
+                version = cargo.package.version;
 
                 src = ./rust;
 
@@ -78,7 +79,6 @@
               cargo-edit
               gdb
 
-              neil
               jre
 
               # useful tools:
@@ -95,13 +95,13 @@
             '';
           };
 
-          packages.default = limabean-pod;
+          packages.default = limabean;
 
           apps = {
             tests = {
               type = "app";
               program = "${writeShellScript "limabean-tests" ''
-                export PATH=${pkgs.lib.makeBinPath (ci-packages ++ [limabean-pod])}
+                export PATH=${pkgs.lib.makeBinPath (ci-packages ++ [limabean])}
                 just test
               ''}";
             };
