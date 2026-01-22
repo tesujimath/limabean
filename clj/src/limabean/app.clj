@@ -6,6 +6,7 @@
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
             [limabean.user]
+            [rebel-readline.clojure.main :as rebel-clj-main]
             [taoensso.telemere :as tel]))
 
 (defn balances
@@ -26,8 +27,9 @@
 (defn repl
   "Run the REPL"
   [{:keys [beanfile]}]
-  (clojure.main/repl :init
-                     (fn []
-                       (require '[limabean.user])
-                       (in-ns 'limabean.user)
-                       (limabean.user/load-beanfile beanfile))))
+  ;; this approach cribbed from
+  ;; https://github.com/bhauman/rebel-readline/issues/157
+  (rebel-clj-main/repl* {:init (fn []
+                                 (require '[limabean.user :refer :all])
+                                 (require '[limabean.core.filters :as f])
+                                 (limabean.user/load-beanfile beanfile))}))

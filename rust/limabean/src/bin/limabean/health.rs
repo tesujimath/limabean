@@ -10,11 +10,11 @@ pub(crate) fn check_all() -> Result<()> {
     // TODO a failing health check should not stop the others from reporting
     let java = java_health()?;
 
-    let clj = clj_health()?;
+    let clojure = clojure_health()?;
 
     let jar = jar_health()?;
 
-    println!("{}\n{}\n{}", &java, &clj, &jar);
+    println!("{}\n{}\n{}", &java, &clojure, &jar);
 
     Ok(())
 }
@@ -31,26 +31,26 @@ fn java_health() -> Result<String> {
     Ok(format!("java: {}", java_version.replace("\n", "; ")))
 }
 
-fn clj_health() -> Result<String> {
-    let clj_version = Command::new("clj")
+fn clojure_health() -> Result<String> {
+    let clojure_version = Command::new("clojure")
         .arg("--version")
         .output()
         .map(|op| String::from_utf8_lossy(op.stdout.as_slice()).replace("\n", "; "));
 
     match get_deps() {
-        Deps::Undefined => match clj_version {
+        Deps::Undefined => match clojure_version {
             Ok(description) => Ok(format!(
-                "clj: available but not required (define $LIMABEAN_DEPS to use): {}",
+                "clojure: available but not required (define $LIMABEAN_DEPS to use): {}",
                 description
             )),
-            Err(_) => Ok("clj: not required because $LIMABEAN_DEPS undefined".to_string()),
+            Err(_) => Ok("clojure: not required because $LIMABEAN_DEPS undefined".to_string()),
         },
         Deps::DefinedButUnavailable(path) => {
             bail!("$LIMABEAN_DEPS is {} which cannot be read", &path)
         }
-        Deps::Available(path) => match clj_version {
-            Ok(description) => Ok(format!("clj: {}", description)),
-            Err(_) => bail!("$LIMABEAN_DEPS is {} but can't find clj", &path),
+        Deps::Available(path) => match clojure_version {
+            Ok(description) => Ok(format!("clojure: {}", description)),
+            Err(_) => bail!("$LIMABEAN_DEPS is {} but can't find clojure", &path),
         },
     }
 }

@@ -41,8 +41,8 @@ pub(crate) fn run(args: &[String]) -> Result<()> {
             bail!("Fatal error: cannot read $LIMABEAN_DEPS={}", &path);
         }
         Deps::Available(deps_path) => {
-            let mut clj_cmd = Command::new("clj");
-            clj_cmd
+            let mut clojure_cmd = Command::new("clojure"); // use clojure not clj to avoid rlwrap
+            clojure_cmd
                 .arg("-Sdeps")
                 .arg(deps_path)
                 .arg("-M")
@@ -53,7 +53,7 @@ pub(crate) fn run(args: &[String]) -> Result<()> {
                         .map(|s| OsStr::new(s.as_str()))
                         .collect::<Vec<_>>(),
                 );
-            run_or_fail_with_message(clj_cmd, "clj: not found")
+            run_or_fail_with_message(clojure_cmd, "clojure: not found")
         }
     }
 }

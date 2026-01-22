@@ -22,7 +22,8 @@
     (alter-var-root #'*options* (constantly (:options beans)))
     (alter-var-root #'*registry*
                     (constantly (registry/build *directives* *options*)))
-    (println (count *directives*) "directives loaded from" path))
+    (println "Welcome to limabean," (count *directives*)
+             "directives loaded from" path))
   :ok)
 
 (defn- postings
