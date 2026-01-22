@@ -44,6 +44,7 @@ tabulator = { version = "0.5.0", features = [
   "rust_decimal",
 ] }
 itertools = "0.14.0"
+xdg = "3.0.0"
 # tabulator = { path = "../../../tabulator", features = [
 #   "bin",
 #   "num-bigint",

@@ -79,8 +79,6 @@
               cargo-edit
               gdb
 
-              jre
-
               # useful tools:
               beancount
               beanquery
@@ -90,6 +88,7 @@
             shellHook = ''
               PATH=$PATH:$(pwd)/scripts.dev:$(pwd)/rust/target/debug
 
+              export LIMABEAN_DEPS=$(pwd)/examples/clj/deps.edn
               export LIMABEAN_BEANFILE=$(pwd)/examples/beancount/full.beancount
               export LIMABEAN_LOG=$(pwd)/limabean.log
             '';
