@@ -1,3 +1,3 @@
-# Introduction to lima/lima
+# Introduction to limabean
 
-TODO: write [great documentation](http://jacobian.org/writing/what-to-write/)
+See [project documentation on GitHub](https://github.com/tesujimath/limabean/blob/main/README.md).

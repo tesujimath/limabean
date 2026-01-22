@@ -1,25 +1,23 @@
-{:aliases {:cider/nrepl {:extra-deps {cider/cider-nrepl {:mvn/version "0.58.0"}, ; CIDER
-                                                                                 ; middleware
-                                      refactor-nrepl/refactor-nrepl
-                                        {:mvn/version "3.11.0"}}}, ; clj-refactor
-                                                                   ; middleware
-           :dev {:extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}},
-                 :extra-paths ["dev"],
-                 :main-opts ["-m" "user"]},
-           :run-m {:main-opts ["-m" "limabean.main"]},
-           :run-x {:exec-args {:name "Clojure"},
-                   :exec-fn greet,
-                   :ns-default limabean.main},
-           :build {:deps {io.github.clojure/tools.build {:git/sha "fe6b140",
-                                                         :git/tag "v0.9.2"}},
-                   :ns-default build},
-           :test {:exec-fn cognitect.test-runner.api/test,
-                  :extra-deps {io.github.cognitect-labs/test-runner
-                                 {:git/sha "dfb30dd", :git/tag "v0.5.1"},
-                               org.clojure/test.check {:mvn/version "1.1.1"}},
-                  :extra-paths ["test"],
-                  :main-opts ["-m" "cognitect.test-runner"]},
-           :neil {:project {:name lima/lima}}},
+{:aliases
+   {:build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.12"},
+                   slipset/deps-deploy {:mvn/version "0.2.1"}},
+            :ns-default build},
+    :cider/nrepl {:extra-deps {cider/cider-nrepl {:mvn/version "0.58.0"},
+                               refactor-nrepl/refactor-nrepl {:mvn/version
+                                                                "3.11.0"}}},
+    :dev {:extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}},
+          :extra-paths ["dev"],
+          :main-opts ["-m" "user"]},
+    :neil {:project {:name io.github.tesujimath/limabean}},
+    :run-m {:main-opts ["-m" "limabean.main"]},
+    :run-x
+      {:exec-args {:name "Clojure"}, :exec-fn greet, :ns-default limabean.main},
+    :test {:exec-fn cognitect.test-runner.api/test,
+           :extra-deps {io.github.cognitect-labs/test-runner
+                          {:git/sha "dfb30dd", :git/tag "v0.5.1"},
+                        org.clojure/test.check {:mvn/version "1.1.1"}},
+           :extra-paths ["test"],
+           :main-opts ["-m" "cognitect.test-runner"]}},
  :deps {cheshire/cheshire {:mvn/version "6.1.0"},
         clojure.java-time/clojure.java-time {:mvn/version "1.4.3"},
         com.fasterxml.jackson.datatype/jackson-datatype-jsr310 {:mvn/version

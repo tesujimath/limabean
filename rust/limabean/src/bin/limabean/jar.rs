@@ -12,15 +12,9 @@ pub(crate) fn locate_jar() -> Result<String> {
         // deployed:
         format!("../lib/limabean-{}.jar", version),
         // development with real version:
-        format!(
-            "../../../clj/target/net.clojars.limabean/limabean-{}.jar",
-            version
-        ),
+        format!("../../../clj/target/limabean-{}.jar", version),
         // development with snapshot version:
-        format!(
-            "../../../clj/target/net.clojars.limabean/limabean-{}-SNAPSHOT.jar",
-            version
-        ),
+        format!("../../../clj/target/limabean-{}-SNAPSHOT.jar", version),
     ];
 
     let exe_dir = env::exe_dir()?;
