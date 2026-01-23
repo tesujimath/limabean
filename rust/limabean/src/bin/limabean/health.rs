@@ -15,8 +15,12 @@ pub(crate) fn check_all() {
         }
     }
 
-    let deps_path = Deps::new().get_path_or_exit_with_explanation();
-    println!("Clojure deps.edn: {}", &deps_path);
+    let deps = Deps::new();
+    if !deps.exists() {
+        eprintln!("{}", deps.explain_missing());
+        std::process::exit(1);
+    }
+    println!("Clojure deps.edn: {}", deps.path().to_string_lossy());
 }
 
 fn clojure_health() -> Result<String> {

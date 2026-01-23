@@ -10,11 +10,14 @@ fn main() {
 
     if let Some("health") = args.get(1).map(String::as_str) {
         health::check_all();
+    } else if let Some("bootstrap") = args.get(1).map(String::as_str) {
+        bootstrap::create_files();
     } else {
         run::run(&args[1..]);
     }
 }
 
+mod bootstrap;
 mod env;
 mod health;
 mod run;

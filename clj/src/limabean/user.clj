@@ -22,8 +22,7 @@
     (alter-var-root #'*options* (constantly (:options beans)))
     (alter-var-root #'*registry*
                     (constantly (registry/build *directives* *options*)))
-    (println "Welcome to limabean," (count *directives*)
-             "directives loaded from" path))
+    (println "[limabean]" (count *directives*) "directives loaded from" path))
   :ok)
 
 (defn- postings
@@ -47,8 +46,7 @@
   [& filters]
   (apply inventory
     (conj filters
-          (f/some-sub-acc (:name-assets *options*)
-                          (:name-liabilities *options*)))))
+          (f/sub-acc (:name-assets *options*) (:name-liabilities *options*)))))
 
 (defn journal
   "Build a journal of postings with running balance"

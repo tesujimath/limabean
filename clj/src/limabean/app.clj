@@ -16,9 +16,9 @@
         registry (registry/build directives options)
         _ (tel/log! {:id ::registry, :data registry})
         postings (eduction (comp (xf/postings)
-                                 (filter (f/some-sub-acc (:name-assets options)
-                                                         (:name-liabilities
-                                                           options))))
+                                 (filter (f/sub-acc (:name-assets options)
+                                                    (:name-liabilities
+                                                      options))))
                            directives)
         inv (inventory/build postings (:acc-booking registry))
         _ (tel/log! {:id ::inventory, :data inv})]

@@ -43,12 +43,12 @@
     #(let [date (:date %)]
        (and date (jt/not-before? date begin-date) (jt/before? date end-date)))))
 
-(defn some-acc
+(defn acc
   "Predicate for :acc field to be equal to one of target-accs, or false if no acc field"
   [& target-accs]
   #(let [acc (:acc %)] (and acc (contains? (set target-accs) acc))))
 
-(defn some-sub-acc
+(defn sub-acc
   "Predicate for :acc field to be equal to acc or a subaccount of it, or false if no acc field"
   [& target-accs]
   #(let [acc (:acc %)]
@@ -77,3 +77,13 @@
   "Predicate for whether the narration matches the given regex"
   [regex]
   (field-match :narration regex))
+
+(defn every-f
+  "Combinator filter which selects only what every filter selects"
+  [& filters]
+  (fn [x] (every? #(% x) filters)))
+
+(defn some-f
+  "Combinator filter which selects only what at least one filter selects"
+  [& filters]
+  (fn [x] (some #(% x) filters)))

@@ -22,12 +22,16 @@ where
 }
 
 pub(crate) fn run(args: &[String]) {
-    let deps_path = Deps::new().get_path_or_exit_with_explanation();
+    let deps = Deps::new();
+    if !deps.exists() {
+        eprintln!("{}", deps.explain_missing());
+        std::process::exit(1);
+    }
 
     let mut clojure_cmd = Command::new("clojure"); // use clojure not clj to avoid rlwrap
     clojure_cmd
         .arg("-Sdeps")
-        .arg(deps_path)
+        .arg(deps.path().to_string_lossy().as_ref())
         .arg("-M")
         .arg("-m")
         .arg("limabean.main")
