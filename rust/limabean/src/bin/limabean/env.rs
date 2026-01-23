@@ -91,7 +91,7 @@ impl Deps {
 
         match self.source {
             XdgConfig => format!(
-                "Can't read default deps.edn file at
+                "limabean can't read default deps.edn file at
 {}
 
 To bootstrap the Clojure environment for limabean, run `limabean bootstrap`,

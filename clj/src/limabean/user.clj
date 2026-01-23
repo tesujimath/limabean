@@ -14,15 +14,21 @@
 (def ^:dynamic *options* nil)
 (def ^:dynamic *registry* nil)
 
+(defn- assign-limabean-globals
+  [beans]
+  (let [directives (get beans :directives [])
+        options (get beans :options {})]
+    (alter-var-root #'*directives* (constantly directives))
+    (alter-var-root #'*options* (constantly options))
+    (alter-var-root #'*registry*
+                    (constantly (registry/build directives options)))))
+
 (defn load-beanfile
   [path]
+  (assign-limabean-globals {})
   (logging/initialize)
-  (let [beans (beanfile/book path)]
-    (alter-var-root #'*directives* (constantly (:directives beans)))
-    (alter-var-root #'*options* (constantly (:options beans)))
-    (alter-var-root #'*registry*
-                    (constantly (registry/build *directives* *options*)))
-    (println "[limabean]" (count *directives*) "directives loaded from" path))
+  (assign-limabean-globals (beanfile/book path))
+  (println "[limabean]" (count *directives*) "directives loaded from" path)
   :ok)
 
 (defn- postings

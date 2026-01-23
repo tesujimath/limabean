@@ -1,13 +1,10 @@
 (ns limabean.adapter.tabulate
-  (:require [clojure.java.shell :as shell]
-            [cheshire.core :as cheshire]))
+  (:require [cheshire.core :as cheshire]
+            [limabean.adapter.shell :as shell]))
 
 (defn render
   "Render a cell using limabean-pod"
   [cell]
   (let [cell-json (cheshire/generate-string cell)
-        tabulated (shell/sh "limabean-pod" "tabulate" :in cell-json)]
-    (if (= (tabulated :exit) 0)
-      (tabulated :out)
-      (do (println "limabean-pod error" (tabulated :err))
-          (throw (Exception. "limabean-pod failed"))))))
+        tabulated (shell/try-sh "limabean-pod" "tabulate" :in cell-json)]
+    tabulated))

@@ -27,9 +27,15 @@
 (defn repl
   "Run the REPL"
   [{:keys [beanfile]}]
-  ;; this approach cribbed from
-  ;; https://github.com/bhauman/rebel-readline/issues/157
-  (rebel-clj-main/repl* {:init (fn []
-                                 (require '[limabean.user :refer :all])
-                                 (require '[limabean.core.filters :as f])
-                                 (limabean.user/load-beanfile beanfile))}))
+  (rebel-clj-main/repl
+    :init (fn []
+            (require '[limabean.user :refer :all])
+            (require '[limabean.core.filters :as f])
+            (limabean.user/load-beanfile beanfile))
+    :caught (fn [e]
+              (binding [*out* *err*]
+                (if (instance? clojure.lang.ExceptionInfo e)
+                  (if-let [user-error (:user-error (ex-data e))]
+                    (do (print user-error) (flush))
+                    (println "unexpected error" e))
+                  (do (println "Unexpected error" e) (.printStackTrace e)))))))

@@ -1,18 +1,13 @@
-use color_eyre::eyre::WrapErr;
-use std::{ffi::OsStr, fmt::Display, process::Command};
+use std::{ffi::OsStr, process::Command};
 
 use super::env::Deps;
 
-fn run_or_fail_with_message<S>(mut cmd: Command, error_message: S)
-where
-    S: Display + Sync + Send + 'static,
-{
+fn run_or_fail_with_message(mut cmd: Command) {
     let exit_status = cmd
         .spawn()
-        .wrap_err(error_message)
-        .unwrap()
+        .unwrap_or_else(|e| panic!("limabean failed to run {:?}: {}", &cmd, &e))
         .wait()
-        .unwrap_or_else(|e| panic!("Failed to wait: {}", e));
+        .unwrap_or_else(|e| panic!("limabean unexpected wait failure: {}", e));
 
     // any error message is already written on stderr, so we're done
     // TODO improve error path here, early exit is nasty
@@ -41,5 +36,5 @@ pub(crate) fn run(args: &[String]) {
                 .collect::<Vec<_>>(),
         );
 
-    run_or_fail_with_message(clojure_cmd, "clojure: not found")
+    run_or_fail_with_message(clojure_cmd)
 }

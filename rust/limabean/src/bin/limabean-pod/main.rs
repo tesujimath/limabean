@@ -1,8 +1,6 @@
-use color_eyre::eyre::Result;
 use std::{
     io::{self, Read},
     path::PathBuf,
-    process::exit,
 };
 use tabulator::Cell;
 use tracing_subscriber::EnvFilter;
@@ -51,7 +49,7 @@ impl From<Format> for book::Format {
     }
 }
 
-fn main() -> Result<()> {
+fn main() {
     let out_w = &std::io::stdout();
     let error_w = &std::io::stderr();
 
@@ -62,7 +60,7 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    match &cli.command {
+    if let Err(e) = match &cli.command {
         Command::Book { beanfile, format } => book::write_bookings_from(
             beanfile,
             format.unwrap_or(Format::default()).into(),
@@ -70,30 +68,36 @@ fn main() -> Result<()> {
             error_w,
         ),
 
-        Command::Tabulate => {
-            let mut input = String::new();
+        Command::Tabulate => tabulate(),
+    } {
+        use crate::Error::*;
 
-            if let Err(e) = io::stdin().read_to_string(&mut input) {
-                eprintln!("Error in input: {}", &e);
-                exit(1);
-            }
+        match e {
+            FatalAndAlreadyExplained => (),
+            _ => eprintln!("limabean-pod {}", &e),
+        }
 
-            match Cell::from_json(&input) {
-                Ok(cell) => {
-                    println!("{}", &cell);
-                }
-                Err(e) => {
-                    eprintln!("JSON decode error: {}\n{}", &e, &input);
-                    exit(1);
-                }
-            };
+        std::process::exit(1);
+    }
+}
 
+fn tabulate() -> Result<(), crate::Error> {
+    let mut input = String::new();
+
+    io::stdin().read_to_string(&mut input)?;
+
+    match Cell::from_json(&input) {
+        Ok(cell) => {
+            println!("{}", &cell);
             Ok(())
         }
+        Err(e) => Err(crate::Error::JsonDecode(e, input)),
     }
 }
 
 pub(crate) mod book;
+pub(crate) mod errors;
+pub(crate) use errors::Error;
 pub(crate) mod format;
 pub(crate) mod options;
 pub(crate) mod plugins;

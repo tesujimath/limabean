@@ -3,8 +3,8 @@ use time::Date;
 
 use crate::book::{pad_flag, types::*};
 use beancount_parser_lima as parser;
-use color_eyre::eyre::Result;
 use std::fmt::{self, Display, Formatter, Write};
+use std::io;
 use std::iter::{empty, once, repeat};
 use strum_macros::{EnumIter, EnumString, IntoStaticStr};
 
@@ -12,7 +12,7 @@ pub(crate) fn write_booked_as_edn<'a, W>(
     directives: &[Directive<'a>],
     options: &parser::Options,
     out_w: W,
-) -> Result<()>
+) -> io::Result<()>
 where
     W: std::io::Write + Copy,
 {

@@ -1,5 +1,4 @@
 use beancount_parser_lima as parser;
-use color_eyre::eyre::Result;
 use std::fmt::{self, Display, Formatter};
 use time::Date;
 
@@ -10,7 +9,7 @@ pub(crate) fn write_booked_as_beancount<'a, W>(
     directives: &[Directive<'a>],
     _options: &parser::Options,
     mut out_w: W,
-) -> Result<()>
+) -> Result<(), crate::Error>
 where
     W: std::io::Write + Copy,
 {

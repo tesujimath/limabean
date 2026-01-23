@@ -17,13 +17,13 @@
 
 (defn usage
   [options-summary]
-  (->> ["Usage: limabean [options] action" "" "Options:" options-summary ""
+  (->> ["limabean: usage: limabean [options] action" "" "Options:" options-summary ""
         "Actions:" "  report [report-name]    Run a canned report" ""]
        (str/join \newline)))
 
 (defn error-msg
   [errors]
-  (str "The following errors occurred while parsing your command:\n\n"
+  (str "limabean: argument parsing errors:\n"
        (str/join \newline errors)))
 
 (defn validate-args
@@ -40,10 +40,10 @@
             {:exit-message (error-msg errors)}
           ;; custom validation on arguments
           (not (:beanfile options))
-            {:exit-message "--beanfile or $LIMABEAN_BEANFILE is required"}
+            {:exit-message "limabean: --beanfile or $LIMABEAN_BEANFILE is required"}
           (let [beanfile (io/file (:beanfile options))]
             (not (and (.exists beanfile) (.isFile beanfile))))
-            {:exit-message (str "No such beanfile " (:beanfile options))}
+            {:exit-message (str "limabean: no such beanfile " (:beanfile options))}
           (empty? arguments) {:action "repl", :options options}
           (and (= 1 (count arguments)) (get actions (first arguments)))
             {:action (first arguments), :options options}

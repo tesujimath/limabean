@@ -4,7 +4,6 @@
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
 };
-use color_eyre::eyre::{eyre, Result, WrapErr};
 use limabean_booking::{is_supported_method, Booking, Bookings, Interpolated};
 use std::{io::Write, path::Path};
 
@@ -32,12 +31,13 @@ pub(crate) fn write_bookings_from<W1, W2>(
     format: Format,
     out_w: W1,
     error_w: W2,
-) -> Result<()>
+) -> Result<(), crate::Error>
 where
     W1: Write + Copy,
     W2: Write + Copy,
 {
-    let sources = BeancountSources::try_from(path).wrap_err(format!("failed to read {path:?}"))?;
+    let sources = BeancountSources::try_from(path)
+        .map_err(|e| crate::Error::CannotReadFile(path.into(), e))?;
     let parser = BeancountParser::new(&sources);
 
     match parser.parse() {
@@ -87,12 +87,15 @@ where
                         Format::Beancount => {
                             write_booked_as_beancount(&directives, &options, out_w)
                         }
-                        Format::Edn => write_booked_as_edn(&directives, &options, out_w),
+                        Format::Edn => write_booked_as_edn(&directives, &options, out_w)
+                            .map_err(Into::<crate::Error>::into),
                     }
                 }
                 Err(LoadError { errors, .. }) => {
-                    sources.write_errors_or_warnings(error_w, errors)?;
-                    Err(eyre!("builder error"))
+                    sources
+                        .write_errors_or_warnings(error_w, errors)
+                        .map_err(Into::<crate::Error>::into)?;
+                    Err(crate::Error::FatalAndAlreadyExplained)
                 }
             }
         }
@@ -100,7 +103,7 @@ where
         Err(ParseError { errors, warnings }) => {
             sources.write_errors_or_warnings(error_w, errors)?;
             sources.write_errors_or_warnings(error_w, warnings)?;
-            Err(eyre! {"parse error"})
+            Err(crate::Error::FatalAndAlreadyExplained)
         }
     }
 }
