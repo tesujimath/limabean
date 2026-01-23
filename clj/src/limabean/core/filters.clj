@@ -2,7 +2,7 @@
   (:require [java-time.api :as jt]
             [clojure.string :as str]))
 
-(defn ensure-local-date
+(defn- ensure-local-date
   "Ensure x is a local-data, by converting if not"
   [x]
   (cond (jt/local-date? x) x
@@ -35,7 +35,7 @@
   (let [begin-date (ensure-local-date begin-date)]
     #(let [date (:date %)] (and date (jt/not-before? date begin-date)))))
 
-(defn date-between
+(defn date>=<
   "Predicate for :date field to be >= begin-date and < end-date, or false if no date field"
   [begin-date end-date]
   (let [begin-date (ensure-local-date begin-date)
