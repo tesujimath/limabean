@@ -44,6 +44,7 @@
 
             clojure
             neil
+            git
           ];
 
           limabean =
