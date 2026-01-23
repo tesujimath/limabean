@@ -55,8 +55,7 @@ pub(crate) fn create_files() {
                 // version number of limabean on Clojars matches version of limabean crate
                 let version = env!("CARGO_PKG_VERSION");
                 let deps = format!(
-                    r###"{{:deps {{io.github.tesujimath/limabean {{:mvn/version "{}"}}}},
- :paths ["src"]}}
+                    r###"{{:deps {{io.github.tesujimath/limabean {{:mvn/version "{}"}}}}, :paths ["src"]}}
 "###,
                     version
                 );

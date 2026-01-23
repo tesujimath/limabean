@@ -5,7 +5,7 @@
             [clojure.java.io :as io]))
 
 (def lib 'io.github.tesujimath/limabean)
-(def version "0.1.0-SNAPSHOT")
+(def version "0.1.0")
 (def main 'limabean.main)
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
