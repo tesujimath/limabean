@@ -4,5 +4,5 @@ target/
 /*log
 **/tests/**/*.actual.beancount
 /result
-*-log.json
+limabean.log*
 .rebel_readline_history
