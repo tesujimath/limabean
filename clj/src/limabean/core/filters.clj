@@ -6,7 +6,14 @@
   "Ensure x is a local-data, by converting if not"
   [x]
   (cond (jt/local-date? x) x
-        (string? x) (jt/local-date x)
+        (string? x) (try (jt/local-date x)
+                         (catch Exception e
+                           (throw (ex-info "Bad date"
+                                           {:user-error (format "Bad date: %s\n"
+                                                                (.getMessage
+                                                                  (.getCause
+                                                                    e)))}
+                                           e))))
         :else (throw (ex-info (format "Unsupported type %s for date predicate"
                                       (type x))
                               {:type :limabean.harvest/error-type}))))
