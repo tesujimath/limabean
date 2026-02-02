@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     fmt::Display,
+    fs,
     io::{self, Write},
 };
 
@@ -55,9 +56,17 @@ pub(crate) fn create_files() {
                 // version number of limabean on Clojars matches version of limabean crate
                 let version = env!("CARGO_PKG_VERSION");
                 let deps = format!(
-                    r###"{{:deps {{io.github.tesujimath/limabean {{:mvn/version "{}"}}}}, :paths ["src"]}}
+                    r###"{{:deps {{io.github.tesujimath/limabean {{:mvn/version "{}"}}}},{}:paths ["{}"]}}
 "###,
-                    version
+                    version,
+                    "\n ",
+                    fs::canonicalize(deps.src_dir())
+                        .unwrap_or_else(|e| panic!(
+                            "can't determine absolute path to src dir {}: {}",
+                            deps.src_dir().to_string_lossy(),
+                            e
+                        ))
+                        .to_string_lossy()
                 );
                 std::fs::write(deps_path, deps).expect("Failed to write deps.edn");
             }

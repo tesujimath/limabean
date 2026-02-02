@@ -1,1 +1,2 @@
-{:deps {io.github.tesujimath/limabean {:mvn/version "0.1.0"}}, :paths ["src"]}
+{:deps {io.github.tesujimath/limabean {:mvn/version "0.1.0"}},
+ :paths ["/Users/sjg/vc/tesujimath/limabean/examples/clj/src"]}
