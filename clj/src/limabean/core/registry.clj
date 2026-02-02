@@ -1,48 +1,47 @@
 (ns limabean.core.registry
-  (:require [taoensso.telemere :as tel]))
+  (:require [clojure.set :as set]
+            [taoensso.telemere :as tel]))
 
 (defn build
   "Accumulate directives into registry"
   [directives options]
-  (let [default-booking (or (:booking options) :strict)
-        init (transient {:acc-booking (transient {}), :acc-curs (transient {})})
-        result (reduce
-                 (fn [result d]
-                   (case (:dct d)
-                     :open (let [booking (or (:booking d) default-booking)]
-                             (assoc!
-                               result
-                               :acc-booking
-                               (assoc! (:acc-booking result) (:acc d) booking))
-                             result)
-                     :txn
-                       ;; collect currency for each posting
-                       (reduce (fn [result p]
-                                 (let [acc-curs (:acc-curs result)
-                                       acc (:acc p)
-                                       curs (get acc-curs acc (transient #{}))]
-                                   (assoc! result
-                                           :acc-curs
-                                           (assoc! acc-curs
-                                                   acc
-                                                   (conj! curs (:cur p))))))
-                         result
-                         (:postings d))
-                     result))
-                 init
-                 directives)
+  (let [default-booking (get options :booking :strict)
+        init (transient {:acc-booking (transient {}), :cur-freq (transient {})})
+        result
+          (reduce (fn [result d]
+                    (case (:dct d)
+                      :open (if-let [booking (get d :booking)]
+                              (assoc!
+                                result
+                                :acc-booking
+                                (assoc! (:acc-booking result) (:acc d) booking))
+                              result)
+                      :txn
+                        ;; bump currency frequency for each posting
+                        (reduce (fn [result p]
+                                  (let [cur-freq (:cur-freq result)
+                                        cur (:cur p)
+                                        freq (get cur-freq cur 0)]
+                                    (assoc! result
+                                            :cur-freq
+                                            (assoc! cur-freq cur (inc freq)))))
+                          result
+                          (:postings d))
+                      result))
+            init
+            directives)
         acc-booking (persistent! (:acc-booking result))
-        acc-cur-sets (into {}
-                           (map (fn [[k v]] [k (persistent! v)])
-                             (persistent! (:acc-curs result))))
-        acc-curs (into {} (map (fn [[k v]] [k (vec (sort v))]) acc-cur-sets))
-        curs (vec (sort (into #{} (mapcat (fn [[_ v]] v) acc-cur-sets))))
-        accs (vec (sort (keys acc-booking)))]
-    {:acc-booking (fn [acc]
-                    (let [booking (get acc-booking acc)
-                          _ (tel/log! {:id ::acc-booking,
-                                       :data {:acc acc, :booking booking}})]
-                      booking)),
-     :acc-curs (fn [acc] (get acc-curs acc)),
-     :accs (fn [] accs),
-     :curs (fn [] curs)}))
+        cur-freq (persistent! (:cur-freq result))
+        curs (mapv first (sort-by (comp - second) (into [] cur-freq)))
+        accs (into {}
+                   (map (fn [acc] [acc
+                                   (cond-> nil
+                                     (contains? acc-booking acc)
+                                       (assoc :booking (get acc-booking acc)))])
+                     (keys acc-booking)))]
+    {:default-booking default-booking, :accs accs, :curs curs}))
+
+(defn acc-booking
+  "Lookup the booking method for an account in the registry"
+  [reg acc]
+  (get-in reg [:accs acc :booking] (:default-booking reg)))

@@ -38,7 +38,8 @@
 (defn inventory
   "Build inventory after applying filters, if any"
   [& filters]
-  (inventory/build (postings filters) (:acc-booking *registry*)))
+  (inventory/build (postings filters)
+                   (partial registry/acc-booking *registry*)))
 
 (defn rollup
   "Build a rollup for the primary currency"
