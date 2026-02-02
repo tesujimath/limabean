@@ -200,9 +200,9 @@
                           result)))
               {}
               accounts)]
-    (cell/mark inv :inventory)))
+    inv))
 
-(defn currency-freqs
+(defn cur-freq
   "Return map of frequency of currency use by currency"
   [inv]
   (reduce (fn [curs acc]
@@ -211,15 +211,6 @@
               (positions->currencies (get inv acc))))
     {}
     (cell/real-keys inv)))
-
-(defmethod cell :inventory
-  [inv]
-  (let [accounts (sort (cell/real-keys inv))]
-    (cell/stack (mapv (fn [account]
-                        (cell/row [(cell account) (cell (get inv account))]
-                                  cell/SPACE-MEDIUM))
-                  accounts))))
-
 
 (defn cost->cell
   "Format a cost into a cell, avoiding the clutter of cell/type tagging"

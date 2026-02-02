@@ -1,17 +1,10 @@
 (ns limabean.adapter.show
-  (:require [clojure.pprint :refer [pprint]]
-            [limabean.adapter.tabulate :refer [render]]
-            [limabean.core.cell :refer [cell]]
-            [taoensso.telemere :as tel]))
+  (:require [limabean.adapter.tabulate :refer [render]]
+            [limabean.core.cell :refer [cell]]))
 
 (defn show
-  "Show anything which can be rendered as a cell, with fallback to pprint"
+  "Render x as a cell and print it"
   [x]
-  (let [c (cell x)]
-    (if c
-      (let [_ (tel/log! {:id ::show-cell, :data c})
-            r (render c)
-            _ (tel/log! {:id ::show-rendered-cell, :data r})]
-        (print r))
-      (let [_ (tel/log! {:id ::show-pprint, :data x})] (pprint x))))
+  (print (render (cell x)))
+  (flush)
   :ok)

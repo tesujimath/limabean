@@ -2,7 +2,6 @@
   (:require [limabean.adapter.beanfile :as beanfile]
             [limabean.adapter.logging :as logging]
             [limabean.adapter.show :as show]
-            [limabean.adapter.tabulate :as tabulate]
             [limabean.core.filters :as f]
             [limabean.core.inventory :as inventory]
             [limabean.core.registry :as registry]
@@ -45,7 +44,7 @@
   "Build a rollup for the primary currency"
   [& filters]
   (let [inv (apply inventory filters)
-        primary-cur (first (apply max-key val (inventory/currency-freqs inv)))]
+        primary-cur (first (apply max-key val (inventory/cur-freq inv)))]
     (rollup/build inv primary-cur)))
 
 (defn balances

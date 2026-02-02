@@ -107,6 +107,8 @@ pushmeta drink: "alcoholic"
 
 popmeta drink:
 
+2022-01-30 open Expenses:Car NZD
+
 2022-01-30 open Expenses:Car:Fuel NZD
 
 2022-01-30 * "Z Energy ;" #petrol
@@ -118,6 +120,10 @@ popmeta drink:
 2023-05-31 'Z "Z Energy ;" "Rather expensive" #petrol
   'B Assets:Bank:Current                           -130.00 NZD
   ! Expenses:Car:Fuel
+
+2023-06-02 * "Repco" ""
+  Assets:Bank:Current                                     -25.00 NZD
+  Expenses:Car
 
 2028-01-01 query "fictional SQL" "SELECT money FROM accounts;" #for-testing
   status: "bogus"

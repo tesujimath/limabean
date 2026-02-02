@@ -27,35 +27,54 @@
 (defn unmark "Unmark a previously marked cell" [m] (dissoc m :cell/type))
 
 (defmulti cell
-  "Prepare as a cell for tabulation, or nil if unsupported"
+  "Prepare as a cell for tabulation, or ? if unsupported"
   (fn [x & _]
     (cond (nil? x) ::nil
           (and (map? x) (:cell/type x)) (:cell/type x)
+          (map? x) ::map
           (vector? x) ::vector
           (string? x) ::string
           (jt/local-date? x) ::local-date
-          (decimal? x) ::decimal
-          :else ::default)))
+          (number? x) ::number
+          (keyword? x) ::keyword
+          (char? x) ::char
+          (boolean? x) ::boolean
+          :else ::unsupported)))
 
 (defmethod cell ::vector
   [x]
   (case (count x)
     0 EMPTY
     1 (cell (first x))
-    ;;If every element may be prepared as a cell, return them in a stack,
-    ;;else nil.
-    (let [cells (stack (mapv cell x))] (if (every? some? cells) cells nil))))
+    (stack (mapv cell x))))
+
+(defn- try-sort
+  "Sort if possible, otherwise don't"
+  [xs]
+  (try (sort xs) (catch ClassCastException _ xs)))
+
+(defmethod cell ::map
+  [x]
+  (let [keys (try-sort (vec (keys x)))]
+    (stack (mapv (fn [k] (row [(cell k) (cell (get x k))] SPACE-MEDIUM))
+             keys))))
 
 (defmethod cell ::string [x] (align-left x))
 
 (defmethod cell ::local-date [x] (cell (str x)))
 
-(defmethod cell ::decimal
+(defmethod cell ::number
   [x]
   (let [s (str x)
-        dp (or (str/index-of s ".") (count s))]
+        dp (or (str/index-of s ".") (str/index-of s "/") (count s))]
     (anchored s (dec dp))))
 
-(defmethod cell ::nil [x] EMPTY)
+(defmethod cell ::keyword [x] (align-left (str x)))
 
-(defmethod cell ::default [x] nil)
+(defmethod cell ::char [x] (align-left (str x)))
+
+(defmethod cell ::boolean [x] (align-left (str x)))
+
+(defmethod cell ::nil [_] EMPTY)
+
+(defmethod cell ::unsupported [_] (cell "?"))
