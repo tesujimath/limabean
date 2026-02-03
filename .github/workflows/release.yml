@@ -6,6 +6,8 @@ on:
       - "[0-9]*"
     branches:
       - build
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   build:
@@ -16,7 +18,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Verify tag and Cargo version match
         if: github.ref_type == 'tag'
@@ -25,10 +27,10 @@ jobs:
           TAG=${GITHUB_REF_NAME#v}
           [ "$VERSION" = "$TAG" ]
 
-      - name: Set up Rust
-        uses: actions/setup-rust@v2
-        with:
-          rust-version: stable
+      - name: Run tests
+        run: |
+          cd rust
+          cargo test --all-targets
 
       - name: Build release
         run: |
@@ -55,7 +57,7 @@ jobs:
           Compress-Archive -Path release\* -DestinationPath release-${{ matrix.os }}.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.os }}
           path: |
