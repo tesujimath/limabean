@@ -8,7 +8,7 @@
   (:gen-class))
 
 (def cli-options
-  [["-h" "--help" "Help"]
+  [["-h" "--help" "Help"] ["-v" "--verbose" "Verbose"]
    [nil "--beanfile PATH" "path to Beancount file" :default-fn
     (fn [opts] (System/getenv "LIMABEAN_BEANFILE"))]])
 

@@ -89,6 +89,7 @@
             shellHook = ''
               PATH=$PATH:$(pwd)/scripts.dev:$(pwd)/rust/target/debug
 
+              export LIMABEAN_CLJ_LOCAL_ROOT=$(pwd)/clj
               export LIMABEAN_USER_CLJ=$(pwd)/examples/clj/user.clj
               export LIMABEAN_BEANFILE=$(pwd)/examples/beancount/full.beancount
               export LIMABEAN_LOG=$(pwd)/limabean.log
