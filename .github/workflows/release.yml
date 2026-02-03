@@ -1,0 +1,63 @@
+name: Cross-platform Release
+
+on:
+  push:
+    tags:
+      - "[0-9]*"
+    branches:
+      - build
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify tag and Cargo version match
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
+          TAG=${GITHUB_REF_NAME#v}
+          [ "$VERSION" = "$TAG" ]
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v2
+        with:
+          rust-version: stable
+
+      - name: Build release
+        run: |
+          cd rust
+          cargo build --release --all-targets
+
+      - name: Package binaries (Unix-like)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p release
+          cp rust/target/release/{limabean,limabean-pod} release/
+          tar czvf release-${{ matrix.os }}.tar.gz -C release .
+
+      - name: Package binaries (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          mkdir -p release
+          $bins = @(
+            "rust\target\release\limabean.exe",
+            "rust\target\release\limabean-pod.exe"
+          )
+          Copy-Item $bins release\
+          Compress-Archive -Path release\* -DestinationPath release-${{ matrix.os }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-${{ matrix.os }}
+          path: |
+            release-${{ matrix.os }}.tar.gz
+            release-${{ matrix.os }}.zip
