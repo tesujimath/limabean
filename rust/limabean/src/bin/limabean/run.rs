@@ -3,16 +3,27 @@ use std::{ffi::OsStr, process::Command};
 use super::env::Deps;
 
 fn run_or_fail_with_message(mut cmd: Command) {
-    let exit_status = cmd
-        .spawn()
-        .unwrap_or_else(|e| panic!("limabean failed to run {:?}: {}", &cmd, &e))
-        .wait()
-        .unwrap_or_else(|e| panic!("limabean unexpected wait failure: {}", e));
+    match cmd.spawn() {
+        Ok(mut child) => {
+            let exit_status = child
+                .wait()
+                .unwrap_or_else(|e| panic!("limabean unexpected wait failure: {}", e));
 
-    // any error message is already written on stderr, so we're done
-    // TODO improve error path here, early exit is nasty
-    if !exit_status.success() {
-        std::process::exit(exit_status.code().unwrap_or(1));
+            // any error message is already written on stderr, so we're done
+            // TODO improve error path here, early exit is nasty
+            if !exit_status.success() {
+                std::process::exit(exit_status.code().unwrap_or(1));
+            }
+        }
+
+        Err(e) => {
+            eprintln!(
+                "limabean can't run {}: {}",
+                cmd.get_program().to_string_lossy(),
+                &e
+            );
+            std::process::exit(1);
+        }
     }
 }
 

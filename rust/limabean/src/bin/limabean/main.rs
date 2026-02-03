@@ -9,10 +9,13 @@ fn main() {
     let args = std::env::args().collect::<Vec<_>>();
 
     if let Some("health") = args.get(1).map(String::as_str) {
-        health::check_all();
+        check_all(true);
     } else if let Some("bootstrap") = args.get(1).map(String::as_str) {
+        check_clojure(false);
         bootstrap::create_files();
+        run::run(&["--help".to_string()]);
     } else {
+        check_deps(false);
         run::run(&args[1..]);
     }
 }
@@ -20,4 +23,5 @@ fn main() {
 mod bootstrap;
 mod env;
 mod health;
+use health::{check_all, check_clojure, check_deps};
 mod run;

@@ -7,24 +7,23 @@
             [taoensso.telemere :as tel])
   (:gen-class))
 
-
-
 (def cli-options
-  [[nil "--beanfile PATH" "path to Beancount file" :default-fn
+  [["-h" "--help" "Help"]
+   [nil "--beanfile PATH" "path to Beancount file" :default-fn
     (fn [opts] (System/getenv "LIMABEAN_BEANFILE"))]])
 
 (def actions #{"balances"})
 
 (defn usage
   [options-summary]
-  (->> ["limabean: usage: limabean [options] action" "" "Options:" options-summary ""
-        "Actions:" "  report [report-name]    Run a canned report" ""]
+  (->> ["limabean: usage: limabean [options] action" "" "Options:"
+        options-summary "" "Actions:"
+        "  report [report-name]    Run a canned report" ""]
        (str/join \newline)))
 
 (defn error-msg
   [errors]
-  (str "limabean: argument parsing errors:\n"
-       (str/join \newline errors)))
+  (str "limabean: argument parsing errors:\n" (str/join \newline errors)))
 
 (defn validate-args
   "Validate command line arguments. Either return a map indicating the program
@@ -40,10 +39,12 @@
             {:exit-message (error-msg errors)}
           ;; custom validation on arguments
           (not (:beanfile options))
-            {:exit-message "limabean: --beanfile or $LIMABEAN_BEANFILE is required"}
+            {:exit-message
+               "limabean: --beanfile or $LIMABEAN_BEANFILE is required"}
           (let [beanfile (io/file (:beanfile options))]
             (not (and (.exists beanfile) (.isFile beanfile))))
-            {:exit-message (str "limabean: no such beanfile " (:beanfile options))}
+            {:exit-message (str "limabean: no such beanfile "
+                                (:beanfile options))}
           (empty? arguments) {:action "repl", :options options}
           (and (= 1 (count arguments)) (get actions (first arguments)))
             {:action (first arguments), :options options}

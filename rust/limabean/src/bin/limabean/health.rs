@@ -8,28 +8,33 @@ enum Health {
     Bad(String),
 }
 
-pub(crate) fn check_all() {
-    let mut failed = false;
+pub(crate) fn check_all(verbose: bool) {
+    check_clojure(verbose);
+    check_deps(verbose);
+}
 
+pub(crate) fn check_clojure(verbose: bool) {
     match clojure_health() {
         Health::Good(description) => {
-            println!("{}", description);
+            if verbose {
+                println!("{}", description);
+            }
         }
         Health::Bad(reason) => {
             eprintln!("limabean {reason}");
-            failed = true;
+            std::process::exit(1);
         }
     }
+}
 
+pub(crate) fn check_deps(verbose: bool) {
     let deps = Deps::new();
     if deps.exists() {
-        println!("deps.edn at {}", deps.path().to_string_lossy());
+        if verbose {
+            println!("deps.edn at {}", deps.path().to_string_lossy());
+        }
     } else {
         eprintln!("{}", deps.explain_missing());
-        failed = true;
-    }
-
-    if failed {
         std::process::exit(1);
     }
 }
