@@ -1,7 +1,5 @@
 use std::{ffi::OsStr, process::Command};
 
-use super::env::Deps;
-
 fn run_or_fail_with_message(mut cmd: Command) {
     match cmd.spawn() {
         Ok(mut child) => {
@@ -28,16 +26,17 @@ fn run_or_fail_with_message(mut cmd: Command) {
 }
 
 pub(crate) fn run(args: &[String]) {
-    let deps = Deps::new();
-    if !deps.exists() {
-        eprintln!("{}", deps.explain_missing());
-        std::process::exit(1);
-    }
+    let version = env!("CARGO_PKG_VERSION");
+    let deps = format!(
+        r###"{{:deps {{io.github.tesujimath/limabean {{:mvn/version "{}"}}}}}}
+"###,
+        version,
+    );
 
     let mut clojure_cmd = Command::new("clojure"); // use clojure not clj to avoid rlwrap
     clojure_cmd
         .arg("-Sdeps")
-        .arg(deps.path().to_string_lossy().as_ref())
+        .arg(deps)
         .arg("-M")
         .arg("-m")
         .arg("limabean.main")

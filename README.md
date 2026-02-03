@@ -9,7 +9,38 @@ There is no intention for `limabean` to support either Beancount Query Language 
 
 Some pre-canned queries are likely to be provided as command line options, but the main interactive experience is intended to be within the Clojure REPL.
 
-This is a work-in-progress.  Check back early in the new year!
+## Installation
+
+Tarballs and zipfiles are provided for each GitHub release for Linux, macOS, and Windows.
+
+The [Clojure CLI](https://clojure.org/reference/clojure_cli) is required to be installed separately, and `clojure` must be on the user's path.
+
+On macOS it is necessary to remove the quarantine attributes after unpacking the tarball, e.g.
+
+```
+xattr -rd com.apple.quarantine ./limabean/bin
+```
+
+## Usage
+
+```
+kiri> limabean --beanfile ./examples/beancount/simple.beancount
+
+[Rebel readline] Type :repl/help for online help info
+[limabean] 18 directives loaded from ./examples/beancount/simple.beancount
+user=> (show (inventory))
+Assets:Bank:Current                       -100.78 NZD
+Assets:Bank:UK                              -5.00 GBP
+Expenses:Donations                          10.00 NZD
+Expenses:Donations:Other                    20.00 NZD
+Expenses:Entertainment:Drinks-and-snacks    48.00 NZD
+Expenses:Groceries                           5.00 GBP
+                                            27.50 NZD
+Income:Unknown                              -4.72 NZD
+:ok
+```
+
+_To be completed_
 
 ## Import
 
