@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir -p release
           cp rust/target/release/{limabean,limabean-pod} release/
-          tar czvf release-${{ matrix.os }}.tar.gz -C release .
+          tar czvf limabean-${{ matrix.os }}.tar.gz -C release .
 
       - name: Package binaries (Windows)
         if: runner.os == 'Windows'
@@ -63,12 +63,12 @@ jobs:
             "rust\target\release\limabean-pod.exe"
           )
           Copy-Item $bins release\
-          Compress-Archive -Path release\* -DestinationPath release-${{ matrix.os }}.zip
+          Compress-Archive -Path release\* -DestinationPath limabean-${{ matrix.os }}.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.os }}
+          name: limabean-${{ matrix.os }}
           path: |
-            release-${{ matrix.os }}.tar.gz
-            release-${{ matrix.os }}.zip
+            limabean-${{ matrix.os }}.tar.gz
+            limabean-${{ matrix.os }}.zip
