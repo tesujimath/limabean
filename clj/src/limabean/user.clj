@@ -27,7 +27,8 @@
   (assign-limabean-globals {})
   (logging/initialize)
   (assign-limabean-globals (beanfile/book path))
-  (println "[limabean]" (count *directives*) "directives loaded from" path)
+  (binding [*out* *err*]
+    (println "[limabean]" (count *directives*) "directives loaded from" path))
   :ok)
 
 (defn- postings

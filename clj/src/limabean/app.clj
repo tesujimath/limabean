@@ -1,56 +1,10 @@
 (ns limabean.app
-  (:require [limabean.adapter.beanfile :as beanfile]
-            [limabean.adapter.show :refer [show]]
-            [limabean.core.filters :as f]
-            [limabean.core.inventory :as inventory]
-            [limabean.core.journal :as journal]
-            [limabean.core.registry :as registry]
-            [limabean.core.xf :as xf]
+  (:require [limabean.adapter.exception :refer [print-causes]]
+            [limabean.adapter.user-clj :as user-clj]
             [limabean.user]
-            [rebel-readline.clojure.main :as rebel-clj-main]
-            [taoensso.telemere :as tel]))
+            [rebel-readline.clojure.main :as rebel-clj-main]))
 
-(defn make-filters
-  "Make filters from CLI options and beanfile options"
-  [cli options]
-  (cond-> []
-    (contains? cli :cur) (conj (f/cur (:cur cli)))
-    (contains? cli :begin) (conj (f/date>= (:begin cli)))
-    (contains? cli :end) (conj (f/date< (:end cli)))
-    (contains? cli :balance) (conj (f/sub-acc (:name-assets options)
-                                              (:name-liabilities options)))
-    (contains? cli :income) (conj (f/sub-acc (:name-income options)
-                                             (:name-expenses options)))))
-
-(defn inventory
-  "Print inventory, filtered as per cli options"
-  [cli]
-  (let [{:keys [directives options]} (beanfile/book (:beanfile cli))
-        filters (make-filters cli options)
-        registry (registry/build directives options)
-        _ (tel/log! {:id ::registry, :data registry})
-        postings (eduction (comp (xf/postings)
-                                 (filter (apply f/every-f filters)))
-                           directives)
-        inv (inventory/build postings (partial registry/acc-booking registry))
-        _ (tel/log! {:id ::inventory, :data inv})]
-    (show inv)))
-
-(defn journal
-  "Print journal, filtered as per cli options"
-  [cli]
-  (let [{:keys [directives options]} (beanfile/book (:beanfile cli))
-        filters (make-filters cli options)
-        registry (registry/build directives options)
-        _ (tel/log! {:id ::registry, :data registry})
-        postings (eduction (comp (xf/postings)
-                                 (filter (apply f/every-f filters)))
-                           directives)
-        journal (journal/build postings)
-        _ (tel/log! {:id ::journal, :data journal})]
-    (show journal)))
-
-(defn print-exception
+(defn- print-exception
   "Print exception to *err* according to what it is."
   [e]
   (binding [*out* *err*]
@@ -60,13 +14,29 @@
         (println "unexpected error" e))
       (do (println "Unexpected error" e) (.printStackTrace e)))))
 
-(defn repl
-  "Run the REPL"
+(defn- init
+  "Return a function which initializes or exits with error message on failure"
   [{:keys [beanfile]}]
-  (rebel-clj-main/repl
-    :init (fn []
-            (try (require '[limabean.user :refer :all])
-                 (require '[limabean.core.filters :as f])
-                 (limabean.user/load-beanfile beanfile)
-                 (catch Exception e (print-exception e) (System/exit 1))))
-    :caught print-exception))
+  (fn []
+    (try (require '[limabean.user :refer :all])
+         (require '[limabean.core.filters :as f])
+         (limabean.user/load-beanfile beanfile)
+         (user-clj/load-user-cljs)
+         (catch Exception e (print-exception e) (System/exit 1)))))
+
+(defn- eval-then-exit
+  [expr-str options]
+  (try (let [expr (read-string expr-str)]
+         ((init options))
+         (eval expr))
+       (catch Exception e
+         (binding [*out* *err*]
+           (println "Error:" expr-str)
+           (print-causes e)))))
+
+(defn run
+  "Run the REPL or evaluate an expression and exit"
+  [options]
+  (if-let [expr-str (:eval options)]
+    (eval-then-exit expr-str options)
+    (rebel-clj-main/repl :init (init options) :caught print-exception)))
