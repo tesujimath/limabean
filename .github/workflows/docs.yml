@@ -1,0 +1,33 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+      - doc # TODO remove
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@13
+        with:
+          cli: latest
+
+      - name: Generate docs
+        run: |
+          cd clj
+          clojure -X:codox
+
+      - name: Publish docs
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: clj/target/doc
