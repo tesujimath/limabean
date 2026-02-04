@@ -3,26 +3,52 @@
             [limabean.adapter.show :refer [show]]
             [limabean.core.filters :as f]
             [limabean.core.inventory :as inventory]
+            [limabean.core.journal :as journal]
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
             [limabean.user]
             [rebel-readline.clojure.main :as rebel-clj-main]
             [taoensso.telemere :as tel]))
 
-(defn balances
-  "Print balances of assets and liabilities"
-  [{:keys [beanfile]}]
-  (let [{:keys [directives options]} (beanfile/book beanfile)
+(defn make-filters
+  "Make filters from CLI options and beanfile options"
+  [cli options]
+  (cond-> []
+    (contains? cli :cur) (conj (f/cur (:cur cli)))
+    (contains? cli :begin) (conj (f/date>= (:begin cli)))
+    (contains? cli :end) (conj (f/date< (:end cli)))
+    (contains? cli :balance) (conj (f/sub-acc (:name-assets options)
+                                              (:name-liabilities options)))
+    (contains? cli :income) (conj (f/sub-acc (:name-income options)
+                                             (:name-expenses options)))))
+
+(defn inventory
+  "Print inventory, filtered as per cli options"
+  [cli]
+  (let [{:keys [directives options]} (beanfile/book (:beanfile cli))
+        filters (make-filters cli options)
         registry (registry/build directives options)
         _ (tel/log! {:id ::registry, :data registry})
         postings (eduction (comp (xf/postings)
-                                 (filter (f/sub-acc (:name-assets options)
-                                                    (:name-liabilities
-                                                      options))))
+                                 (filter (apply f/every-f filters)))
                            directives)
-        inv (inventory/build postings (:acc-booking registry))
+        inv (inventory/build postings (partial registry/acc-booking registry))
         _ (tel/log! {:id ::inventory, :data inv})]
     (show inv)))
+
+(defn journal
+  "Print journal, filtered as per cli options"
+  [cli]
+  (let [{:keys [directives options]} (beanfile/book (:beanfile cli))
+        filters (make-filters cli options)
+        registry (registry/build directives options)
+        _ (tel/log! {:id ::registry, :data registry})
+        postings (eduction (comp (xf/postings)
+                                 (filter (apply f/every-f filters)))
+                           directives)
+        journal (journal/build postings)
+        _ (tel/log! {:id ::journal, :data journal})]
+    (show journal)))
 
 (defn print-exception
   "Print exception to *err* according to what it is."
