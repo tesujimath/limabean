@@ -1,9 +1,17 @@
 (ns limabean.core.filters
+  "Functions to filter directives and postings according to their various fields, conventionally aliased to `f`.
+
+  Example:
+  ```
+  (show (inventory (f/date> 2025)))
+  ```
+
+  In general these filters reject anything missing the target field."
   (:require [java-time.api :as jt]
             [clojure.string :as str]))
 
 (defn- to-local-date
-  "Convert args to a local-date, or throw user error"
+  "Convert `args` to a `local-date` or throw user error"
   [args]
   (try (apply jt/local-date args)
        (catch Exception e
@@ -15,10 +23,11 @@
                          e)))))
 
 (defn date<
-  "Predicate for :date field to be < args, or false if no date field.
+  "Predicate for `:date` field to be `< args`.
 
-  args may be:
-    - a java-time/local-date
+  `args` may be:
+
+    - a `java-time.api/local-date`
     - a string in ISO 8601 format
     - an integer year, with month and day inferred as 1
     - integers year and month, with day inferred as 1
@@ -28,25 +37,25 @@
     #(let [date (:date %)] (and date (jt/before? date end-date)))))
 
 (defn date<=
-  "Predicate for :date field to be <= args, or false if no date field.
+  "Predicate for `:date` field to be `<= args`.
 
-  args are as described in `date<`"
+  args are as described in [[date<]]"
   [& args]
   (let [end-date (to-local-date args)]
     #(let [date (:date %)] (and date (jt/not-after? date end-date)))))
 
 (defn date>
-  "Predicate for :date field to be > args, or false if no date field.
+  "Predicate for `:date` field to be `> args`.
 
-  args are as described in `date<`"
+  args are as described in [[date<]]"
   [& args]
   (let [begin-date (to-local-date args)]
     #(let [date (:date %)] (and date (jt/after? date begin-date)))))
 
 (defn date>=
-  "Predicate for :date field to be >= args, or false if no date field.
+  "Predicate for `:date` field to be `>= args`.
 
-  args are as described in `date<`"
+  args are as described in [[date<]]"
   [& args]
   (let [begin-date (to-local-date args)]
     #(let [date (:date %)] (and date (jt/not-before? date begin-date)))))
@@ -57,23 +66,23 @@
      (and date (jt/not-before? date begin-date) (jt/before? date end-date))))
 
 (defn date>=<
-  "Predicate for :date field to be >= begin-date and < end-date, or false if no date field.
+  "Predicate for `:date` field to be `>= begin-date` and `< end-date`.
 
   Precisely 2, 4, or 6 args must be given,
   the first half of which are the begin date and the second half the end date,
-  and are as described in `date<`"
+  and are as described in [[date<]]"
   ([b1 e1] (date-between (to-local-date [b1]) (to-local-date [e1])))
   ([b1 b2 e1 e2] (date-between (to-local-date [b1 b2]) (to-local-date [e1 e2])))
   ([b1 b2 b3 e1 e2 e3]
    (date-between (to-local-date [b1 b2 b3]) (to-local-date [e1 e2 e3]))))
 
 (defn acc
-  "Predicate for :acc field to be equal to one of target-accs, or false if no acc field"
+  "Predicate for `:acc` field to be equal to one of `target-accs`."
   [& target-accs]
   #(let [acc (:acc %)] (and acc (contains? (set target-accs) acc))))
 
 (defn sub-acc
-  "Predicate for :acc field to be equal to acc or a subaccount of it, or false if no acc field"
+  "Predicate for `:acc` field to be equal to one of `target-accs` or a subaccount of any of them."
   [& target-accs]
   #(let [acc (:acc %)]
      (and acc
@@ -83,7 +92,7 @@
                          target-accs)))))
 
 (defn cur
-  "Predicate for :cur field to be equal to target-cur, or false if no cur field"
+  "Predicate for `:cur` field to be equal to `target-cur`."
   [target-cur]
   #(let [cur (:cur %)] (and cur (= cur target-cur))))
 

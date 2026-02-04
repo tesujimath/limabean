@@ -1,7 +1,7 @@
 (ns limabean.app
-  (:require [limabean.adapter.exception :refer [print-causes]]
+  (:require [limabean]
+            [limabean.adapter.exception :refer [print-causes]]
             [limabean.adapter.user-clj :as user-clj]
-            [limabean.user]
             [rebel-readline.clojure.main :as rebel-clj-main]))
 
 (defn- print-exception
@@ -18,9 +18,9 @@
   "Return a function which initializes or exits with error message on failure"
   [{:keys [beanfile]}]
   (fn []
-    (try (require '[limabean.user :refer :all])
+    (try (require '[limabean :refer :all])
          (require '[limabean.core.filters :as f])
-         (limabean.user/load-beanfile beanfile)
+         (limabean/load-beanfile beanfile)
          (user-clj/load-user-cljs)
          (catch Exception e (print-exception e) (System/exit 1)))))
 

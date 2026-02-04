@@ -1,4 +1,5 @@
-(ns limabean.user
+(ns limabean
+  "Top-level limabean functions for use from the REPL."
   (:require [limabean.adapter.beanfile :as beanfile]
             [limabean.adapter.logging :as logging]
             [limabean.adapter.show :as show]
