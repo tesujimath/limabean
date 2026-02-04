@@ -3,6 +3,7 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [limabean.app :as app]
+            [limabean.adapter.user-clj :as user-clj]
             [limabean.adapter.logging :as logging]
             [taoensso.telemere :as tel])
   (:gen-class))
@@ -60,9 +61,10 @@
   (let [{:keys [action options exit-message ok?]} (validate-args args)]
     (if exit-message
       (exit (if ok? 0 1) exit-message)
-      (case action
-        "repl" (app/repl options)
-        "balances" (app/balances options))))
+      (do (user-clj/load-user-cljs)
+          (case action
+            "repl" (app/repl options)
+            "balances" (app/balances options)))))
   (flush)
   (System/exit 0) ;; TODO why is this required, hangs otherwise
 )
