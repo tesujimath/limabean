@@ -29,4 +29,15 @@
              true)))))
 
 (deftest date<-test
-  (is ((sut/date< "2025-10-15") {:date (jt/local-date "2025-10-14")})))
+  (is ((sut/date< "2025-10-15") {:date (jt/local-date "2025-10-14")}))
+  (is ((sut/date< 2025 10 15) {:date (jt/local-date "2025-10-14")}))
+  (is ((sut/date< 2025 11) {:date (jt/local-date "2025-10-14")}))
+  (is ((sut/date< 2026) {:date (jt/local-date "2025-10-14")})))
+
+(deftest date>=<-test
+  (is ((sut/date>=< "2025-10-14" "2025-10-15")
+        {:date (jt/local-date "2025-10-14")}))
+  (is ((sut/date>=< 2025 10 14 2025 10 15)
+        {:date (jt/local-date "2025-10-14")}))
+  (is ((sut/date>=< 2025 10 2025 11) {:date (jt/local-date "2025-10-14")}))
+  (is ((sut/date>=< 2025 2026) {:date (jt/local-date "2025-10-14")})))
