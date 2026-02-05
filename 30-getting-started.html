@@ -75,6 +75,11 @@ user=&gt; (show (journal (f/date&gt;=&lt; 2013 2018)))
 </code></pre>
 <p>Notice that in each case, the raw Clojure data structures are available for arbitrary processing by the user.  (Actually running these examples in the REPL gives nicely colourized output, which is not shown here.)</p>
 <p>The intention is that <code>show</code> is smart enough to make a decent job of tabulating pretty much anything.  But it is rather early to make too big a claim there! 😅</p>
+<h2><a href="#batch-usage" id="batch-usage"></a>Batch usage</h2>
+<p>While the REPL is envisaged as the primary interface to <code>limabean</code>, it is possible to invoke batch queries, for example:</p>
+<pre><code>kiri&gt; limabean --eval '(show (journal (fy 23)))'
+</code></pre>
+<p>Quotes are essential, as what is being passed is Clojure code exactly as it would be typed into the REPL, and that is not at all shell-friendly.</p>
 <h2><a href="#environment-variables" id="environment-variables"></a>Environment variables</h2>
 <ul>
 <li><code>LIMABEAN_BEANFILE</code> - path to default beanfile unless overridden with <code>--beanfile</code></li>
