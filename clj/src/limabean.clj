@@ -10,9 +10,11 @@
             [limabean.core.journal :as journal]
             [limabean.core.rollup :as rollup]))
 
-(def ^:dynamic *directives* nil)
-(def ^:dynamic *options* nil)
-(def ^:dynamic *registry* nil)
+(def ^:dynamic *directives* "Vector of all directives form the beanfile." nil)
+(def ^:dynamic *options* "Map of options from the beanfile." nil)
+(def ^:dynamic *registry*
+  "Map of attributes derived from directives and options, e.g. booking method for account."
+  nil)
 
 (defn- assign-limabean-globals
   [beans]
@@ -37,28 +39,33 @@
   (eduction (comp (xf/postings) (xf/all-of filters)) *directives*))
 
 (defn inventory
-  "Build inventory after applying filters, if any"
+  "Build inventory from `*directives*` and `*registry*` after applying filters, if any"
   [& filters]
   (inventory/build (postings filters)
                    (partial registry/acc-booking *registry*)))
 
 (defn rollup
-  "Build a rollup for the primary currency"
+  "Build a rollup for the primary currency from `*directives*` and `*registry*` after applying filters, if any.
+
+  To build for a different currency, simply filter by that currency, e.g
+  ```
+  (rollup (f/cur \"CHF\"))
+  ```"
   [& filters]
   (let [inv (apply inventory filters)
         primary-cur (first (apply max-key val (inventory/cur-freq inv)))]
     (rollup/build inv primary-cur)))
 
 (defn balances
-  "Build balances, optionally further filtered"
+  "Build balances from `*directives*` and `*options*`, optionally further filtered"
   [& filters]
   (apply inventory
     (conj filters
           (f/sub-acc (:name-assets *options*) (:name-liabilities *options*)))))
 
 (defn journal
-  "Build a journal of postings with running balance"
+  "Build a journal of postings from `*directives*` with running balance"
   [& filters]
   (journal/build (postings filters)))
 
-(def show show/show)
+(defn show "Convert `x` to a cell and tabulate it." [x] (show/show x))

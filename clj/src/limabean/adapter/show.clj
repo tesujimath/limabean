@@ -3,7 +3,7 @@
             [limabean.core.cell :refer [cell]]))
 
 (defn show
-  "Render x as a cell and print it"
+  "Convert `x` to a cell and tabulate it."
   [x]
   (print (render (cell x)))
   (flush)

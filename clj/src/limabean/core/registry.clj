@@ -1,9 +1,10 @@
 (ns limabean.core.registry
-  (:require [clojure.set :as set]
-            [taoensso.telemere :as tel]))
+  "Functions to build and query registry.
+
+  The registry is build from directives and options, and contains for example, booking method for each account, and currencies in order of frequency of usage.")
 
 (defn build
-  "Accumulate directives into registry"
+  "Build the registry for given `directives` and `options`."
   [directives options]
   (let [default-booking (get options :booking :strict)
         init (transient {:acc-booking (transient {}), :cur-freq (transient {})})
@@ -42,6 +43,6 @@
     {:default-booking default-booking, :accs accs, :curs curs}))
 
 (defn acc-booking
-  "Lookup the booking method for an account in the registry"
+  "Lookup the booking method for an account in the registry."
   [reg acc]
   (get-in reg [:accs acc :booking] (:default-booking reg)))

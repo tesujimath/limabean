@@ -8,7 +8,9 @@
     :codox
       {:exec-args
          {:metadata {:doc/format :markdown},
-          :namespaces [limabean limabean.core.filters],
+          :namespaces [limabean limabean.core.filters limabean.core.inventory
+                       limabean.core.journal limabean.core.registry
+                       limabean.core.rollup limabean.core.xf],
           :source-paths ["src"],
           :source-uri
             "https://github.com/tesujimath/limabean/blob/main/clj/src/{classpath}#L{line}"},
