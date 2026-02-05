@@ -12,6 +12,7 @@ There is no intention for `limabean` to support either Beancount Query Language 
 - [Plugins and user-provided code](clj/doc/40-plugins.md)
 - [Development version](clj/doc/50-development.md)
 - [Differences and gotchas](clj/doc/60-differences.md)
+- [Design and rationale](clj/doc/70-design-and-rationale.md)
 - [Reference manual](https://tesujimath.github.io/limabean)
 
 ## Contributions

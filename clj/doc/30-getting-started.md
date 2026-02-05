@@ -86,6 +86,16 @@ Notice that in each case, the raw Clojure data structures are available for arbi
 
 The intention is that `show` is smart enough to make a decent job of tabulating pretty much anything.  But it is rather early to make too big a claim there! 😅
 
+## Batch usage
+
+While the REPL is envisaged as the primary interface to `limabean`, it is possible to invoke batch queries, for example:
+
+```
+kiri> limabean --eval '(show (journal (fy 23)))'
+```
+
+Quotes are essential, as what is being passed is Clojure code exactly as it would be typed into the REPL, and that is not at all shell-friendly.
+
 ## Environment variables
 
 - `LIMABEAN_BEANFILE` - path to default beanfile unless overridden with `--beanfile`
