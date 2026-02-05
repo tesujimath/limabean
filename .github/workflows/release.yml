@@ -4,8 +4,10 @@ on:
   push:
     tags:
       - "[0-9]*"
-    branches:
-      - build
+
+permissions:
+  contents: write
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -73,3 +75,23 @@ jobs:
           path: |
             limabean-${{ matrix.os }}.tar.gz
             limabean-${{ matrix.os }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Show files
+        run: ls -R dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - doc # TODO remove
 
 permissions:
   contents: write
