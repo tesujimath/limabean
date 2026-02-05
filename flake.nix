@@ -104,7 +104,7 @@
             tests = {
               type = "app";
               program = "${writeShellScript "limabean-tests" ''
-                export PATH=${pkgs.lib.makeBinPath (ci-packages ++ [limabean])}
+                export PATH=${pkgs.lib.makeBinPath ci-packages}
                 just test
               ''}";
             };
