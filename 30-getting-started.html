@@ -75,6 +75,28 @@ user=&gt; (show (journal (f/date&gt;=&lt; 2013 2018)))
 </code></pre>
 <p>Notice that in each case, the raw Clojure data structures are available for arbitrary processing by the user.  (Actually running these examples in the REPL gives nicely colourized output, which is not shown here.)</p>
 <p>The intention is that <code>show</code> is smart enough to make a decent job of tabulating pretty much anything.  But it is rather early to make too big a claim there! 😅</p>
+<h2><a href="#further-examples" id="further-examples"></a>Further examples</h2>
+<p>Inventory pre-filtered to assets and liabilities</p>
+<pre><code>user=&gt; (show (balances))
+</code></pre>
+<p>Just expenses and income for the calendar year 2025</p>
+<pre><code>user=&gt; (show (inventory (f/date&gt;=&lt; 2025 2026) (f/sub-acc "Expenses" "Income")))
+</code></pre>
+<p>If you have brought your own <code>fy</code> function via <a href="40-plugins.html">user provided code</a></p>
+<pre><code>user=&gt; (show (inventory (fy 25) (f/sub-acc "Expenses" "Income")))
+</code></pre>
+<p>This years transactions on current account</p>
+<pre><code>user=&gt; (show (journal (f/date&gt;= 2026) (f/acc "Assets:Bank:Current")))
+</code></pre>
+<p>Rollup for a secondary currency</p>
+<pre><code>user=&gt; (show (rollup (f/cur "GBP")))
+</code></pre>
+<p>Payments made to Z Energy or Repco.  (Note that the <code>-match</code> filters take a <a href="https://clojure.org/reference/other_functions#regex">Clojure regular expression</a>.)</p>
+<pre><code>user=&gt; (show (journal (f/sub-acc "Expenses") (f/payee-match #"Z Energy|Repco")))
+</code></pre>
+<p>All the payees as a set</p>
+<pre><code>user=&gt; (set (keep :payee (journal)))
+</code></pre>
 <h2><a href="#batch-usage" id="batch-usage"></a>Batch usage</h2>
 <p>While the REPL is envisaged as the primary interface to <code>limabean</code>, it is possible to invoke batch queries, for example:</p>
 <pre><code>kiri&gt; limabean --eval '(show (journal (fy 23)))'
