@@ -5,7 +5,7 @@
 (defn load-user-cljs
   "Load user Clojure code from $LIMABEAN_USER_CLJ"
   []
-  (if-let [cljs (System/getenv "LIMABEAN_USER_CLJ")]
+  (when-let [cljs (System/getenv "LIMABEAN_USER_CLJ")]
     (run! (fn [clj]
             (try (load-file clj)
                  (catch Exception e

@@ -64,8 +64,7 @@
   [method]
   (cond (method #{:strict :strict-with-size :fifo :lifo :hifo}) :merge
         (= method :none) :append
-        :else (throw (Exception. (format "unsupported booking method"
-                                         method)))))
+        :else (throw (Exception. (str "unsupported booking method " method)))))
 (defn- position-key
   "Return a key for a position which separates out by cost."
   [pos]

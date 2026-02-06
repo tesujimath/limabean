@@ -4,8 +4,7 @@
   A journal is a date-ordered list of postings with running balance (across all accounts).
   To restrict the balance to fewer accounts, pre-filter by account."
   (:require [limabean.core.inventory :as inventory]
-            [limabean.core.cell :refer [cell]]
-            [limabean.core.cell :as cell]))
+            [limabean.core.cell :as cell :refer [cell]]))
 
 (defn- with-bal
   "Return a (stateful) transducer to add a running total of units to postings.
@@ -20,8 +19,7 @@
         ([result] (rf result))
         ;; step
         ([result p]
-         (let [acc (:acc p)
-               p (dissoc p :cost) ;; journal excludes cost
+         (let [p (dissoc p :cost) ;; journal excludes cost
                accumulated (inventory/accumulate @state p)
                bal (inventory/positions accumulated)]
            (vreset! state accumulated)

@@ -2,9 +2,7 @@
   (:require [cheshire.core :as cheshire]
             [cheshire.generate :as cheshire-generate]
             [taoensso.telemere :as tel])
-  (:import [com.fasterxml.jackson.databind ObjectMapper]
-           [com.fasterxml.jackson.datatype.jsr310 JavaTimeModule]
-           [java.time Instant ZonedDateTime ZoneId]
+  (:import [java.time Instant ZonedDateTime ZoneId]
            [java.time.format DateTimeFormatter]))
 
 ;; encode Instant as localtime, i.e. ISO_OFFSET_DATE_TIME
@@ -42,6 +40,6 @@
   "Initialize logging, only if environment variable LIMABEAN_LOG is defined."
   []
   (tel/remove-handler! :default/console)
-  (if-let [logpath (System/getenv "LIMABEAN_LOG")]
-    (do (tel/add-handler! :json-file (json-file-handler logpath))
-        (tel/call-on-shutdown! (fn [] (tel/stop-handlers!))))))
+  (when-let [logpath (System/getenv "LIMABEAN_LOG")]
+    (tel/add-handler! :json-file (json-file-handler logpath))
+    (tel/call-on-shutdown! (fn [] (tel/stop-handlers!)))))

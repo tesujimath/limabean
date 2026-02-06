@@ -67,11 +67,6 @@
                        (concat (keys item-units) (keys total-units))))]
     rollup))
 
-(defn- padded-row
-  [acc units col]
-  (cell/row (into [(cell acc)] (concat (repeat col cell/EMPTY) [(cell units)]))
-            cell/SPACE-MEDIUM))
-
 (defmethod cell :rollup/entry
   [entry]
   (let [{:keys [item total]} entry
