@@ -86,6 +86,43 @@ Notice that in each case, the raw Clojure data structures are available for arbi
 
 The intention is that `show` is smart enough to make a decent job of tabulating pretty much anything.  But it is rather early to make too big a claim there! 😅
 
+## Further examples
+
+Inventory pre-filtered to assets and liabilities
+```
+user=> (show (balances))
+```
+
+Just expenses and income for the calendar year 2025
+```
+user=> (show (inventory (f/date>=< 2025 2026) (f/sub-acc "Expenses" "Income")))
+```
+
+If you have brought your own `fy` function via [user provided code](40-plugins.md)
+```
+user=> (show (inventory (fy 25) (f/sub-acc "Expenses" "Income")))
+```
+
+This years transactions on current account
+```
+user=> (show (journal (f/date>= 2026) (f/acc "Assets:Bank:Current")))
+```
+
+Rollup for a secondary currency
+```
+user=> (show (rollup (f/cur "GBP")))
+```
+
+Payments made to Z Energy or Repco.  (Note that the `-match` filters take a [Clojure regular expression](https://clojure.org/reference/other_functions#regex).)
+```
+user=> (show (journal (f/sub-acc "Expenses") (f/payee-match #"Z Energy|Repco")))
+```
+
+All the payees as a set
+```
+user=> (set (keep :payee (journal)))
+```
+
 ## Batch usage
 
 While the REPL is envisaged as the primary interface to `limabean`, it is possible to invoke batch queries, for example:
