@@ -1,6 +1,21 @@
 use std::{ffi::OsStr, process::Command};
 
-fn run_or_fail_with_message(mut cmd: Command) {
+#[cfg(unix)]
+fn run_or_fail(mut cmd: Command) {
+    use std::os::unix::process::CommandExt;
+
+    let e = cmd.exec(); // on success does not return
+
+    eprintln!(
+        "limabean can't run {}: {}",
+        cmd.get_program().to_string_lossy(),
+        &e
+    );
+    std::process::exit(1);
+}
+
+#[cfg(windows)]
+fn run_or_fail(mut cmd: Command) {
     match cmd.spawn() {
         Ok(mut child) => {
             let exit_status = child
@@ -64,5 +79,5 @@ pub(crate) fn run(args: &[String]) {
         eprintln!("{:?}", &clojure_cmd);
     }
 
-    run_or_fail_with_message(clojure_cmd)
+    run_or_fail(clojure_cmd)
 }
