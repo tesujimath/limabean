@@ -2,10 +2,11 @@
 
 This is a new implementation of [Beancount](https://github.com/beancount/beancount) using [Rust](https://rust-lang.org) and [Clojure](https://clojure.org/) and the [Lima parser](https://github.com/tesujimath/beancount-parser-lima).
 
-Rust is purely used for backend processing, and has no visbility to end users beyond the build process.  The idea is to use Clojure for interactive Beancounting instead of
-[Beancount Query Language](https://beancount.github.io/docs/beancount_query_language.html) and Python.  The Clojure REPL will provide all interactivity required.
+It is an implementation of Beancount in the sense that the file format and the booking algorithm are the same, although there are several new and different ideas.
+Foremost among these being that the user interface is solely the Clojure REPL, with no support for [Beancount Query Language](https://beancount.github.io/docs/beancount_query_language.html) nor Python.
+All the directives, inventory positions, and so on, are exposed as Clojure data structures, enabling the full power of Clojure for querying the ledger.
 
-There is no intention for `limabean` to support either Beancount Query Language or Python.  The interactive experience is provided solely by the Clojure REPL.
+Rust is purely used for parsing and the booking algorithm, with essentially no visibility of this to end users.
 
 - [Installation](clj/doc/20-installation.md)
 - [Getting started](clj/doc/30-getting-started.md)

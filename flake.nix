@@ -104,7 +104,7 @@
             tests = {
               type = "app";
               program = "${writeShellScript "limabean-tests" ''
-                export PATH=${pkgs.lib.makeBinPath ci-packages}
+                export PATH=${pkgs.lib.makeBinPath ci-packages}:$(pwd)/rust/target/debug
                 just test
               ''}";
             };
