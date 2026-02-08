@@ -16,6 +16,11 @@ fn run_or_fail(mut cmd: Command) {
 
 #[cfg(windows)]
 fn run_or_fail(mut cmd: Command) {
+    let cmd = cmd
+        .stdin(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit());
+
     match cmd.spawn() {
         Ok(mut child) => {
             let exit_status = child

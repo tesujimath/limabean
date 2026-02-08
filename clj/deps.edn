@@ -31,7 +31,7 @@
            :main-opts ["-m" "cognitect.test-runner"]}},
  :deps {cheshire/cheshire {:mvn/version "6.1.0"},
         clojure.java-time/clojure.java-time {:mvn/version "1.4.3"},
-        com.bhauman/rebel-readline {:mvn/version "0.1.5"},
+        com.bhauman/rebel-readline {:git/url "https://github.com/bhauman/rebel-readline.git", :git/tag "v0.1.7", :git/sha "cafa984", :deps/root "rebel-readline" },
         com.fasterxml.jackson.datatype/jackson-datatype-jsr310 {:mvn/version
                                                                   "2.18.4"},
         com.taoensso/telemere {:mvn/version "1.2.1"},
