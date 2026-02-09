@@ -12,7 +12,7 @@ rust-test: build-rust
 
 [working-directory: 'clj']
 build-clj:
-    clj -T:build uberjar
+    clj -T:build jar
 
 [working-directory: 'clj']
 clj-test:

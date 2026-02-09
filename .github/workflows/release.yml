@@ -76,6 +76,12 @@ jobs:
             limabean-${{ matrix.os }}.tar.gz
             limabean-${{ matrix.os }}.zip
 
+      - name: Deploy to Clojars
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd clj
+          clj -T:build deploy
+
   release:
     needs: build
     runs-on: ubuntu-latest
