@@ -33,6 +33,7 @@
           (and (map? x) (:cell/type x)) (:cell/type x)
           (map? x) ::map
           (vector? x) ::vector
+          (seq? x) ::seq
           (set? x) ::set
           (string? x) ::string
           (jt/local-date? x) ::local-date
@@ -60,13 +61,9 @@
     1 (cell (first x))
     (stack (mapv cell x))))
 
-(defmethod cell ::set
-  [x]
-  (let [items (try-sort (vec x))]
-    (case (count items)
-      0 EMPTY
-      1 (cell (first items))
-      (stack (mapv cell items)))))
+(defmethod cell ::seq [x] (cell (vec x)))
+
+(defmethod cell ::set [x] (cell (vec (try-sort (vec x)))))
 
 (defmethod cell ::string [x] (align-left x))
 
