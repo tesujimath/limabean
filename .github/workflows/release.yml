@@ -10,8 +10,6 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
-  CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
 
 jobs:
   build:
@@ -86,9 +84,20 @@ jobs:
 
       - name: Deploy to Clojars
         if: matrix.os == 'ubuntu-latest'
+        env:
+          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
         run: |
           cd clj
           clojure -T:build deploy
+
+      - name: Publish limabean crate
+        if: ${{ matrix.os == 'ubuntu-latest' && !contains(github.ref_name, 'SNAPSHOT') }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.LIMABEAN_CRATE_DEPLOY_TOKEN }}
+        run: |
+          cd rust
+          cargo publish --package limabean
 
   release:
     needs: build
