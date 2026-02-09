@@ -2,6 +2,7 @@
   (:require [clojure.tools.cli :refer [parse-opts]]
             [clojure.java.io :as io]
             [clojure.string :as str]
+            [limabean]
             [limabean.app :as app]
             [limabean.adapter.logging :as logging]
             [taoensso.telemere :as tel])
@@ -9,6 +10,7 @@
 
 (def cli-options
   [["-h" "--help" "Help"] ["-v" "--verbose" "Verbose"]
+   [nil "--version" "Show version and exit"]
    [nil "--beanfile PATH" "path to Beancount file, default $LIMABEAN_BEANFILE"
     :default-fn (fn [_opts] (System/getenv "LIMABEAN_BEANFILE"))]
    [nil "--eval EXPR" "Evaluate expression then exit"]])
@@ -34,6 +36,8 @@
             {:exit-message (usage summary), :ok? true}
           errors ; errors => exit with description of errors
             {:exit-message (error-msg errors)}
+          (:version options) (do (println "limabean.clj" (limabean/version))
+                                 (System/exit 0))
           ;; custom validation on arguments
           (not (:beanfile options))
             {:exit-message

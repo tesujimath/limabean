@@ -46,20 +46,18 @@ fn run_or_fail(mut cmd: Command) {
 }
 
 const LIMABEAN_CLJ_LOCAL_ROOT: &str = "LIMABEAN_CLJ_LOCAL_ROOT";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// deps arg, either from LIMABEAN_CLJ_LOCAL_ROOT or default from Clojars for the matching version
 fn deps() -> String {
     let limabean_coord = if let Ok(local_root) = std::env::var(LIMABEAN_CLJ_LOCAL_ROOT) {
         format!(r###"{{:local/root "{}"}}"###, &local_root,)
     } else {
-        let version = env!("CARGO_PKG_VERSION");
-
-        format!(r###"{{:mvn/version "{}"}}"###, version,)
+        format!(r###"{{:mvn/version "{}"}}"###, VERSION)
     };
 
     format!(
-        r###"{{:deps {{io.github.tesujimath/limabean {}}}}}
-"###,
+        r###"{{:deps {{io.github.tesujimath/limabean {}}}}}"###,
         limabean_coord
     )
 }
@@ -71,6 +69,11 @@ const JVM_OPTIONS: &[&str] = &[
 
 pub(crate) fn run(args: &[String]) {
     let verbose = args.iter().any(|arg| arg == "-v" || arg == "--verbose");
+    let version = args.iter().any(|arg| arg == "--version");
+
+    if version {
+        println!("limabean.rs  {VERSION}");
+    }
 
     let mut clojure_cmd = Command::new("clojure"); // use clojure not clj to avoid rlwrap
     clojure_cmd

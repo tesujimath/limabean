@@ -1,6 +1,7 @@
 (ns limabean
   "Top-level limabean functions for use from the REPL."
-  (:require [limabean.adapter.beanfile :as beanfile]
+  (:require [clojure.java.io :as io]
+            [limabean.adapter.beanfile :as beanfile]
             [limabean.adapter.logging :as logging]
             [limabean.adapter.show :as show]
             [limabean.core.filters :as f]
@@ -69,3 +70,19 @@
   (journal/build (postings filters)))
 
 (defn show "Convert `x` to a cell and tabulate it." [x] (show/show x))
+
+(defn version
+  "Get the library version from pom.properties, else returns \"unknown\"."
+  []
+  (or
+    (let [props (java.util.Properties.)]
+      (try
+        (with-open
+          [in
+             (io/input-stream
+               (io/resource
+                 "META-INF/maven/io.github.tesujimath/limabean/pom.properties"))]
+          (.load props in)
+          (.getProperty props "version"))
+        (catch Exception _ nil)))
+    "unknown"))
