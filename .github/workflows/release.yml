@@ -10,6 +10,8 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+  CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
 
 jobs:
   build:
@@ -76,6 +78,18 @@ jobs:
             limabean-${{ matrix.os }}.tar.gz
             limabean-${{ matrix.os }}.zip
 
+      - name: Setup Clojure
+        if: matrix.os == 'ubuntu-latest'
+        uses: DeLaGuardo/setup-clojure@13
+        with:
+          cli: latest
+
+      - name: Deploy to Clojars
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd clj
+          clojure -T:build deploy
+
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -93,5 +107,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/**/*
+          draft: ${{ contains(github.ref_name, 'SNAPSHOT') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
