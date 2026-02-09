@@ -86,7 +86,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           cd clj
-          clj -T:build deploy
+          clojure -T:build deploy
 
   release:
     needs: build
