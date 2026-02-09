@@ -104,6 +104,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -112,10 +115,30 @@ jobs:
       - name: Show files
         run: ls -R dist
 
+      - name: Extract release notes from changelog
+        id: changelog
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+
+          if [[ "$TAG" == *SNAPSHOT ]]; then
+            VERSION="Unreleased"
+          else
+            VERSION="$TAG"
+          fi
+
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" {flag=1; next}
+            /^## \[/ {flag=0}
+            flag
+          ' clj/CHANGELOG.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/**/*
           draft: ${{ contains(github.ref_name, 'SNAPSHOT') }}
+          body: ${{ steps.changelog.outputs.RELEASE_NOTES }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
