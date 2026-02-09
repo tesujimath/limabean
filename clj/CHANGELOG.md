@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 - implement show for set #10
+- implement show for seq
 
 ### Fixed
 
