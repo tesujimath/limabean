@@ -25,10 +25,12 @@
 (def class-dir "target/classes")
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 
-;; TODO remove extra once rebel readline available on Clojars
+(def basis (b/create-basis {:project "deps.edn"}))
+
+;; TODO remove this once rebel readline available on Clojars
 ;; but for now we need it because transitive dependencies aren't
 ;; loaded via a git co-ordinate
-(def basis
+(def basis-with-github-deps
   (b/create-basis
     {:project "deps.edn",
      :extra {:deps {'compliment/compliment {:mvn/version "0.6.0"},
@@ -36,6 +38,7 @@
                     'org.jline/jline-reader {:mvn/version "3.30.0"},
                     'org.jline/jline-terminal {:mvn/version "3.30.0"},
                     'org.jline/jline-terminal-jni {:mvn/version "3.30.0"}}}}))
+
 
 (defn- pom-template
   [version]
@@ -73,7 +76,7 @@
                  :class-dir class-dir
                  :lib lib
                  :version version
-                 :basis basis
+                 :basis basis-with-github-deps
                  :src-dirs ["src"]
                  :pom-data (pom-template version)))
   (println "wrote" (format "target/classes/META-INF/maven/%s/pom.xml" lib))
@@ -85,7 +88,6 @@
   (assoc opts
     :class-dir class-dir
     :jar-file jar-file
-    :basis basis
     :manifest {"Implementation-Version" version}))
 
 (defn jar
@@ -95,25 +97,9 @@
         opts (jar-opts opts)]
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
-    (println (str "\nCompiling " main "..."))
-    (b/compile-clj opts)
     (println "\nBuilding jar" (:jar-file opts))
     (b/jar opts)
     opts))
-
-(defn ci
-  "Run the CI pipeline of tests (and build the jar)."
-  [opts]
-  (test opts)
-  (clean nil)
-  (let [opts (jar-opts opts)]
-    (println "\nCopying source...")
-    (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
-    (println (str "\nCompiling " main "..."))
-    (b/compile-clj opts)
-    (println "\nBuilding jar" (:jar-file opts))
-    (b/jar opts))
-  opts)
 
 (defn deploy
   [opts]
