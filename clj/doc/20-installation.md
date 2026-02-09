@@ -20,5 +20,3 @@ xattr -rd com.apple.quarantine ./limabean/bin
 - install [Clojure 1.12 MSI](https://github.com/casselc/clj-msi)
 - download limabean zipfile from GitHub releases and extract somewhere
 - add that directory to path
-
-Beware [unable to detect a system Terminal on Windows #5](https://github.com/tesujimath/limabean/issues/5)

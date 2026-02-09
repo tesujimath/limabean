@@ -16,6 +16,11 @@ fn run_or_fail(mut cmd: Command) {
 
 #[cfg(windows)]
 fn run_or_fail(mut cmd: Command) {
+    let cmd = cmd
+        .stdin(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit());
+
     match cmd.spawn() {
         Ok(mut child) => {
             let exit_status = child
@@ -59,11 +64,17 @@ fn deps() -> String {
     )
 }
 
+/// Additional Java options
+const JVM_OPTIONS: &[&str] = &[
+    "--enable-native-access=ALL-UNNAMED", // inhibit warning triggered by JLine
+];
+
 pub(crate) fn run(args: &[String]) {
     let verbose = args.iter().any(|arg| arg == "-v" || arg == "--verbose");
 
     let mut clojure_cmd = Command::new("clojure"); // use clojure not clj to avoid rlwrap
     clojure_cmd
+        .args(JVM_OPTIONS.iter().map(|opt| format!("-J{}", opt)))
         .arg("-Sdeps")
         .arg(deps())
         .arg("-M")
