@@ -10,6 +10,8 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+  CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
 
 jobs:
   build:
