@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Added
+
+- implement show for set #10
+
 ### Fixed
 
 - fix Unable to detect a system Terminal on Windows #5

@@ -33,6 +33,7 @@
           (and (map? x) (:cell/type x)) (:cell/type x)
           (map? x) ::map
           (vector? x) ::vector
+          (set? x) ::set
           (string? x) ::string
           (jt/local-date? x) ::local-date
           (number? x) ::number
@@ -40,13 +41,6 @@
           (char? x) ::char
           (boolean? x) ::boolean
           :else ::unsupported)))
-
-(defmethod cell ::vector
-  [x]
-  (case (count x)
-    0 EMPTY
-    1 (cell (first x))
-    (stack (mapv cell x))))
 
 (defn- try-sort
   "Sort if possible, otherwise don't"
@@ -58,6 +52,21 @@
   (let [keys (try-sort (vec (keys x)))]
     (stack (mapv (fn [k] (row [(cell k) (cell (get x k))] SPACE-MEDIUM))
              keys))))
+
+(defmethod cell ::vector
+  [x]
+  (case (count x)
+    0 EMPTY
+    1 (cell (first x))
+    (stack (mapv cell x))))
+
+(defmethod cell ::set
+  [x]
+  (let [items (try-sort (vec x))]
+    (case (count items)
+      0 EMPTY
+      1 (cell (first items))
+      (stack (mapv cell items)))))
 
 (defmethod cell ::string [x] (align-left x))
 
