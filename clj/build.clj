@@ -23,9 +23,10 @@
 (def version (cargo-version))
 (def main 'limabean.main)
 (def class-dir "target/classes")
-;; mvn-local-repo must be an absolute path
+;; mvn-local-repo must be an absolute path outside of clj
+;; so we can test install the jar without access to local deps.edn
 (def mvn-local-repo
-  (.getPath (io/file (System/getProperty "user.dir") "target" "m2")))
+  (.getPath (io/file (System/getProperty "user.dir") ".." "target" "m2")))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 
 (def basis (b/create-basis {:project "deps.edn"}))

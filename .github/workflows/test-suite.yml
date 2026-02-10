@@ -54,7 +54,7 @@ jobs:
       - name: Print version from jarfile
         run: |
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
-          cd clj
+          # this must run *outside* of the clj directory, so we're not relying on its deps.edn for dependency resolution
           clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version \"$VERSION\"}}}" -M -m limabean.main --version >VERSION
           cat VERSION
           test "$(cat VERSION)" == "limabean.clj $VERSION"
