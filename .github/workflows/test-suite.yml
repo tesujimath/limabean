@@ -55,6 +55,6 @@ jobs:
         run: |
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
           cd clj
-          clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version \"$VERSION\"}}}" -M -m limabean.main --version
-          PRINTED_VERSION=$(clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version \"$VERSION\"}}}" -M -m limabean.main --version)
-          test "$PRINTED_VERSION" == "limabean.clj $VERSION"
+          clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version \"$VERSION\"}}}" -M -m limabean.main --version >VERSION
+          cat VERSION
+          test "$(cat VERSION)" == "limabean.clj $VERSION"
