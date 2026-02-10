@@ -42,6 +42,6 @@ jobs:
         run: |
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
           cd clj
-          clj -T:build install
+          clojure -T:build install
           PRINTED_VERSION=$(clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version "$VERSION"}}}" -M -m limabean.main --version)
           test "$PRINTED_VERSION" == "limabean.clj $VERSION"
