@@ -14,20 +14,34 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Install Nix
         uses: cachix/install-nix-action@v30
+
+      - name: Check Nix Flake
+        run: |
+          nix flake check
+
       - name: Run Tests
         run: |
           nix run '.#tests'
 
-  check-nix-flake:
-    name: Check Nix Flake
+  check-jarfile:
+    name: Check jarfile
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install Nix
-        uses: cachix/install-nix-action@v30
-      - name: Check Nix Flake
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@13
+        with:
+          cli: latest
+
+      - name: Build, install locally, and check jarfile
         run: |
-          nix flake check
+          VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
+          cd clj
+          clj -T:build install
+          PRINTED_VERSION=$(clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version "$VERSION"}}}" -M -m limabean.main --version)
+          test "$PRINTED_VERSION" == "limabean.clj $VERSION"
