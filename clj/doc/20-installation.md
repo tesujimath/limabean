@@ -2,9 +2,15 @@
 
 Firstly, the [Clojure CLI](https://clojure.org/reference/clojure_cli) is required to be installed separately, and `clojure` must be on the user's path.
 
-Tarballs and zipfiles are provided for each [GitHub release](https://github.com/tesujimath/limabean/releases) for Linux, macOS, and Windows.  These contain the two Rust binaries `limabean` and `limabean-pod`, which along with the Clojure CLI are all that is needed locally.  The `limabean` Clojure code is downloaded on first run from [Clojars](https://clojars.org/io.github.tesujimath/limabean/).
+Once the two binaries `limabean` and `limabean-pod` are on the path, the corresponding `limabean` Clojure code is downloaded automatically on first run from [Clojars](https://clojars.org/io.github.tesujimath/limabean/).
 
-Alternatively, clone the repo, install a Rust toolchain, and `just build`.
+Options for installing these binaries:
+
+1. Tarballs and zipfiles are provided for each [GitHub release](https://github.com/tesujimath/limabean/releases) for Linux, macOS, and Windows
+
+2. If you have a Rust toolchain installed, `cargo install limabean` will install the two binaries `limabean` and `limabean-pod` into `~/.cargo/bin`.  Add this directory to your path before running `limabean`
+
+3. If you have Nix, `limabean` is available as a Nix flake at `url = "github:tesujimath/limabean"`, and this flake pulls in the Clojure CLI tools automatically
 
 ### macOS
 
