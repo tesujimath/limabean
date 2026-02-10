@@ -68,6 +68,10 @@
                   license = with licenses; [ asl20 mit ];
                   # maintainers = [ maintainers.tesujimath ];
                 };
+
+                propagatedBuildInputs = with pkgs; [
+                  clojure
+                ];
               };
 
         in
