@@ -44,12 +44,6 @@ jobs:
           cd clj
           clojure -T:build install
 
-          status=$?
-          test $status == 0 || {
-            find target -ls
-          }
-          exit $status
-
       - name: Print version from jarfile
         run: |
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
