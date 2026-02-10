@@ -38,10 +38,21 @@ jobs:
         with:
           cli: latest
 
-      - name: Build, install locally, and check jarfile
+      - name: Build and install jarfile locally
         run: |
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
           cd clj
           clojure -T:build install
+
+          status=$?
+          test $status == 0 || {
+            find target -ls
+          }
+          exit $status
+
+      - name: Print version from jarfile
+        run: |
+          VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
+          cd clj
           PRINTED_VERSION=$(clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version "$VERSION"}}}" -M -m limabean.main --version)
           test "$PRINTED_VERSION" == "limabean.clj $VERSION"
