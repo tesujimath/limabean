@@ -526,7 +526,7 @@ checksum = "d8cfeafaffdbc32176b64fb251369d52ea9f0a8fbc6f8759edffef7b525d64bb"
 
 [[package]]
 name = "limabean"
-version = "0.2.2-SNAPSHOT"
+version = "0.2.2"
 dependencies = [
  "beancount-parser-lima",
  "build-deps",
