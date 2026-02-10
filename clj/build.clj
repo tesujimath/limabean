@@ -23,6 +23,10 @@
 (def version (cargo-version))
 (def main 'limabean.main)
 (def class-dir "target/classes")
+;; mvn-local-repo must be an absolute path outside of clj
+;; so we can test install the jar without access to local deps.edn
+(def mvn-local-repo
+  (.getPath (io/file (System/getProperty "user.dir") ".." "target" "m2")))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 
 (def basis (b/create-basis {:project "deps.edn"}))
@@ -105,6 +109,20 @@
                      :ns-compile '[rebel-readline.clojure.main]))
     (println "\nBuilding jar" (:jar-file opts))
     (b/jar opts)
+    opts))
+
+(defn install
+  "Install the JAR and pom into `mvn-local-repo` for testing"
+  [opts]
+  (let [opts (jar opts)]
+    (let [artifact (:jar-file opts)
+          pom-file (:pom-file opts)
+          basis {:mvn/local-repo mvn-local-repo}]
+      (println "Installing jarfile using basis" basis)
+      (b/install (assoc opts
+                   :basis basis
+                   :lib lib
+                   :version version)))
     opts))
 
 (defn deploy
