@@ -102,10 +102,7 @@
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
     ;; TODO remove this once rebel-readline 0.1.7 available on Clojars
-    (println "\nVendoring rebel-readline")
-    (b/compile-clj (assoc opts
-                     :basis basis
-                     :ns-compile '[rebel-readline.clojure.main]))
+    (println "\nNot vendoring rebel-readline")
     (println "\nBuilding jar" (:jar-file opts))
     (b/jar opts)
     opts))
