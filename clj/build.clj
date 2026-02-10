@@ -27,7 +27,8 @@
 
 (def basis (b/create-basis {:project "deps.edn"}))
 
-;; TODO remove this once rebel readline available on Clojars
+;; TODO remove this and vendoring below once rebel readline 0.1.7 available on
+;; Clojars
 ;; but for now we need it because transitive dependencies aren't
 ;; loaded via a git co-ordinate
 (def basis-with-github-deps
@@ -97,6 +98,11 @@
         opts (jar-opts opts)]
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
+    ;; TODO remove this once rebel-readline 0.1.7 available on Clojars
+    (println "\nVendoring rebel-readline")
+    (b/compile-clj (assoc opts
+                     :basis basis
+                     :ns-compile '[rebel-readline.clojure.main]))
     (println "\nBuilding jar" (:jar-file opts))
     (b/jar opts)
     opts))

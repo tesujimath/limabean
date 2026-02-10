@@ -1,5 +1,10 @@
 {:aliases
    {:build {:deps {cheshire/cheshire {:mvn/version "6.1.0"},
+                   com.bhauman/rebel-readline
+                     {:deps/root "rebel-readline",
+                      :git/sha "cafa984",
+                      :git/tag "v0.1.7",
+                      :git/url "https://github.com/bhauman/rebel-readline.git"},
                    io.github.clojure/tools.build {:mvn/version "0.10.12"},
                    slipset/deps-deploy {:mvn/version "0.2.1"}},
             :ns-default build},
