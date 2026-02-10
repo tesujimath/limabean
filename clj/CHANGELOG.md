@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.2.3...HEAD
+
+## [0.2.3] - 2026-02-10
+
 ### Added
 
 - implement show for set #10
@@ -14,7 +18,7 @@ All notable changes to this project will be documented in this file. This change
 - fix Unable to detect a system Terminal on Windows #5
 - fix Weird terminal behaviour and Control-C handling on Windows #11
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.2.1...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.2.1...0.2.3
 
 ## [0.2.2] - 2026-02-10
 
