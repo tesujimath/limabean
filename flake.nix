@@ -84,7 +84,6 @@
               cargo-udeps
               cargo-outdated
               cargo-edit
-              gdb
 
               # useful tools:
               beancount

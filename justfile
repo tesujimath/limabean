@@ -12,8 +12,8 @@ rust-test: build-rust
 
 [working-directory: 'clj']
 build-clj:
-    clj -T:build jar
+    clojure -T:build jar
 
 [working-directory: 'clj']
 clj-test:
-    neil test
+    clojure -X:test
