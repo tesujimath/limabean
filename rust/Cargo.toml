@@ -3,7 +3,7 @@ resolver = "3"
 members = ["limabean", "limabean-booking"]
 
 [workspace.dependencies]
-beancount-parser-lima = "0.14.2"
+beancount-parser-lima = "0.14.3"
 # beancount-parser-lima = { version = "0.14.2", path = "../../beancount-parser-lima" }
 hashbrown = "0.15.4"
 rstest = "0.26.1"
