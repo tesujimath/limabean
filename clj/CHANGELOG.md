@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.2.3...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.2.4...HEAD
+
+## [0.2.4] - 2026-02-13
+
+### Fixed
+
+- fix Parsing Beancount files with CR-LF is failing on Windows #24
+
+[commit log]: https://github.com/tesujimath/limabean/compare/0.2.3...0.2.4
 
 ## [0.2.3] - 2026-02-10
 
