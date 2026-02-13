@@ -62,6 +62,7 @@ jobs:
           cargo test --all-targets
 
       - name: Clojure tests
+        shell: bash
         run: |
           cd clj
           export PATH=../rust/target/debug:$PATH
