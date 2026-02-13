@@ -6,7 +6,7 @@
 <h2><a href="#mixed-language-approach" id="mixed-language-approach"></a>Mixed language approach</h2>
 <p>By the time Clojure was introduced, the Rust parser was well established, along with an implementation of the Beancount booking algorithm in Rust.  Abandoning these in favour of Clojure-native implementation was extremely unappealing.  My experiments with Steel Scheme had cooled my enthusiasm for an FFI approach to the mixed language model, hence the use of the Rust parser and booking algorithm via the external program <code>limabean-pod</code>.</p>
 <p>Notice how <code>limabean-pod</code> encapsulates all the complexities of the Beancount booking algorithm (in particular, reductions which involve matching of positions held at cost against cost specs).  Accumulating positions in the Clojure code is consequently simple and straightforward.</p>
-<pre><code>kiri&gt; limabean-pod book ../examples/beancount/trading.beancount
+<pre><code>kiri&gt; limabean-pod book ../test-cases/trading.beancount
 1970-01-01 commodity USD
 
 1970-01-01 commodity AAPL
