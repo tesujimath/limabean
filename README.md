@@ -16,6 +16,8 @@ Rust is purely used for parsing and the booking algorithm, with essentially no v
 - [Design and rationale](clj/doc/70-design-and-rationale.md)
 - [Reference manual](https://tesujimath.github.io/limabean)
 
+Also, for a new approach to import see [limabean-harvest](https://github.com/tesujimath/limabean-harvest).
+
 ## Contributions
 
 While issues are welcome and I am particularly interested in making this generally useful to others, given the current pace of development I am unlikely to be able to accept PRs for now.
