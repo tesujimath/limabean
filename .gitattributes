@@ -1,0 +1,2 @@
+# Force LF-only for golden output to avoid Windows breakage
+*.golden/* text eol=lf

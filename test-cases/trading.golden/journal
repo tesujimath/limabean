@@ -1,0 +1,45 @@
+2014-02-16  Assets:US:ETrade:IBM              Buying some IBM                    10     IBM     10    IBM
+2014-02-16  Assets:US:ETrade:Cash             Buying some IBM                 -1609.95  USD     10    IBM
+                                                                                             -1609.95 USD
+2014-02-16  Expenses:Financial:Commissions    Buying some IBM                     9.95  USD     10    IBM
+                                                                                             -1600.00 USD
+2014-02-17  Assets:US:ETrade:IBM              Selling some IBM                   -3     IBM      7    IBM
+                                                                                             -1600.00 USD
+2014-02-17  Assets:US:ETrade:Cash             Selling some IBM                  500.05  USD      7    IBM
+                                                                                             -1099.95 USD
+2014-02-17  Expenses:Financial:Commissions    Selling some IBM                    9.95  USD      7    IBM
+                                                                                             -1090.00 USD
+2014-02-17  Income:US:ETrade:PnL              Selling some IBM                 -507.00  USD      7    IBM
+                                                                                             -1597.00 USD
+2014-02-18  Assets:US:ETrade:IBM              I put my chips on big blue!         5     IBM     12    IBM
+                                                                                             -1597.00 USD
+2014-02-18  Assets:US:ETrade:Cash             I put my chips on big blue!      -909.95  USD     12    IBM
+                                                                                             -2506.95 USD
+2014-02-18  Expenses:Financial:Commissions    I put my chips on big blue!         9.95  USD     12    IBM
+                                                                                             -2497.00 USD
+2014-03-18  Assets:US:ETrade:IBM              Selling all my blue chips.         -7     IBM      5    IBM
+                                                                                             -2497.00 USD
+2014-03-18  Assets:US:ETrade:IBM              Selling all my blue chips.         -5     IBM  -2497.00 USD
+2014-03-18  Assets:US:ETrade:Cash             Selling all my blue chips.       2054.05  USD   -442.95 USD
+2014-03-18  Expenses:Financial:Commissions    Selling all my blue chips.          9.95  USD   -433.00 USD
+2014-03-18  Income:US:ETrade:PnL              Selling all my blue chips.      -2052.00  USD  -2485.00 USD
+2014-04-16  Assets:US:ETrade:IBM              Buying some more IBM               10     IBM     10    IBM
+                                                                                             -2485.00 USD
+2014-04-16  Assets:US:ETrade:Cash             Buying some more IBM            -1739.95  USD     10    IBM
+                                                                                             -4224.95 USD
+2014-04-16  Expenses:Financial:Commissions    Buying some more IBM                9.95  USD     10    IBM
+                                                                                             -4215.00 USD
+2014-04-26  Assets:US:ETrade:IBM              Buying IBM yet again               10     IBM     20    IBM
+                                                                                             -4215.00 USD
+2014-04-26  Assets:US:ETrade:Cash             Buying IBM yet again            -1809.95  USD     20    IBM
+                                                                                             -6024.95 USD
+2014-04-26  Expenses:Financial:Commissions    Buying IBM yet again                9.95  USD     20    IBM
+                                                                                             -6015.00 USD
+2014-05-01  Assets:US:ETrade:IBM              Selling some older blue chips.     -4     IBM     16    IBM
+                                                                                             -6015.00 USD
+2014-05-01  Assets:US:ETrade:Cash             Selling some older blue chips.    740.00  USD     16    IBM
+                                                                                             -5275.00 USD
+2014-05-01  Expenses:Financial:Commissions    Selling some older blue chips.      9.95  USD     16    IBM
+                                                                                             -5265.05 USD
+2014-05-01  Income:US:ETrade:PnL              Selling some older blue chips.   -745.95  USD     16    IBM
+                                                                                             -6011.00 USD

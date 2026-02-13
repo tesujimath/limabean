@@ -19,10 +19,10 @@ Options:
       --eval EXPR                  Evaluate expression then exit
 
 
-kiri> limabean --beanfile ./examples/beancount/simple.beancount
+kiri> limabean --beanfile ./test-cases/simple.beancount
 
 [Rebel readline] Type :repl/help for online help info
-[limabean] 18 directives loaded from ./examples/beancount/simple.beancount
+[limabean] 18 directives loaded from ./test-cases/simple.beancount
 
 
 user=> (inventory)

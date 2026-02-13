@@ -1,0 +1,42 @@
+2013-01-01  Assets:CA:RBC-Investing:Taxable-CAD:Cash              Buy CRA shares                      -1395.43  CAD  -1395.43 CAD
+2013-01-01  Assets:US:TD:Checking                                 Buy CRA shares                        957.40  USD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2017-11-17  Assets:US:TD:Checking                                                                     22996.64  USD  -1395.43 CAD
+                                                                                                                     23954.04 USD
+2017-11-17  Equity:Opening-Balances                                                                  -22996.64  USD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2022-01-30  Assets:Bank:Current                                   Z Energy ;                           -125.00  NZD  -1395.43 CAD
+                                                                                                                      -125.00 NZD
+                                                                                                                       957.40 USD
+2022-01-30  Expenses:Car:Fuel                                     Z Energy ;                            125.00  NZD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2023-05-29  Assets:Bank:Current                                   New World Gardens North East Va ;     -39.65  NZD  -1395.43 CAD
+                                                                                                                       -39.65 NZD
+                                                                                                                       957.40 USD
+2023-05-29  Expenses:Groceries                                    New World Gardens North East Va ;      39.65  NZD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2023-05-29  Assets:Bank:Current                                                                        1164.65  NZD  -1395.43 CAD
+                                                                                                                      1164.65 NZD
+                                                                                                                       957.40 USD
+2023-05-29  Equity:Opening-Balances                                                                   -1164.65  NZD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2023-05-31  Assets:Bank:Current                                   EMERSON S TAPROOM DUNEDIN ;           -25.00  NZD  -1395.43 CAD
+                                                                                                                       -25.00 NZD
+                                                                                                                       957.40 USD
+2023-05-31  Expenses:Entertainment:Drinks-and-snacks              EMERSON S TAPROOM DUNEDIN ;            25.00  NZD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2023-05-31  Assets:Bank:Current                       Z Energy ;  Rather expensive                     -130.00  NZD  -1395.43 CAD
+                                                                                                                      -130.00 NZD
+                                                                                                                       957.40 USD
+2023-05-31  Expenses:Car:Fuel                         Z Energy ;  Rather expensive                      130.00  NZD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2023-06-02  Assets:Bank:Current                       Repco                                             -25.00  NZD  -1395.43 CAD
+                                                                                                                       -25.00 NZD
+                                                                                                                       957.40 USD
+2023-06-02  Expenses:Car                              Repco                                              25.00  NZD  -1395.43 CAD
+                                                                                                                       957.40 USD
+2023-06-10  Assets:Bank:Current                                   Transfer                             -100.00  NZD  -1395.43 CAD
+                                                                                                                      -100.00 NZD
+                                                                                                                       957.40 USD
+2023-06-10  Assets:Bank:Savings                                   Transfer                              100.00  NZD  -1395.43 CAD
+                                                                                                                       957.40 USD
