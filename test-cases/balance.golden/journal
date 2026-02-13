@@ -1,0 +1,12 @@
+2020-01-01  Assets:Bank:Current       Initial income   1000.00  NZD  1000.00 NZD
+2020-01-01  Income:Unknown            Initial income  -1000.00  NZD             
+2020-02-01  Assets:Bank:Current       Food              -50.00  NZD   -50.00 NZD
+2020-02-01  Expenses:Groceries        Food               50.00  NZD             
+2020-02-02  Assets:Bank:Current       Drinks            -15.00  NZD   -15.00 NZD
+2020-02-02  Expenses:Entertainment    Drinks             15.00  NZD             
+2020-03-01  Assets:Bank:Current       Food             -100.00  NZD  -100.00 NZD
+2020-03-01  Expenses:Groceries        Food              100.00  NZD             
+2020-04-01  Assets:Bank:Current       Big trip         -835.00  NZD  -835.00 NZD
+2020-04-01  Expenses:Entertainment    Big trip          835.00  NZD             
+2020-05-01  Assets:Bank:Current       Food               -5.00  NZD    -5.00 NZD
+2020-05-01  Expenses:Groceries        Food                5.00  NZD             

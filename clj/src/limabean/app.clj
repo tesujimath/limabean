@@ -24,7 +24,7 @@
          (user-clj/load-user-cljs)
          (catch Exception e (print-exception e) (System/exit 1)))))
 
-(defn- eval-then-exit
+(defn- try-eval
   [expr-str options]
   (try (let [expr (read-string expr-str)]
          ((init options))
@@ -38,5 +38,5 @@
   "Run the REPL or evaluate an expression and exit"
   [options]
   (if-let [expr-str (:eval options)]
-    (eval-then-exit expr-str options)
+    (try-eval expr-str options)
     (rebel-clj-main/repl :init (init options) :caught print-exception)))

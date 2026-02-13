@@ -24,24 +24,22 @@
   Assets:Bank:Current                    -15.00 NZD
   Expenses:Entertainment
 
-2020-02-28 balance Assets:Bank:Current   940.00 NZD
+2020-02-28 balance Assets:Bank:Current   935.00 NZD
 
 2020-03-01 * "Food"
   Assets:Bank:Current                   -100.00 NZD
   Expenses:Groceries
 
-2020-03-28 balance Assets:Bank:Current   840.00 NZD
+2020-03-28 balance Assets:Bank:Current   835.00 NZD
 
 2020-04-01 * "Big trip"
-  Assets:Bank:Current                   -840.00 NZD
+  Assets:Bank:Current                   -835.00 NZD
   Expenses:Entertainment
 
 2020-04-27 balance Assets:Bank:Current     0.00 NZD
-
-2020-04-28 balance Assets:Bank:Current    10.00 NZD
 
 2020-05-01 * "Food"
   Assets:Bank:Current                     -5.00 NZD
   Expenses:Groceries
 
-2020-05-28 balance Assets:Bank:Current     5.00 NZD
+2020-05-28 balance Assets:Bank:Current    -5.00 NZD

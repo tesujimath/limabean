@@ -11,7 +11,7 @@ By the time Clojure was introduced, the Rust parser was well established, along 
 Notice how `limabean-pod` encapsulates all the complexities of the Beancount booking algorithm (in particular, reductions which involve matching of positions held at cost against cost specs).  Accumulating positions in the Clojure code is consequently simple and straightforward.
 
 ```
-kiri> limabean-pod book ../examples/beancount/trading.beancount
+kiri> limabean-pod book ../test-cases/trading.beancount
 1970-01-01 commodity USD
 
 1970-01-01 commodity AAPL

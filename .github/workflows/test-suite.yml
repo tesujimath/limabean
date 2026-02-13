@@ -51,14 +51,21 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Rust build
+        run: |
+          cd rust
+          cargo build
+
       - name: Rust tests
         run: |
           cd rust
           cargo test --all-targets
 
       - name: Clojure tests
+        shell: bash
         run: |
           cd clj
+          export PATH=../rust/target/debug:$PATH
           clojure -X:test
 
 
