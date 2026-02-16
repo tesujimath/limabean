@@ -23,7 +23,6 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Verify tag and Cargo version match
-        if: github.ref_type == 'tag'
         shell: bash
         run: |
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
@@ -68,7 +67,7 @@ jobs:
           Copy-Item $bins release\
           Compress-Archive -Path release\* -DestinationPath limabean-${{ matrix.os }}.zip
 
-      - name: Upload artifact
+      - name: Upload Rust binaries
         uses: actions/upload-artifact@v4
         with:
           name: limabean-${{ matrix.os }}
@@ -90,6 +89,21 @@ jobs:
         run: |
           cd clj
           clojure -T:build deploy
+
+      - name: Build uberjar
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd clj
+          clojure -T:build uber
+          mv target/limabean-${GITHUB_REF_NAME#v}-standalone.jar ../limabean-standalone.jar
+
+      - name: Upload uberjar
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: limabean-uberjar
+          path: |
+            limabean-standalone.jar
 
       - name: Publish limabean crate
         if: ${{ matrix.os == 'ubuntu-latest' && !contains(github.ref_name, 'SNAPSHOT') }}
