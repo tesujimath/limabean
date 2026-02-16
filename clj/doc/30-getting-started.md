@@ -138,4 +138,5 @@ Quotes are essential, as what is being passed is Clojure code exactly as it woul
 - `LIMABEAN_BEANFILE` - path to default beanfile unless overridden with `--beanfile`
 - `LIMABEAN_USER_CLJ` - colon separated list of Clojure source files to load, containing [user-provided code](40-plugins.md)
 - `LIMABEAN_CLJ_LOCAL_ROOT` - path to local Clojure source, when running the [development version](50-development.md)
+- `LIMABEAN_UBERJAR` - path to standalone application jarfile (optionally defined at build time)
 - `LIMABEAN_LOG` - path to logfile, for troubleshooting

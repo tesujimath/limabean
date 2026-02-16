@@ -28,6 +28,7 @@
 (def mvn-local-repo
   (.getPath (io/file (System/getProperty "user.dir") ".." "target" "m2")))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
+(def uber-file (format "target/%s-%s-standalone.jar" (name lib) version))
 
 (def basis (b/create-basis {:project "deps.edn"}))
 
@@ -109,6 +110,29 @@
                      :ns-compile '[rebel-readline.clojure.main]))
     (println "\nBuilding jar" (:jar-file opts))
     (b/jar opts)
+    opts))
+
+(defn- uber-opts
+  [opts]
+  (assoc opts
+    :class-dir class-dir
+    :uber-file uber-file
+    :main main
+    :basis basis-with-github-deps
+    :manifest {"Implementation-Version" version, "Add-Modules" "java.sql"}))
+
+(defn uber
+  [opts]
+  (let [opts (clean opts)
+        opts (uber-opts opts)]
+    (println "\nCopying source...")
+    (b/copy-dir {:src-dirs ["src" "resources"], :target-dir (:class-dir opts)})
+    (println "\nCompiling ...")
+    (b/compile-clj {:basis (:basis opts),
+                    :ns-compile [(:main opts)],
+                    :class-dir (:class-dir opts)})
+    (println "\nBuilding uberjar" (:uber-file opts))
+    (b/uber opts)
     opts))
 
 (defn install
