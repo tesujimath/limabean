@@ -85,9 +85,13 @@
                  :basis basis-with-github-deps
                  :src-dirs ["src"]
                  :pom-data (pom-template version)))
-  (println "wrote" (format "target/classes/META-INF/maven/%s/pom.xml" lib))
-  (assoc opts
-    :pom-file (format "target/classes/META-INF/maven/%s/pom.xml" lib)))
+  (let [generated-pom-file (format "target/classes/META-INF/maven/%s/pom.xml"
+                                   lib)
+        committed-pom-file "pom.xml"]
+    (println "wrote" generated-pom-file)
+    (b/copy-file {:src generated-pom-file, :target committed-pom-file})
+    (println "copied" generated-pom-file "to" committed-pom-file)
+    (assoc opts :pom-file generated-pom-file)))
 
 (defn- jar-opts
   [opts]

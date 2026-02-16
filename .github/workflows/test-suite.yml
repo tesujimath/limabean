@@ -51,10 +51,11 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Rust build
+      - name: Rust build and check Cargo.lock
         run: |
           cd rust
           cargo build
+          git diff --exit-code Cargo.lock
 
       - name: Rust tests
         run: |
@@ -67,6 +68,13 @@ jobs:
           cd clj
           export PATH=../rust/target/debug:$PATH
           clojure -X:test
+
+      - name: Check Clojure pom.xml
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd clj
+          clojure -T:build write-pom
+          git diff --exit-code pom.xml
 
 
   check-jarfiles:
@@ -102,6 +110,6 @@ jobs:
       - name: Print version from uberjar
         run: |
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
-          java -jar ./clj/target/limabean-0.2.4-standalone.jar --version >VERSION
+          java -jar ./clj/target/limabean-${VERSION}-standalone.jar --version >VERSION
           cat VERSION
           test "$(cat VERSION)" == "limabean.clj $VERSION"
