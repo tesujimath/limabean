@@ -1,6 +1,6 @@
 build: build-rust build-clj
 
-build-standalone-release: build-rust-release build-clj-standalone
+build-release: build-rust-release build-clj
 
 test: rust-test clj-test
 
@@ -18,10 +18,6 @@ rust-test: build-rust
 
 [working-directory: 'clj']
 build-clj:
-    clojure -T:build jar
-
-[working-directory: 'clj']
-build-clj-standalone:
     clojure -T:build uber
 
 [working-directory: 'clj']

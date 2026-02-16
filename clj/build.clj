@@ -123,7 +123,7 @@
 
 (defn uber
   [opts]
-  (let [opts (clean opts)
+  (let [opts (jar opts)
         opts (uber-opts opts)]
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["src" "resources"], :target-dir (:class-dir opts)})
@@ -138,15 +138,13 @@
 (defn install
   "Install the JAR and pom into `mvn-local-repo` for testing"
   [opts]
-  (let [opts (jar opts)]
-    (let [artifact (:jar-file opts)
-          pom-file (:pom-file opts)
-          basis {:mvn/local-repo mvn-local-repo}]
-      (println "Installing jarfile using basis" basis)
-      (b/install (assoc opts
-                   :basis basis
-                   :lib lib
-                   :version version)))
+  (let [opts (jar opts)
+        basis {:mvn/local-repo mvn-local-repo}]
+    (println "Installing jarfile using basis" basis)
+    (b/install (assoc opts
+                 :basis basis
+                 :lib lib
+                 :version version))
     opts))
 
 (defn deploy
