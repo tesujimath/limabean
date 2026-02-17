@@ -1,8 +1,24 @@
 # Installation
 
-There are two ways to run `limabean`, either standalone or from Clojars.
+## Packages
 
-Running from Clojars is recommended for anyone using the [GitHub release](https://github.com/tesujimath/limabean/releases), that is, not setting any of the following environment variables.
+### Nix
+
+`limabean` is available as a Nix flake at `url = "github:tesujimath/limabean"`, and this flake pulls in the Clojure CLI tools automatically.  It currently runs from Clojars, but is likely in future to run standalone.
+
+### Arch Linux
+
+`limabean` is available in the [Arch Linux user repository](https://aur.archlinux.org/packages/limabean), so may be installed using `paru -S limabean`.
+
+This runs in standalone mode.
+
+### Other packaging
+
+If you have packaged or are interested in packaging `limabean` for your distro of choice, please reach out for help or at least a mention here.  Thanks!
+
+## Installation modes
+
+There are two ways to run `limabean`, either standalone or from Clojars.  Running from Clojars means that the required Clojure packages are downloaded by the Clojure runtime on first use.
 
 Selection of runtime is determined by the following:
 
@@ -11,7 +27,9 @@ Selection of runtime is determined by the following:
 3. If the environment variable `LIMABEAN_UBERJAR` was defined at buildtime, that is the path to the standalone application jarfile, which is run using `java`
 4. Otherwise, the application whose version matches `limabean` is run from Clojars using `clojure`
 
-Note that running using `clojure` will download all required dependencies from Clojars.
+## Manual Installation
+
+Running from Clojars is recommended for anyone using the [GitHub release](https://github.com/tesujimath/limabean/releases), that is, not setting any of the environment variables listed above.
 
 ## Running from Clojars
 
@@ -28,8 +46,6 @@ Options for installing the Rust binaries:
 1. Tarballs and zipfiles are provided for each [GitHub release](https://github.com/tesujimath/limabean/releases) for Linux, macOS, and Windows
 
 2. If you have a Rust toolchain installed, `cargo install limabean` will install the two binaries `limabean` and `limabean-pod` into `~/.cargo/bin`.  Add this directory to your path before running `limabean`
-
-3. If you have Nix, `limabean` is available as a Nix flake at `url = "github:tesujimath/limabean"`, and this flake pulls in the Clojure CLI tools automatically
 
 ### macOS
 
@@ -62,4 +78,4 @@ If this environment variable is defined when building the Rust binaries, it is n
 
 The [`justfile`](../../justfile) has recipes for building from source.
 
-For packagers wishing to build a standalone jarfile, `build-standalone-release` is the rule to use.  The two Rust binaries will be built in `rust/target/release`, and the standalone jarfile will be built in `clj/target`.
+The two Rust binaries are built in `rust/target/{release,debug}`, and the jarfiles in `clj/target`.
