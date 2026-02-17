@@ -28,6 +28,7 @@
 (def mvn-local-repo
   (.getPath (io/file (System/getProperty "user.dir") ".." "target" "m2")))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
+(def uber-file (format "target/%s-%s-standalone.jar" (name lib) version))
 
 (def basis (b/create-basis {:project "deps.edn"}))
 
@@ -84,9 +85,13 @@
                  :basis basis-with-github-deps
                  :src-dirs ["src"]
                  :pom-data (pom-template version)))
-  (println "wrote" (format "target/classes/META-INF/maven/%s/pom.xml" lib))
-  (assoc opts
-    :pom-file (format "target/classes/META-INF/maven/%s/pom.xml" lib)))
+  (let [generated-pom-file (format "target/classes/META-INF/maven/%s/pom.xml"
+                                   lib)
+        committed-pom-file "pom.xml"]
+    (println "wrote" generated-pom-file)
+    (b/copy-file {:src generated-pom-file, :target committed-pom-file})
+    (println "copied" generated-pom-file "to" committed-pom-file)
+    (assoc opts :pom-file generated-pom-file)))
 
 (defn- jar-opts
   [opts]
@@ -111,18 +116,39 @@
     (b/jar opts)
     opts))
 
+(defn- uber-opts
+  [opts]
+  (assoc opts
+    :class-dir class-dir
+    :uber-file uber-file
+    :main main
+    :basis basis-with-github-deps
+    :manifest {"Implementation-Version" version, "Add-Modules" "java.sql"}))
+
+(defn uber
+  [opts]
+  (let [opts (jar opts)
+        opts (uber-opts opts)]
+    (println "\nCopying source...")
+    (b/copy-dir {:src-dirs ["src" "resources"], :target-dir (:class-dir opts)})
+    (println "\nCompiling ...")
+    (b/compile-clj {:basis (:basis opts),
+                    :ns-compile [(:main opts)],
+                    :class-dir (:class-dir opts)})
+    (println "\nBuilding uberjar" (:uber-file opts))
+    (b/uber opts)
+    opts))
+
 (defn install
   "Install the JAR and pom into `mvn-local-repo` for testing"
   [opts]
-  (let [opts (jar opts)]
-    (let [artifact (:jar-file opts)
-          pom-file (:pom-file opts)
-          basis {:mvn/local-repo mvn-local-repo}]
-      (println "Installing jarfile using basis" basis)
-      (b/install (assoc opts
-                   :basis basis
-                   :lib lib
-                   :version version)))
+  (let [opts (jar opts)
+        basis {:mvn/local-repo mvn-local-repo}]
+    (println "Installing jarfile using basis" basis)
+    (b/install (assoc opts
+                 :basis basis
+                 :lib lib
+                 :version version))
     opts))
 
 (defn deploy

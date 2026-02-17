@@ -51,10 +51,11 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Rust build
+      - name: Rust build and check Cargo.lock
         run: |
           cd rust
           cargo build
+          git diff --exit-code Cargo.lock
 
       - name: Rust tests
         run: |
@@ -68,9 +69,16 @@ jobs:
           export PATH=../rust/target/debug:$PATH
           clojure -X:test
 
+      - name: Check Clojure pom.xml
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd clj
+          clojure -T:build write-pom
+          git diff --exit-code pom.xml
 
-  check-jarfile:
-    name: Check jarfile
+
+  check-jarfiles:
+    name: Check jarfiles
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -83,7 +91,6 @@ jobs:
 
       - name: Build and install jarfile locally
         run: |
-          VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
           cd clj
           clojure -T:build install
 
@@ -92,5 +99,17 @@ jobs:
           VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
           # this must run *outside* of the clj directory, so we're not relying on its deps.edn for dependency resolution
           clojure -J--enable-native-access=ALL-UNNAMED -Sdeps "{:mvn/local-repo \"$(pwd)/target/m2\" :deps {io.github.tesujimath/limabean {:mvn/version \"$VERSION\"}}}" -M -m limabean.main --version >VERSION
+          cat VERSION
+          test "$(cat VERSION)" == "limabean.clj $VERSION"
+
+      - name: Build uberjar
+        run: |
+          cd clj
+          clojure -T:build uber
+
+      - name: Print version from uberjar
+        run: |
+          VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
+          java -jar ./clj/target/limabean-${VERSION}-standalone.jar --version >VERSION
           cat VERSION
           test "$(cat VERSION)" == "limabean.clj $VERSION"

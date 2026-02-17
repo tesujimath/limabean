@@ -37,6 +37,7 @@
 (defn run
   "Run the REPL or evaluate an expression and exit"
   [options]
-  (if-let [expr-str (:eval options)]
-    (try-eval expr-str options)
-    (rebel-clj-main/repl :init (init options) :caught print-exception)))
+  (binding [*ns* (find-ns 'user)]
+    (if-let [expr-str (:eval options)]
+      (try-eval expr-str options)
+      (rebel-clj-main/repl :init (init options) :caught print-exception))))
