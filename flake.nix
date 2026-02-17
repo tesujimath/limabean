@@ -82,28 +82,27 @@
               mavenRepoSha256 = "sha256-mO98ssHyCAI1LPR5qPlRtH6ygd3h2xRP381K/zLdVSY=";
               src = ./clj;
 
-              setupClojureEnv = ''
-                export HOME="$(mktemp -d)"
-                export GITLIBS="$HOME/.gitlibs"
-                export GIT_SSL_CAINFO=${cacert}/etc/ssl/certs/ca-bundle.crt
-              '';
-
-              mavenRepo = stdenv.mkDerivation {
+              limabean-deps = stdenv.mkDerivation {
                 name = "limabean-${version}-maven-deps";
                 inherit src;
 
                 nativeBuildInputs = [ clojure git ];
 
                 buildPhase = ''
-                  ${setupClojureEnv}
+                  mkdir -p "$out"
+
+                  export HOME="$(mktemp -d)"
+                  export GITLIBS="$out/gitlibs"
+                  mkdir -p "$GITLIBS"
+                  export GIT_SSL_CAINFO=${cacert}/etc/ssl/certs/ca-bundle.crt
+
+                  mkdir -p "$out/m2-repository"
 
                   runHook preBuild
 
-                  mkdir -p "$out"
-
                   # -P       -> resolve all normal deps
                   # -M:alias -> resolve extra-deps of the listed aliases
-                  clj -Sdeps "{:mvn/local-repo \"$out\"}" -P -M:build
+                  clj -Sdeps "{:mvn/local-repo \"$out/m2-repository\"}" -P -M:build
 
                   runHook postBuild
                 '';
@@ -130,7 +129,7 @@
               };
 
               clojureWithCache = writeShellScriptBin "clojure" ''
-                exec ${lib.getExe' clojure "clojure"} -Sdeps '{:mvn/local-repo "${mavenRepo}"}' "$@"
+                exec ${lib.getExe' clojure "clojure"} -Sdeps '{:mvn/local-repo "${limabean-deps}"}' "$@"
               '';
             in
             stdenv.mkDerivation
@@ -139,28 +138,26 @@
 
                 pname = "limabean-clj";
 
-                nativeBuildInputs = [ cargo clojureWithCache git ];
+                nativeBuildInputs = [ cargo clojureWithCache git limabean-deps ];
 
                 buildPhase = ''
-                  ${setupClojureEnv}
-
+                  export GITLIBS="${limabean-deps}/gitlibs"
                   runHook preBuild
 
                   type git
-                  echo "HOME is $HOME"
-                  ls -lad $HOME
-                  ls -la $HOME
-                  mkdir -p "$HOME/.m2/repository"
-                  ls -la $HOME/.m2
+                  # echo "HOME is $HOME"
+                  # ls -lad $HOME
+                  # ls -la $HOME
+                  # mkdir -p "$HOME/.m2/repository"
+                  # ls -la $HOME/.m2
                   echo "GITLIBS is $GITLIBS"
-                  export GIT="${git}/bin/git"
-                  echo "GIT is $GIT"
-                  echo "mavenRepo is ${mavenRepo}"
+                  # export GIT="${git}/bin/git"
+                  # echo "GIT is $GIT"
+                  echo "limabean-deps is ${limabean-deps}"
 
                   # this needs cargo to get the version from Cargo.toml:
-                  # echo clojure -Sdeps "{:mvn/local-repo \"${mavenRepo}\"}" -T:build uber
-                  # clojure -Sdeps "{:mvn/local-repo \"${mavenRepo}\"}" -T:build uber
-                  clojure -T:build uber
+                  echo clojure -Sdeps "{:mvn/local-repo \"${limabean-deps}/m2-repository\"}" -T:build uber
+                  clojure -Sdeps "{:mvn/local-repo \"${limabean-deps}/m2-repository\"}" -T:build uber
 
                   runHook postBuild
                 '';
