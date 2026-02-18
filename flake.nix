@@ -79,7 +79,7 @@
 
           limabean-clj =
             let inherit (pkgs) cacert cargo clojure git lib stdenv writeShellScriptBin;
-              mavenRepoSha256 = "sha256-mO98ssHyCAI1LPR5qPlRtH6ygd3h2xRP381K/zLdVSY=";
+              mavenRepoSha256 = "sha256-PMVKhiOKmhhXQoW15UXuuL9douSfyS5kca9txA+lxk8=";
               src = ./clj;
 
               limabean-deps = stdenv.mkDerivation {
@@ -87,6 +87,8 @@
                 inherit src;
 
                 nativeBuildInputs = [ clojure git ];
+
+                dontFixup = true;
 
                 buildPhase = ''
                   mkdir -p "$out"
@@ -104,14 +106,19 @@
                   # -M:alias -> resolve extra-deps of the listed aliases
                   clj -Sdeps "{:mvn/local-repo \"$out/m2-repository\"}" -P -M:build
 
+                  # remove git hooks since these have shebangs referencing into the Nix store,
+                  # and various other files which also reference the Nix store
+                  find $out -type d -name hooks -print0 | xargs -0 rm -rf
+                  find $out -type f \( -name gitdir -o -name .git \) -delete
+
                   runHook postBuild
                 '';
 
-                # copied from buildMavenPackage
-                # keep only *.{pom,jar,sha1,nbm} and delete all ephemeral files with lastModified timestamps inside
                 installPhase = ''
                   runHook preInstall
 
+                  # copied from buildMavenPackage
+                  # keep only *.{pom,jar,sha1,nbm} and delete all ephemeral files with lastModified timestamps inside
                   find $out -type f \( \
                     -name \*.lastUpdated \
                     -o -name resolver-status.properties \
@@ -120,8 +127,6 @@
 
                   runHook postInstall
                 '';
-
-                dontFixup = true;
 
                 outputHash = mavenRepoSha256;
                 outputHashMode = "recursive";
@@ -141,6 +146,7 @@
                 nativeBuildInputs = [ cargo clojureWithCache git limabean-deps ];
 
                 buildPhase = ''
+                  export HOME="$(mktemp -d)"
                   export GITLIBS="${limabean-deps}/gitlibs"
                   runHook preBuild
 
@@ -156,6 +162,7 @@
                   echo "limabean-deps is ${limabean-deps}"
 
                   # this needs cargo to get the version from Cargo.toml:
+                  clojure --version
                   echo clojure -Sdeps "{:mvn/local-repo \"${limabean-deps}/m2-repository\"}" -T:build uber
                   clojure -Sdeps "{:mvn/local-repo \"${limabean-deps}/m2-repository\"}" -T:build uber
 
