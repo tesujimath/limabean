@@ -48,6 +48,10 @@ where
             mut warnings,
         }) => {
             let internal_plugins = plugins.iter().collect::<InternalPlugins>();
+            for unknown in &internal_plugins.unknown {
+                warnings.push(unknown.warning("unknown plugin"));
+            }
+
             let inferred_tolerance = InferredTolerance::new(&options);
 
             let default_booking = Booking::default();
