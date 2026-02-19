@@ -84,6 +84,7 @@
                  :version version
                  :basis basis-with-github-deps
                  :src-dirs ["src"]
+                 :src-pom :none
                  :pom-data (pom-template version)))
   (let [generated-pom-file (format "target/classes/META-INF/maven/%s/pom.xml"
                                    lib)
