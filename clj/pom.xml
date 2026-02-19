@@ -105,6 +105,6 @@
     <url>https://github.com/tesujimath/limabean</url>
     <connection>scm:git:git://github.com/tesujimath/limabean.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/tesujimath/limabean.git</developerConnection>
-    <tag>0.2.4</tag>
+    <tag>0.2.5</tag>
   </scm>
 </project>
