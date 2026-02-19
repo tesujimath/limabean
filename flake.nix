@@ -79,21 +79,28 @@
 
           limabean-clj =
             let inherit (pkgs) cacert cargo clojure git lib stdenv writeShellScriptBin;
-              mavenRepoSha256 = "sha256-PMVKhiOKmhhXQoW15UXuuL9douSfyS5kca9txA+lxk8=";
+              outputHash = "";
               src = ./clj;
+
+              clojur-with-local-repo = dir: writeShellScriptBin "clojure" ''
+                exec ${lib.getExe' clojure "clojure"} -Sdeps '{:mvn/local-repo "${dir}"}' "$@"
+              '';
 
               limabean-deps = stdenv.mkDerivation {
                 name = "limabean-${version}-maven-deps";
-                inherit src;
+                inherit outputHash src;
 
-                nativeBuildInputs = [ clojure git ];
+                outputHashMode = "recursive";
+                outputHashAlgo = "sha256";
+
+                nativeBuildInputs = [ cargo clojure git ];
 
                 dontFixup = true;
 
                 buildPhase = ''
                   mkdir -p "$out"
 
-                  export HOME="$(mktemp -d)"
+                  export HOME="$out"
                   export GITLIBS="$out/gitlibs"
                   mkdir -p "$GITLIBS"
                   export GIT_SSL_CAINFO=${cacert}/etc/ssl/certs/ca-bundle.crt
@@ -102,14 +109,19 @@
 
                   runHook preBuild
 
-                  # -P       -> resolve all normal deps
-                  # -M:alias -> resolve extra-deps of the listed aliases
-                  clj -Sdeps "{:mvn/local-repo \"$out/m2-repository\"}" -P -M:build
+                  echo "HOME=$HOME"
+
+                  export MAVEN_EXTRA_ARGS="-Dmaven.repo.local=$out/m2"
+                  mkdir $out/m2
+
+                  clojure -Sdeps "{:mvn/local-repo \"$out/m2-repository\"}" -T:build uber
+                  echo "done first clojure build"
 
                   # remove git hooks since these have shebangs referencing into the Nix store,
                   # and various other files which also reference the Nix store
                   find $out -type d -name hooks -print0 | xargs -0 rm -rf
                   find $out -type f \( -name gitdir -o -name .git \) -delete
+                  ls $out
 
                   runHook postBuild
                 '';
@@ -127,10 +139,6 @@
 
                   runHook postInstall
                 '';
-
-                outputHash = mavenRepoSha256;
-                outputHashMode = "recursive";
-                outputHashAlgo = "sha256";
               };
 
               clojureWithCache = writeShellScriptBin "clojure" ''

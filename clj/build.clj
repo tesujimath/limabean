@@ -6,7 +6,7 @@
             [cheshire.core :as cheshire]
             [deps-deploy.deps-deploy :as deps-deploy]))
 
-(defn cargo-version
+(defn- cargo-version
   "Read the version from lima"
   []
   (-> (sh/sh "cargo"
@@ -30,20 +30,27 @@
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 (def uber-file (format "target/%s-%s-standalone.jar" (name lib) version))
 
-(def basis (b/create-basis {:project "deps.edn"}))
+(defn- basis
+  [opts]
+  (println "creating basis from opts" opts)
+  (b/create-basis (merge (:basis opts) {:project "deps.edn"})))
 
 ;; TODO remove this and vendoring below once rebel readline 0.1.7 available on
 ;; Clojars
 ;; but for now we need it because transitive dependencies aren't
 ;; loaded via a git co-ordinate
-(def basis-with-github-deps
+(defn- basis-with-github-deps
+  [opts]
+  (println "creating basis-with-github-deps from opts" opts)
   (b/create-basis
-    {:project "deps.edn",
-     :extra {:deps {'compliment/compliment {:mvn/version "0.6.0"},
-                    'dev.weavejester/cljfmt {:mvn/version "0.13.0"},
-                    'org.jline/jline-reader {:mvn/version "3.30.0"},
-                    'org.jline/jline-terminal {:mvn/version "3.30.0"},
-                    'org.jline/jline-terminal-jni {:mvn/version "3.30.0"}}}}))
+    (merge (:basis opts)
+           {:project "deps.edn",
+            :extra {:deps {'compliment/compliment {:mvn/version "0.6.0"},
+                           'dev.weavejester/cljfmt {:mvn/version "0.13.0"},
+                           'org.jline/jline-reader {:mvn/version "3.30.0"},
+                           'org.jline/jline-terminal {:mvn/version "3.30.0"},
+                           'org.jline/jline-terminal-jni {:mvn/version
+                                                            "3.30.0"}}}})))
 
 
 (defn- pom-template
@@ -66,7 +73,7 @@
 (defn test
   "Run all the tests."
   [opts]
-  (let [cmds (b/java-command {:basis basis,
+  (let [cmds (b/java-command {:basis (basis opts),
                               :main 'clojure.main,
                               :main-args ["-m" "cognitect.test-runner"]})
         {:keys [exit]} (b/process cmds)]
@@ -82,7 +89,7 @@
                  :class-dir class-dir
                  :lib lib
                  :version version
-                 :basis basis-with-github-deps
+                 :basis (basis-with-github-deps opts)
                  :src-dirs ["src"]
                  :pom-data (pom-template version)))
   (let [generated-pom-file (format "target/classes/META-INF/maven/%s/pom.xml"
@@ -108,9 +115,10 @@
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
     ;; TODO remove this once rebel-readline 0.1.7 available on Clojars
-    (println "\nVendoring rebel-readline")
+    (println "\nVendoring rebel-readline using basis"
+             (select-keys (:basis opts) [:mvn/local-repo]))
     (b/compile-clj (assoc opts
-                     :basis basis
+                     :basis (:basis opts)
                      :ns-compile '[rebel-readline.clojure.main]))
     (println "\nBuilding jar" (:jar-file opts))
     (b/jar opts)
@@ -122,13 +130,16 @@
     :class-dir class-dir
     :uber-file uber-file
     :main main
-    :basis basis-with-github-deps
+    :basis (basis-with-github-deps opts)
     :manifest {"Implementation-Version" version, "Add-Modules" "java.sql"}))
 
 (defn uber
   [opts]
+  (println "uber" opts)
   (let [opts (jar opts)
         opts (uber-opts opts)]
+    (println "Build uberjar with basis"
+             (select-keys (:basis opts) [:mvn/local-repo]))
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["src" "resources"], :target-dir (:class-dir opts)})
     (println "\nCompiling ...")
