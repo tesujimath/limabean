@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.2.6...HEAD
+
+## [0.2.6] - 2026-02-20
+
 ### Added
 
 - plugin "beancount.plugins.auto_accounts" is now supported
@@ -13,7 +17,7 @@ All notable changes to this project will be documented in this file. This change
 
 - fix writing of POM file broken by existing pom.xml
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.2.5...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.2.5...0.2.6
 
 ## [0.2.5] - 2026-02-17
 
