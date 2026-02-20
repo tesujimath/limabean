@@ -49,6 +49,20 @@ impl<'a> Transaction<'a> {
         date: Date,
         parsed: &parser::Transaction, /*, metadata: &Metadata*/
     ) -> fmt::Result {
+        if !self.auto_accounts.is_empty() {
+            let mut auto_accounts = self.auto_accounts.iter().collect::<Vec<_>>();
+            auto_accounts.sort();
+
+            // ugh
+            for account in auto_accounts {
+                write!(
+                    f,
+                    "{} open {}{}auto: TRUE{}{}",
+                    date, account, NEWLINE_INDENT, NEWLINE, NEWLINE
+                )?;
+            }
+        }
+
         write!(f, "{} {}", date, parsed.flag())?;
 
         format(f, parsed.payee(), double_quoted, SPACE, Some(SPACE))?;

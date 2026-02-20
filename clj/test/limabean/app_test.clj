@@ -39,10 +39,9 @@
     (case (:exit diff)
       0 nil
       1 (:out diff)
-      (binding [*out* *err*]
-        (println "unexpected diff failure, exit code"
-                 (:exit diff)
-                 (:err diff))))))
+      (throw (Exception. (str "unexpected diff failure, exit code"
+                              (:exit diff)
+                              (:err diff)))))))
 
 (defn golden
   "Golden test of actual and expected paths"
@@ -63,9 +62,12 @@
     (testing name
       (doseq [query ["inventory" "rollup" "journal"]]
         (let [actual (temp-file-path name query)
-              expected (.getPath (io/file golden-dir query))]
-          (with-open [w (io/writer actual)]
-            (binding [*out* w]
-              (sut/run {:beanfile beanfile,
-                        :eval (format "(show (%s))" query)})))
-          (is (golden (format "%s.%s" name query) actual expected)))))))
+              expected (io/file golden-dir query)]
+          (when (.exists expected)
+            (with-open [w (io/writer actual)]
+              (binding [*out* w]
+                (sut/run {:beanfile beanfile,
+                          :eval (format "(show (%s))" query)})))
+            (is (golden (format "%s.%s" name query)
+                        actual
+                        (.getPath expected)))))))))

@@ -5,7 +5,7 @@ use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
 };
 use limabean_booking::{is_supported_method, Booking, Bookings, Interpolated};
-use std::{io::Write, path::Path};
+use std::{io::Write, iter::empty, path::Path};
 
 use rust_decimal::Decimal;
 use std::{
@@ -48,6 +48,10 @@ where
             mut warnings,
         }) => {
             let internal_plugins = plugins.iter().collect::<InternalPlugins>();
+            for unknown in &internal_plugins.unknown {
+                warnings.push(unknown.warning("unknown plugin"));
+            }
+
             let inferred_tolerance = InferredTolerance::new(&options);
 
             let default_booking = Booking::default();
@@ -255,11 +259,33 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         );
 
         let postings = transaction.postings().collect::<Vec<_>>();
+
+        let auto_accounts = if self.internal_plugins.auto_accounts {
+            let mut auto_accounts = HashSet::default();
+
+            for account in postings.iter().map(|posting| posting.account()) {
+                let account_name = account.item().as_ref();
+                if !self.accounts.contains_key(account_name) {
+                    auto_accounts.insert(account_name);
+
+                    self.accounts.insert(
+                        account_name,
+                        AccountBuilder::new(empty(), self.default_booking, *account.span()),
+                    );
+                    self.open_accounts.insert(account_name, *account.span());
+                }
+            }
+            auto_accounts
+        } else {
+            HashSet::default()
+        };
+
         let (postings, prices) = self.book(&element, date, &postings, description)?;
 
         Ok(DirectiveVariant::Transaction(Transaction {
             postings,
             prices,
+            auto_accounts,
         }))
     }
 

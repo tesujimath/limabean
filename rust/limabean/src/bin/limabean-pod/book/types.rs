@@ -29,6 +29,7 @@ pub(crate) enum DirectiveVariant<'a> {
 pub(crate) struct Transaction<'a> {
     pub(crate) postings: Vec<Posting<'a>>,
     pub(crate) prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
+    pub(crate) auto_accounts: HashSet<&'a str>,
 }
 
 #[derive(Clone, Debug)]
@@ -47,8 +48,7 @@ pub(crate) struct Posting<'a> {
     // pub(crate) metadata: Metadata<'a>,
 }
 
-pub(crate) type Cost<'a> =
-    limabean_booking::Cost<Date, Decimal, parser::Currency<'a>, &'a str>;
+pub(crate) type Cost<'a> = limabean_booking::Cost<Date, Decimal, parser::Currency<'a>, &'a str>;
 
 pub(crate) fn cost_to_cell<'a, 'b>(cost: &'b Cost<'a>) -> Cell<'a, 'static>
 where
