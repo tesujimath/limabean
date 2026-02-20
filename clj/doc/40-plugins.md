@@ -12,7 +12,7 @@ The existing plugin `beancount.plugins.implicit_prices` is built in.
 
 ### Auto Accounts
 
-The existing plugin `beancount.plugins.auto_accounts` is not yet supported, but will be implemented as a built-in plugin.
+The existing plugin `beancount.plugins.auto_accounts` is built-in.
 
 ### Balance Rollup
 

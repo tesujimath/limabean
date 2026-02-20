@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Added
+
+- plugin "beancount.plugins.auto_accounts" is now supported
+- warn about unknown plugins
+
 ### Fixed
 
 - fix writing of POM file broken by existing pom.xml
