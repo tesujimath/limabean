@@ -171,7 +171,7 @@ impl<'a> Tolerance for &parser::Options<'a> {
             tracing::debug!("tolerance for {:?} {:?}", cur, &tolerance);
 
             if let Some(tolerance) = tolerance {
-                (abs_residual >= tolerance).then_some(residual)
+                (abs_residual > tolerance).then_some(residual)
             } else {
                 (!residual.is_zero()).then_some(residual)
             }

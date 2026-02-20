@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 
+- fix intolerance of zero #32
 - fix writing of POM file broken by existing pom.xml
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.2.5...0.2.6

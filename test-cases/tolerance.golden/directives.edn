@@ -1,0 +1,11 @@
+[{:acc "Assets:Cash", :date #time/date "2022-08-25", :dct :open}
+ {:acc "Expenses:Other-Expense", :date #time/date "2022-08-25", :dct :open}
+ {:date #time/date "2022-08-25",
+  :dct :txn,
+  :flag "*",
+  :narration "Re install gate",
+  :postings [{:acc "Assets:Cash", :cur "IDR", :units -3000000M}
+             {:acc "Expenses:Other-Expense",
+              :cur "USD",
+              :price {:cur "IDR", :per-unit 14705.882352941176470588235294M},
+              :units 204M}]}]
