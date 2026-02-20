@@ -17,7 +17,7 @@ name = "limabean-pod"
 path = "src/bin/limabean-pod/main.rs"
 
 [dependencies]
-limabean-booking = { path = "../limabean-booking", version = "0.7.0", features = [
+limabean-booking = { path = "../limabean-booking", version = "0.7.1", features = [
   "lima-parser-types",
   "rust-decimal",
 ] }
