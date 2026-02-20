@@ -113,6 +113,22 @@ impl<'a> FmtEdn for (&Transaction<'a>, Date, &parser::Transaction<'a>) {
         use Separator::*;
 
         let (loaded, date, parsed) = self;
+
+        if !loaded.auto_accounts.is_empty() {
+            let mut auto_accounts = loaded.auto_accounts.iter().collect::<Vec<_>>();
+            auto_accounts.sort();
+
+            // ugh
+            for account in auto_accounts {
+                map_begin(f)?;
+                (Keyword::Date, date, Flush).fmt_edn(f)?;
+                (Keyword::Directive, Keyword::Open, Spaced).fmt_edn(f)?;
+                (Keyword::Account, *account, Spaced).fmt_edn(f)?;
+                // TODO auto:TRUE in metadata
+                map_end(f)?;
+            }
+        }
+
         map_begin(f)?;
         (Keyword::Date, date, Flush).fmt_edn(f)?;
         (Keyword::Directive, Keyword::Transaction, Spaced).fmt_edn(f)?;
