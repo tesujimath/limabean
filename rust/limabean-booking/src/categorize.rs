@@ -26,34 +26,44 @@ where
     let mut auto_postings =
         HashMap::<Option<P::Currency>, AnnotatedPosting<P, P::Currency>>::default();
     let mut unknown = Vec::default();
-    let mut account_currency_lookup = HashMap::<P::Account, Option<P::Currency>>::default();
 
-    for (idx, posting) in postings.iter().enumerate() {
-        let currency = posting.currency();
-        let posting_cost_currency = posting.cost().and_then(|cost_spec| cost_spec.currency());
-        let posting_price_currency = posting.price().and_then(|price_spec| price_spec.currency());
-        let cost_currency = posting_cost_currency
-            .as_ref()
-            .cloned()
-            .or(posting_price_currency.as_ref().cloned());
-        let price_currency = posting_price_currency
-            .as_ref()
-            .cloned()
-            .or(posting_cost_currency);
+    categorize_with_auto_postings_and_unknowns(
+        postings,
+        &mut currency_groups,
+        &mut auto_postings,
+        &mut unknown,
+    )?;
 
-        let p = AnnotatedPosting {
-            posting: posting.clone(),
-            idx,
-            currency,
-            cost_currency,
-            price_currency,
-        };
-        let bucket = p.bucket();
-        tracing::debug!(
-            "categorize_by_currency annotated {:?} with bucket {:?}",
-            &p,
-            &bucket
+    // if we have a single unknown posting and all others are of the same currency,
+    // infer that for the unknown
+    if unknown.len() == 1 && currency_groups.len() == 1 {
+        infer_unknown_from_single_currency_group(
+            unknown.drain(..).next().unwrap(),
+            &mut currency_groups,
         );
+    }
+
+    // infer all other unknown postings from account inference
+    infer_unknowns_from_account_inference(unknown, inventory, &mut currency_groups)?;
+
+    categorize_auto_postings(auto_postings, &mut currency_groups)?;
+
+    Ok(currency_groups)
+}
+
+pub(crate) fn categorize_with_auto_postings_and_unknowns<P>(
+    postings: &[P],
+    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
+    auto_postings: &mut HashMap<Option<P::Currency>, AnnotatedPosting<P, P::Currency>>,
+    unknown: &mut Vec<AnnotatedPosting<P, P::Currency>>,
+) -> Result<(), BookingError>
+where
+    P: PostingSpec + Debug,
+{
+    for (idx, posting) in postings.iter().enumerate() {
+        let annotated = annotate(posting, idx);
+
+        let bucket = annotated.bucket();
 
         if posting.units().is_none() && posting.currency().is_none() {
             if auto_postings.contains_key(&bucket) {
@@ -62,73 +72,115 @@ where
                     PostingBookingError::AmbiguousAutoPost,
                 ));
             }
-            auto_postings.insert(bucket, p);
+
+            auto_postings.insert(bucket, annotated);
         } else if let Some(bucket) = bucket {
-            currency_groups.push_or_insert(bucket, p);
+            currency_groups.push_or_insert(bucket, annotated);
         } else {
-            unknown.push((idx, p));
+            unknown.push(annotated);
         }
     }
 
-    tracing::debug!(
-        "categorize_by_currency {} currency_groups {} unknowns: {:?}, {} auto_postings: {:?}",
-        currency_groups.len(),
-        unknown.len(),
-        &unknown,
-        auto_postings.len(),
-        &auto_postings
+    Ok(())
+}
+
+// annotate a posting along with its index in the list of postings
+fn annotate<P>(posting: &P, idx: usize) -> AnnotatedPosting<P, P::Currency>
+where
+    P: PostingSpec + Debug,
+{
+    let currency = posting.currency();
+    let posting_cost_currency = posting.cost().and_then(|cost_spec| cost_spec.currency());
+    let posting_price_currency = posting.price().and_then(|price_spec| price_spec.currency());
+    let cost_currency = posting_cost_currency
+        .as_ref()
+        .cloned()
+        .or(posting_price_currency.as_ref().cloned());
+    let price_currency = posting_price_currency
+        .as_ref()
+        .cloned()
+        .or(posting_cost_currency);
+
+    AnnotatedPosting {
+        posting: posting.clone(),
+        idx,
+        currency,
+        cost_currency,
+        price_currency,
+    }
+}
+
+fn infer_unknown_from_single_currency_group<P>(
+    unknown: AnnotatedPosting<P, P::Currency>,
+    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
+) where
+    P: PostingSpec + Debug,
+{
+    let only_bucket = currency_groups
+        .keys()
+        .next()
+        .as_ref()
+        .cloned()
+        .unwrap()
+        .clone();
+
+    // infer any missing currency from bucket only if there's no cost or price
+    let currency = unknown.currency.or(
+        if unknown.posting.price().is_none() && unknown.posting.cost().is_none() {
+            Some(only_bucket.clone())
+        } else {
+            None
+        },
     );
 
-    // if we have a single unknown posting and all others are of the same currency,
-    // infer that for the unknown
-    if unknown.len() == 1 && currency_groups.len() == 1 {
-        let only_bucket = currency_groups
-            .keys()
-            .next()
+    let inferred = AnnotatedPosting {
+        posting: unknown.posting,
+        idx: unknown.idx,
+        currency,
+        cost_currency: unknown
+            .cost_currency
             .as_ref()
             .cloned()
-            .unwrap()
-            .clone();
-        let (idx, u) = unknown.drain(..).next().unwrap();
+            .or(Some(only_bucket.clone())),
+        price_currency: unknown.price_currency.or(Some(only_bucket.clone())),
+    };
+    currency_groups.push_or_insert(only_bucket.clone(), inferred);
+}
 
-        tracing::debug!("categorize_by_currency 1 unknown, 1 currency group");
-
-        // infer any missing currency from bucket only if there's no cost or price
-        let currency = u.currency.or(
-            if u.posting.price().is_none() && u.posting.cost().is_none() {
-                Some(only_bucket.clone())
-            } else {
-                None
-            },
-        );
-
-        let inferred = AnnotatedPosting {
-            posting: u.posting,
-            idx,
-            currency,
-            cost_currency: u
-                .cost_currency
-                .as_ref()
-                .cloned()
-                .or(Some(only_bucket.clone())),
-            price_currency: u.price_currency.or(Some(only_bucket.clone())),
-        };
-        currency_groups.push_or_insert(only_bucket.clone(), inferred);
-    }
-
-    // infer all other unknown postings from account inference
-    for (idx, u) in unknown {
+pub(crate) fn infer_unknowns_from_account_inference<'a, 'b, P, I>(
+    unknown: Vec<AnnotatedPosting<P, P::Currency>>,
+    inventory: I,
+    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
+) -> Result<(), BookingError>
+where
+    P: PostingSpec + Debug,
+    I: Fn(P::Account) -> Option<&'a Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    P::Date: 'a,
+    P::Number: 'a,
+    P::Currency: 'a,
+    P::Label: 'a,
+{
+    let mut account_currency_lookup = HashMap::<P::Account, Option<P::Currency>>::default();
+    for u in unknown {
         let u_account = u.posting.account();
         if let Some(bucket) = account_currency(u_account, inventory, &mut account_currency_lookup) {
             currency_groups.push_or_insert(bucket, u);
         } else {
             return Err(BookingError::Posting(
-                idx,
+                u.idx,
                 crate::PostingBookingError::CannotInferAnything,
             ));
         }
     }
-
+    Ok(())
+}
+pub(crate) fn categorize_auto_postings<P>(
+    mut auto_postings: HashMap<Option<P::Currency>, AnnotatedPosting<P, P::Currency>>,
+    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
+) -> Result<(), BookingError>
+where
+    P: PostingSpec + Debug,
+{
     if let Some(auto_posting) = auto_postings.remove(&None) {
         if !auto_postings.is_empty() {
             return Err(BookingError::Posting(
@@ -164,13 +216,7 @@ where
         }
     }
 
-    tracing::debug!(
-        "categorize_by_currency {} currency_groups: {:?}",
-        currency_groups.len(),
-        &currency_groups
-    );
-
-    Ok(currency_groups)
+    Ok(())
 }
 
 // lookup account currency with memoization
