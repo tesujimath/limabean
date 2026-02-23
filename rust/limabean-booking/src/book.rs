@@ -5,9 +5,9 @@ use hashbrown::HashMap;
 use std::{fmt::Debug, iter::repeat_n};
 
 use super::{
-    book_reductions, categorize_by_currency, interpolate_from_costed, Booking, BookingError,
-    Bookings, Interpolated, Interpolation, Inventory, Positions, Posting, PostingSpec, Reductions,
-    Tolerance, TransactionBookingError,
+    book_reductions, categorize_by_currency, interpolate_from_costed, AnnotatedPosting, Booking,
+    BookingError, Bookings, Interpolated, Interpolation, Inventory, Positions, Posting,
+    PostingSpec, Reductions, Tolerance, TransactionBookingError,
 };
 
 pub fn is_supported_method(method: Booking) -> bool {
@@ -76,84 +76,30 @@ where
     M: Fn(P::Account) -> Booking + Copy,
     'a: 'b,
 {
+    let currency_groups = categorize_by_currency(postings, inventory)?;
+
     let mut interpolated_postings = repeat_n(None, postings.len()).collect::<Vec<_>>();
     let mut updated_inventory = Inventory::default();
-
-    let currency_groups = categorize_by_currency(postings, inventory)?;
     let mut residuals = Residuals::<P::Currency, P::Number>::default();
 
     for (cur, annotated_postings) in currency_groups {
-        let Reductions {
-            updated_inventory: updated_inventory_for_cur,
-            postings: costed_postings,
-        } = book_reductions(
+        book_currency_group(
             date,
+            cur,
             annotated_postings,
             tolerance,
-            |account| {
-                updated_inventory
-                    .get(&account)
-                    .or_else(|| inventory(account.clone()))
-            },
+            inventory,
             method,
+            &mut interpolated_postings,
+            &mut updated_inventory,
+            &mut residuals,
         )?;
-
-        tracing::debug!(
-            "{date} booked reductions {:?} {:?}",
-            &cur,
-            updated_inventory_for_cur
-        );
-        for (account, positions) in updated_inventory_for_cur {
-            updated_inventory.insert(account, positions);
-        }
-
-        let Interpolation {
-            booked_and_unbooked_postings,
-            residual,
-        } = interpolate_from_costed(date, &cur, costed_postings, tolerance)?;
-
-        if let Some(residual) = residual {
-            residuals.insert(cur.clone(), residual);
-        }
-
-        let updated_inventory_for_cur = book_augmentations(
-            date,
-            booked_and_unbooked_postings
-                .iter()
-                .filter_map(|(p, booked)| (!booked).then_some(p)),
-            tolerance,
-            |account| {
-                updated_inventory
-                    .get(&account)
-                    .or_else(|| inventory(account.clone()))
-            },
-            method,
-        )?;
-
-        tracing::debug!(
-            "book augmentations {:?} {:?}",
-            &cur,
-            updated_inventory_for_cur
-        );
-        for (account, positions) in updated_inventory_for_cur {
-            updated_inventory.insert(account, positions);
-        }
-
-        for (p, _) in booked_and_unbooked_postings.into_iter() {
-            let idx = p.idx;
-            interpolated_postings[idx] = Some(p);
-        }
     }
 
     let interpolated_postings = interpolated_postings
         .into_iter()
         .map(|p| p.unwrap())
         .collect::<Vec<_>>();
-
-    tracing::debug!(
-        "book_with_residuals updated inventory {:?}",
-        &updated_inventory
-    );
 
     Ok((
         Bookings {
@@ -162,6 +108,89 @@ where
         },
         residuals,
     ))
+}
+
+// TODO mitigate too many arguments
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn book_currency_group<'a, 'b, P, T, I, M>(
+    date: P::Date,
+    cur: P::Currency,
+    annotated_postings: Vec<AnnotatedPosting<P, P::Currency>>,
+    tolerance: &'b T,
+    inventory: I,
+    method: M,
+    interpolated_postings: &mut Vec<
+        Option<Interpolated<P, P::Date, P::Number, P::Currency, P::Label>>,
+    >,
+    updated_inventory: &mut Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
+    residuals: &mut Residuals<P::Currency, P::Number>,
+) -> Result<(), BookingError>
+where
+    P: PostingSpec + Debug + 'a,
+    T: Tolerance<Currency = P::Currency, Number = P::Number>,
+    I: Fn(P::Account) -> Option<&'b Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    M: Fn(P::Account) -> Booking + Copy,
+    'a: 'b,
+{
+    let Reductions {
+        updated_inventory: updated_inventory_for_cur,
+        postings: costed_postings,
+    } = book_reductions(
+        date,
+        annotated_postings,
+        tolerance,
+        |account| {
+            updated_inventory
+                .get(&account)
+                .or_else(|| inventory(account.clone()))
+        },
+        method,
+    )?;
+
+    incorporate_inventory_updates::<P>(updated_inventory_for_cur, updated_inventory);
+
+    let Interpolation {
+        booked_and_unbooked_postings,
+        residual,
+    } = interpolate_from_costed(date, &cur, costed_postings, tolerance)?;
+
+    if let Some(residual) = residual {
+        residuals.insert(cur.clone(), residual);
+    }
+
+    let updated_inventory_for_cur = book_augmentations(
+        date,
+        booked_and_unbooked_postings
+            .iter()
+            .filter_map(|(p, booked)| (!booked).then_some(p)),
+        tolerance,
+        |account| {
+            updated_inventory
+                .get(&account)
+                .or_else(|| inventory(account.clone()))
+        },
+        method,
+    )?;
+
+    incorporate_inventory_updates::<P>(updated_inventory_for_cur, updated_inventory);
+
+    for (p, _) in booked_and_unbooked_postings.into_iter() {
+        let idx = p.idx;
+        interpolated_postings[idx] = Some(p);
+    }
+
+    Ok(())
+}
+
+fn incorporate_inventory_updates<P>(
+    updates: Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
+    inventory: &mut Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
+) where
+    P: PostingSpec + Debug,
+{
+    for (account, positions) in updates {
+        inventory.insert(account, positions);
+    }
 }
 
 /// book without the need for interpolation
@@ -188,27 +217,23 @@ where
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(inventory(account).cloned().unwrap_or_default()),
         };
-        // .or_else(|| inventory(account.clone()));
 
-        match posting.cost() {
-            None => {
+        if let Some(posting_costs) = posting.cost() {
+            for (cur, cost) in posting_costs.iter() {
                 previous_positions.accumulate(
-                    posting.units(),
+                    cost.units,
                     posting.currency(),
-                    None,
+                    Some((cur.clone(), cost.clone()).into()),
                     account_method,
                 );
             }
-            Some(costs) => {
-                for (cur, adj) in costs.iter() {
-                    previous_positions.accumulate(
-                        adj.units,
-                        posting.currency(),
-                        Some((cur.clone(), adj.clone()).into()),
-                        account_method,
-                    );
-                }
-            }
+        } else {
+            previous_positions.accumulate(
+                posting.units(),
+                posting.currency(),
+                None,
+                account_method,
+            );
         }
     }
 
@@ -242,29 +267,17 @@ where
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(inventory(account).cloned().unwrap_or_default()),
         };
-        // .or_else(|| inventory(account.clone()));
 
         if let Some(posting_costs) = interpolated.cost.as_ref() {
-            tracing::debug!(
-                "{date} book_augmentations with cost {:?} {:?} {:?}",
-                interpolated.units,
-                &interpolated.currency,
-                &posting_costs,
-            );
-            for (currency, posting_cost) in posting_costs.iter() {
+            for (cur, cost) in posting_costs.iter() {
                 previous_positions.accumulate(
                     interpolated.units,
                     interpolated.currency.clone(),
-                    Some((currency.clone(), posting_cost.clone()).into()),
+                    Some((cur.clone(), cost.clone()).into()),
                     account_method,
                 );
             }
         } else {
-            tracing::debug!(
-                "{date} book_augmentations without cost {:?} {:?}",
-                interpolated.units,
-                &interpolated.currency,
-            );
             previous_positions.accumulate(
                 interpolated.units,
                 interpolated.currency.clone(),
