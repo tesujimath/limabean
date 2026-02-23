@@ -34,14 +34,12 @@ where
 {
     let mut weights = costeds.iter().map(|c| c.weight()).collect::<Vec<_>>();
     let mut residual = tolerance.residual(weights.iter().filter_map(|w| *w), currency);
-    tracing::debug!("{date} weights for {:?} {:?}", &currency, &weights);
 
     let unknown = weights
         .iter()
         .enumerate()
         .filter(|w| w.1.is_none())
         .collect::<Vec<_>>();
-    tracing::debug!("{date} unknown values for {:?} {:?}", &currency, &unknown);
 
     if unknown.len() == 1 {
         let i_unknown = unknown[0].0;
@@ -107,11 +105,6 @@ where
             ))
         }
         (Some(UnitsAndPerUnit { units, per_unit }), Some(currency), Some(cost), _) => {
-            tracing::debug!(
-                                    "{date} {currency} interpolate_from_annotated {units} {:?} annotated cost currency {:?}",
-                                    &cost,
-                                    annotated.cost_currency,
-                                );
             match (annotated.cost_currency, per_unit) {
                 (Some(cost_currency), Some(per_unit)) => Ok((
                     Interpolated {
@@ -148,17 +141,8 @@ where
             }
         }
 
-        (Some(UnitsAndPerUnit { units, per_unit }), Some(currency), None, Some(price)) => {
+        (Some(UnitsAndPerUnit { units, per_unit }), Some(currency), None, Some(_price)) => {
             // price without cost
-            tracing::debug!(
-                "price without cost [{}] units: {} per-unit: {:?} currency: {} price: {:?}",
-                annotated.idx,
-                units,
-                per_unit,
-                currency,
-                price
-            );
-
             match (per_unit, annotated.price_currency) {
                 (Some(per_unit), Some(price_currency)) => Ok((
                     Interpolated {
@@ -219,15 +203,7 @@ where
     if let Some(cost_spec) = posting.cost() {
         units_from_cost_spec(posting.units(), weight, &cost_spec)
     } else if let Some(price_spec) = posting.price() {
-        let u = units_from_price_spec(posting.units(), weight, &price_spec);
-        tracing::debug!(
-            "units_from_price_spec({:?}, {}, {:?}) = {:?}",
-            posting.units(),
-            weight,
-            &price_spec,
-            &u
-        );
-        u
+        units_from_price_spec(posting.units(), weight, &price_spec)
     } else {
         posting.units().map(|units| UnitsAndPerUnit {
             units,
