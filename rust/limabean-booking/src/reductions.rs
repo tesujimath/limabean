@@ -35,20 +35,13 @@ where
     let mut updated_inventory = HashMap::default();
     let mut costed_postings = Vec::default();
 
-    tracing::debug!(
-        "{date} book_reductions {:?}",
-        annotateds
-            .iter()
-            .map(|a| (&a.idx, &a.currency, &a.cost_currency, &a.price_currency,))
-            .collect::<Vec<_>>()
-    );
-
     for annotated in annotateds {
         let account = annotated.posting.account();
         let previous_positions = updated_inventory
             .get(&account)
             .or_else(|| inventory(account.clone()));
         let account_method = method(account.clone());
+
         let (costed_posting, updated_positions) = reduce(
             annotated,
             date,
@@ -74,7 +67,7 @@ fn reduce<'a, P, T>(
     date: P::Date,
     tolerance: &T,
     method: Booking,
-    positions: Option<&Positions<P::Date, P::Number, P::Currency, P::Label>>,
+    previous_positions: Option<&Positions<P::Date, P::Number, P::Currency, P::Label>>,
 ) -> Result<
     (
         BookedOrUnbookedPosting<P>,
@@ -88,94 +81,70 @@ where
 {
     use BookedOrUnbookedPosting::*;
 
-    let account = annotated.posting.account();
+    if method != Booking::None
+        && let (Some(posting_currency), Some(posting_units), Some(posting_cost), Some(positions)) = (
+            &annotated.currency,
+            annotated.posting.units(),
+            annotated.posting.cost(),
+            previous_positions,
+        )
+        && is_potential_reduction(posting_units, posting_currency, positions)
+    {
+        // find positions whose costs match what we have
+        let matched = match_positions(
+            posting_currency,
+            annotated.posting.cost().as_ref(),
+            positions,
+        );
 
-    match (&annotated.currency, annotated.posting.units(), positions) {
-        (Some(posting_currency), Some(posting_units), Some(positions))
-            if method != Booking::None =>
-        {
-            tracing::debug!(
-                "{date} reduce 1 {method} {:?} {:?} {:?}",
-                posting_currency,
+        if matched.is_empty() {
+            Err(BookingError::Posting(
+                annotated.idx,
+                PostingBookingError::NoPositionMatches,
+            ))
+        } else if matched.len() == 1 {
+            let (reducing_posting, updated_positions) = reduce_matched_position(
                 posting_units,
-                positions
-            );
+                posting_currency,
+                annotated.posting,
+                annotated.idx,
+                positions,
+                matched[0],
+            )?;
 
-            if annotated.posting.cost().is_some()
-                && is_potential_reduction(posting_units, posting_currency, positions)
-            {
-                // find positions whose costs match what we have
-                let matched = match_positions(
-                    posting_currency,
-                    annotated.posting.cost().as_ref(),
-                    positions,
-                );
+            Ok((reducing_posting, Some(updated_positions)))
+        } else if is_sell_all_at_cost(
+            posting_units,
+            posting_currency,
+            positions,
+            &matched,
+            tolerance,
+        ) {
+            let (reducing_posting, updated_positions) = reduce_all_sold_at_cost(
+                posting_units,
+                posting_currency,
+                annotated.posting,
+                annotated.idx,
+                positions,
+                matched,
+            )?;
 
-                tracing::debug!("{date} reduce {method} matched with {:?}", &matched);
+            Ok((reducing_posting, Some(updated_positions)))
+        } else {
+            let (reducing_posting, updated_positions) = reduce_multiple_positions(
+                posting_units,
+                posting_currency,
+                annotated.posting,
+                annotated.idx,
+                positions,
+                matched,
+                method,
+            )?;
 
-                if matched.is_empty() {
-                    Err(BookingError::Posting(
-                        annotated.idx,
-                        PostingBookingError::NoPositionMatches,
-                    ))
-                } else if matched.len() == 1 {
-                    let (reducing_posting, updated_positions) = reduce_matched_position(
-                        posting_units,
-                        posting_currency,
-                        annotated.posting,
-                        annotated.idx,
-                        positions,
-                        matched[0],
-                    )?;
-
-                    Ok((reducing_posting, Some(updated_positions)))
-                } else if is_sell_all_at_cost(
-                    posting_units,
-                    posting_currency,
-                    positions,
-                    &matched,
-                    tolerance,
-                ) {
-                    tracing::debug!("{date} reduce_all_sold_at_cost {method}");
-                    let (reducing_posting, updated_positions) = reduce_all_sold_at_cost(
-                        posting_units,
-                        posting_currency,
-                        annotated.posting,
-                        annotated.idx,
-                        positions,
-                        matched,
-                    )?;
-
-                    Ok((reducing_posting, Some(updated_positions)))
-                } else {
-                    tracing::debug!("{date} reduce_multiple_positions {method}");
-                    let (reducing_posting, updated_positions) = reduce_multiple_positions(
-                        posting_units,
-                        posting_currency,
-                        annotated.posting,
-                        annotated.idx,
-                        positions,
-                        matched,
-                        method,
-                    )?;
-
-                    Ok((reducing_posting, Some(updated_positions)))
-                }
-            } else {
-                tracing::debug!(
-                    "{date} reduce failed with {:?} {:?}",
-                    posting_units.sign(),
-                    positions
-                );
-
-                Ok((Unbooked(annotated), None))
-            }
+            Ok((reducing_posting, Some(updated_positions)))
         }
-        x => {
-            tracing::debug!("{date} reduce x {method} {:?}", x,);
-
-            Ok((Unbooked(annotated), None))
-        }
+    } else {
+        Ok((Unbooked(annotated), None))
     }
 }
 
@@ -232,14 +201,6 @@ where
         cost: matched_cost,
     } = &previous_positions[matched_position_idx];
 
-    tracing::debug!(
-        "reduce cost-matched unique position at {}: {:?} {:?} {:?}",
-        matched_position_idx,
-        matched_currency,
-        matched_units,
-        matched_cost
-    );
-
     if posting_units.abs() > matched_units.abs() {
         Err(BookingError::Posting(
             posting_idx,
@@ -262,14 +223,6 @@ where
                 })
                 .collect::<Vec<_>>(),
         );
-        tracing::debug!("reduce_matched_position {:?}", &updated_positions);
-
-        let date = matched_cost.date;
-        let units = posting_units;
-        let per_unit = matched_cost.per_unit;
-        let cost_currency = matched_cost.currency.clone();
-        let label = matched_cost.label.as_ref().cloned();
-        let merge = matched_cost.merge;
 
         Ok((
             Booked(Interpolated {
@@ -278,13 +231,13 @@ where
                 units: posting_units,
                 currency: posting_currency.clone(),
                 cost: Some(PostingCosts {
-                    cost_currency,
+                    cost_currency: matched_cost.currency.clone(),
                     adjustments: vec![PostingCost {
-                        date,
+                        date: matched_cost.date,
                         units: posting_units,
-                        per_unit,
-                        label,
-                        merge,
+                        per_unit: matched_cost.per_unit,
+                        label: matched_cost.label.as_ref().cloned(),
+                        merge: matched_cost.merge,
                     }],
                 }),
                 price: None, // ignored in favour of cost
@@ -316,13 +269,6 @@ where
             .map(|i| positions[*i].units)
             .chain(once(posting_units)),
         posting_currency,
-    );
-    tracing::debug!(
-        "is_sell_all_at_cost {:?} with {:?} matched {:?} tol is {:?}",
-        posting_units,
-        positions,
-        matched,
-        &tol
     );
     tol.is_none()
 }
@@ -439,12 +385,6 @@ where
     let mut updated_position_units = positions.iter().map(|p| p.units).collect::<Vec<_>>();
     let mut adjustments = Vec::default();
 
-    tracing::debug!(
-        "reduce_ordered_positions {:?} being {:?}",
-        &matched,
-        matched.iter().map(|i| &positions[*i]).collect::<Vec<_>>()
-    );
-
     for i in matched {
         let cost_i = positions[*i].cost.as_ref().unwrap();
         let consumed = if remaining_units.abs() <= updated_position_units[*i].abs() {
@@ -452,15 +392,6 @@ where
         } else {
             -updated_position_units[*i]
         };
-
-        tracing::debug!(
-            "with {} remaining, consuming {} of {} leaving {} with {} still to consume",
-            remaining_units,
-            consumed,
-            updated_position_units[*i],
-            updated_position_units[*i] + consumed,
-            remaining_units - consumed
-        );
 
         updated_position_units[*i] += consumed;
         remaining_units -= consumed;
@@ -498,12 +429,6 @@ where
                 })
             })
             .collect::<Vec<_>>(),
-    );
-
-    tracing::debug!(
-        "reduce_ordered_positions returning {:?} {:?}",
-        &adjustments,
-        &updated_positions
     );
 
     Ok((
@@ -662,12 +587,6 @@ where
             } else {
                 match (pos.cost.as_ref(), cost_spec) {
                     (Some(pos_cost), Some(cost_spec)) => {
-                        tracing::debug!(
-                            "match_positions check {:?} {:?} {}",
-                            pos_cost,
-                            cost_spec,
-                            cost_matches_spec(pos_cost, cost_spec)
-                        );
                         cost_matches_spec(pos_cost, cost_spec).then_some(i)
                     }
                     _ => None,
