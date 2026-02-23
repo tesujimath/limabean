@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Added
+
+-- support for globs in include pragmas #35
+
 [commit log]: https://github.com/tesujimath/limabean/compare/0.2.6...HEAD
 
 ## [0.2.6] - 2026-02-20
