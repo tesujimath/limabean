@@ -4,7 +4,7 @@
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
 };
-use limabean_booking::{is_supported_method, Booking, Bookings, Interpolated};
+use limabean_booking::{Booking, Bookings, Interpolated, is_supported_method};
 use std::{io::Write, iter::empty, path::Path};
 
 use rust_decimal::Decimal;
@@ -16,7 +16,7 @@ use tabulator::{Align, Cell};
 use time::Date;
 
 use crate::{
-    format::{beancount::write_booked_as_beancount, edn::write_booked_as_edn, GUTTER_MEDIUM},
+    format::{GUTTER_MEDIUM, beancount::write_booked_as_beancount, edn::write_booked_as_edn},
     plugins::InternalPlugins,
 };
 
@@ -75,7 +75,7 @@ where
                 default_booking_option,
                 inferred_tolerance,
                 &options,
-                &internal_plugins,
+                internal_plugins,
             )
             .collect(&directives)
             {
@@ -113,14 +113,14 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct Loader<'a, 'b, T> {
+pub(crate) struct Loader<'a, T> {
     directives: Vec<Directive<'a>>,
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
     open_accounts: hashbrown::HashMap<&'a str, Span>,
     closed_accounts: hashbrown::HashMap<&'a str, Span>,
     accounts: HashMap<&'a str, AccountBuilder<'a>>,
     currency_usage: hashbrown::HashMap<parser::Currency<'a>, i32>,
-    internal_plugins: &'b InternalPlugins,
+    internal_plugins: InternalPlugins,
     default_booking: Booking,
     inferred_tolerance: InferredTolerance<'a>,
     tolerance: T,
@@ -137,12 +137,12 @@ pub(crate) struct LoadError {
     pub(crate) warnings: Vec<parser::AnnotatedWarning>,
 }
 
-impl<'a, 'b, T> Loader<'a, 'b, T> {
+impl<'a, T> Loader<'a, T> {
     pub(crate) fn new(
         default_booking: Booking,
         inferred_tolerance: InferredTolerance<'a>,
         tolerance: T,
-        internal_plugins: &'b InternalPlugins,
+        internal_plugins: InternalPlugins,
     ) -> Self {
         Self {
             directives: Vec::default(),
