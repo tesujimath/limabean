@@ -140,7 +140,7 @@ where
 }
 
 pub(crate) type Positions<'a> =
-    limabean_booking::Positions<Date, Decimal, parser::Currency<'a>, &'a str>;
+    limabean_booking::Positions<&'a parser::Spanned<parser::Posting<'a>>>;
 
 // should be From, but both types are third-party
 pub(crate) fn positions_to_cell<'a, 'b>(positions: &'b Positions<'a>) -> Cell<'a, 'static>
