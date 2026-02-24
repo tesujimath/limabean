@@ -2,11 +2,11 @@
 #![allow(dead_code, unused_variables)]
 
 use hashbrown::{HashMap, HashSet};
-use std::{fmt::Debug, hash::Hash};
+use std::fmt::Debug;
 
 use super::{
-    AnnotatedPosting, BookingError, CostSpec, HashMapOfVec, Number, Positions, PostingBookingError,
-    PostingSpec, PriceSpec, TransactionBookingError,
+    AnnotatedPosting, BookingError, BookingTypes, CostSpec, HashMapOfVec, Positions,
+    PostingBookingError, PostingSpec, PriceSpec, TransactionBookingError,
 };
 
 // See OG Beancount function of the same name
@@ -15,12 +15,8 @@ pub(crate) fn categorize_by_currency<'a, 'b, P, I>(
     inventory: I,
 ) -> Result<HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>, BookingError>
 where
-    P: PostingSpec + Debug,
-    I: Fn(P::Account) -> Option<&'a Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
-    P::Date: 'a,
-    P::Number: 'a,
-    P::Currency: 'a,
-    P::Label: 'a,
+    P: PostingSpec + Debug + 'a,
+    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
 {
     let mut currency_groups = HashMapOfVec::default();
     let mut auto_postings =
@@ -153,12 +149,8 @@ pub(crate) fn infer_unknowns_from_account_inference<'a, 'b, P, I>(
     currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
 ) -> Result<(), BookingError>
 where
-    P: PostingSpec + Debug,
-    I: Fn(P::Account) -> Option<&'a Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
-    P::Date: 'a,
-    P::Number: 'a,
-    P::Currency: 'a,
-    P::Label: 'a,
+    P: PostingSpec + Debug + 'a,
+    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
 {
     let mut account_currency_lookup = HashMap::<P::Account, Option<P::Currency>>::default();
     for u in unknown {
@@ -220,25 +212,21 @@ where
 }
 
 // lookup account currency with memoization
-fn account_currency<'a, A, D, N, C, L, I>(
-    account: A,
+fn account_currency<'a, B, I>(
+    account: B::Account,
     inventory: I,
-    account_currency: &mut HashMap<A, Option<C>>,
-) -> Option<C>
+    account_currency: &mut HashMap<B::Account, Option<B::Currency>>,
+) -> Option<B::Currency>
 where
-    A: Eq + Hash + Clone,
-    D: Eq + Ord + Copy + Debug + 'a,
-    C: Eq + Hash + Ord + Clone + Debug + 'a,
-    N: Number + Debug + 'a,
-    L: Eq + Ord + Clone + Debug + 'a,
-    I: Fn(A) -> Option<&'a Positions<D, N, C, L>> + Copy,
+    B: BookingTypes + 'a,
+    I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
 {
     account_currency.get(&account).cloned().unwrap_or_else(|| {
         let currency = if let Some(positions) = inventory(account.clone()) {
             let currencies = positions
                 .iter()
                 .map(|pos| pos.currency.clone())
-                .collect::<HashSet<C>>();
+                .collect::<HashSet<B::Currency>>();
 
             if currencies.len() == 1 {
                 currencies.iter().next().cloned()

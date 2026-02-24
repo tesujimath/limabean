@@ -1,16 +1,19 @@
-use super::{Booking, CostSpec, PostingSpec, PriceSpec, Tolerance};
+use super::{Booking, BookingTypes, CostSpec, PostingSpec, PriceSpec, Tolerance};
 use beancount_parser_lima as parser;
 use rust_decimal::Decimal;
 use time::Date;
 
-impl<'a> PostingSpec for &'a parser::Posting<'a> {
-    type Date = time::Date;
+impl<'a> BookingTypes for &'a parser::Posting<'a> {
     type Account = &'a str;
+    type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
+    type Label = &'a str;
+}
+
+impl<'a> PostingSpec for &'a parser::Posting<'a> {
     type CostSpec = &'a parser::CostSpec<'a>;
     type PriceSpec = &'a parser::PriceSpec<'a>;
-    type Label = &'a str;
 
     fn account(&self) -> &'a str {
         parser::Posting::account(self).item().as_ref()
@@ -35,12 +38,15 @@ impl<'a> PostingSpec for &'a parser::Posting<'a> {
     }
 }
 
-impl<'a> CostSpec for &'a parser::CostSpec<'a> {
+impl<'a> BookingTypes for &'a parser::CostSpec<'a> {
+    type Account = &'a str;
     type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
     type Label = &'a str;
+}
 
+impl<'a> CostSpec for &'a parser::CostSpec<'a> {
     fn currency(&self) -> Option<parser::Currency<'a>> {
         parser::CostSpec::currency(self).map(|currency| *currency.item())
     }
@@ -66,10 +72,15 @@ impl<'a> CostSpec for &'a parser::CostSpec<'a> {
     }
 }
 
-impl<'a> PriceSpec for &'a parser::PriceSpec<'a> {
+impl<'a> BookingTypes for &'a parser::PriceSpec<'a> {
+    type Account = &'a str;
+    type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
+    type Label = &'a str;
+}
 
+impl<'a> PriceSpec for &'a parser::PriceSpec<'a> {
     fn currency(&self) -> Option<parser::Currency<'a>> {
         use parser::PriceSpec::*;
 
@@ -132,10 +143,15 @@ impl FromIterator<Decimal> for SumWithMinNonZeroScale {
     }
 }
 
-impl<'a> Tolerance for &parser::Options<'a> {
+impl<'a> BookingTypes for &parser::Options<'a> {
+    type Account = &'a str;
+    type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
+    type Label = &'a str;
+}
 
+impl<'a> Tolerance for &parser::Options<'a> {
     // Beancount Precision & Tolerances
     // https://docs.google.com/document/d/1lgHxUUEY-UVEgoF6cupz2f_7v7vEF7fiJyiSlYYlhOo
     fn residual(
@@ -184,8 +200,8 @@ impl<'a> Tolerance for &parser::Options<'a> {
 
 impl From<parser::Booking> for Booking {
     fn from(value: parser::Booking) -> Self {
-        use parser::Booking as parser;
         use Booking::*;
+        use parser::Booking as parser;
 
         match value {
             parser::Strict => Strict,
@@ -205,14 +221,17 @@ fn default_inferred_tolerance_multiplier() -> Decimal {
     Decimal::new(5, 1) // 0.5
 }
 
-impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
-    type Date = time::Date;
+impl<'a> BookingTypes for &'a parser::Spanned<parser::Posting<'a>> {
     type Account = &'a str;
+    type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
+    type Label = &'a str;
+}
+
+impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
     type CostSpec = &'a parser::CostSpec<'a>;
     type PriceSpec = &'a parser::PriceSpec<'a>;
-    type Label = &'a str;
 
     fn account(&self) -> Self::Account {
         PostingSpec::account(&self.item())

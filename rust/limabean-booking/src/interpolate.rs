@@ -15,7 +15,7 @@ where
     P: PostingSpec,
 {
     pub(crate) booked_and_unbooked_postings: Vec<(
-        Interpolated<P, P::Date, P::Number, P::Currency, P::Label>,
+        Interpolated<P>,
         bool, // booked
     )>,
 
@@ -76,7 +76,7 @@ pub(crate) fn interpolate_from_annotated<'a, 'b, P>(
     annotated: AnnotatedPosting<P, P::Currency>,
 ) -> Result<
     (
-        Interpolated<P, P::Date, P::Number, P::Currency, P::Label>,
+        Interpolated<P>,
         bool, // booked
     ),
     BookingError,
