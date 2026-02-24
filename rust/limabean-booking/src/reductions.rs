@@ -2,7 +2,9 @@
 #![allow(dead_code, unused_variables)]
 
 use hashbrown::{HashMap, HashSet};
-use std::{fmt::Debug, hash::Hash, iter::once};
+use std::{fmt::Debug, iter::once};
+
+use crate::BookingTypes;
 
 use super::{
     AnnotatedPosting, BookedOrUnbookedPosting, Booking, BookingError, Cost, CostSpec, Interpolated,
@@ -15,7 +17,7 @@ pub(crate) struct Reductions<P>
 where
     P: PostingSpec,
 {
-    pub(crate) updated_inventory: Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
+    pub(crate) updated_inventory: Inventory<P>,
     pub(crate) postings: Vec<BookedOrUnbookedPosting<P>>,
 }
 
@@ -29,7 +31,7 @@ pub(crate) fn book_reductions<'a, P, T, I, M>(
 where
     P: PostingSpec + Debug + 'a,
     T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'a Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
     M: Fn(P::Account) -> Booking + Copy,
 {
     let mut updated_inventory = HashMap::default();
@@ -67,14 +69,8 @@ fn reduce<'a, P, T>(
     date: P::Date,
     tolerance: &T,
     method: Booking,
-    previous_positions: Option<&Positions<P::Date, P::Number, P::Currency, P::Label>>,
-) -> Result<
-    (
-        BookedOrUnbookedPosting<P>,
-        Option<Positions<P::Date, P::Number, P::Currency, P::Label>>,
-    ),
-    BookingError,
->
+    previous_positions: Option<&Positions<P>>,
+) -> Result<(BookedOrUnbookedPosting<P>, Option<Positions<P>>), BookingError>
 where
     P: PostingSpec + Debug + 'a,
     T: Tolerance<Currency = P::Currency, Number = P::Number>,
@@ -149,16 +145,13 @@ where
 }
 
 // do any positions in this currency have a sign opposite to ours?
-fn is_potential_reduction<D, N, C, L>(
-    posting_units: N,
-    posting_currency: &C,
-    previous_positions: &Positions<D, N, C, L>,
+fn is_potential_reduction<B>(
+    posting_units: B::Number,
+    posting_currency: &B::Currency,
+    previous_positions: &Positions<B>,
 ) -> bool
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
     if let Some(ann_sign) = posting_units.sign()
         && previous_positions
@@ -181,15 +174,9 @@ fn reduce_matched_position<'a, P>(
     posting_currency: &P::Currency,
     posting: P,
     posting_idx: usize,
-    previous_positions: &Positions<P::Date, P::Number, P::Currency, P::Label>,
+    previous_positions: &Positions<P>,
     matched_position_idx: usize,
-) -> Result<
-    (
-        BookedOrUnbookedPosting<P>,
-        Positions<P::Date, P::Number, P::Currency, P::Label>,
-    ),
-    BookingError,
->
+) -> Result<(BookedOrUnbookedPosting<P>, Positions<P>), BookingError>
 where
     P: PostingSpec + Debug + 'a,
 {
@@ -249,19 +236,16 @@ where
 
 // is this "sell everything that matches"?
 // that is, matched positions together with this one sum to zero-ish updated_inventory
-fn is_sell_all_at_cost<D, N, C, L, T>(
-    posting_units: N,
-    posting_currency: &C,
-    positions: &Positions<D, N, C, L>,
+fn is_sell_all_at_cost<B, T>(
+    posting_units: B::Number,
+    posting_currency: &B::Currency,
+    positions: &Positions<B>,
     matched: &[usize],
     tolerance: &T,
 ) -> bool
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
-    T: Tolerance<Currency = C, Number = N>,
+    B: BookingTypes,
+    T: Tolerance<Currency = B::Currency, Number = B::Number>,
 {
     let tol = tolerance.residual(
         matched
@@ -278,16 +262,10 @@ fn reduce_multiple_positions<'a, P>(
     posting_currency: &P::Currency,
     posting: P,
     posting_idx: usize,
-    positions: &Positions<P::Date, P::Number, P::Currency, P::Label>,
+    positions: &Positions<P>,
     mut matched: Vec<usize>,
     method: Booking,
-) -> Result<
-    (
-        BookedOrUnbookedPosting<P>,
-        Positions<P::Date, P::Number, P::Currency, P::Label>,
-    ),
-    BookingError,
->
+) -> Result<(BookedOrUnbookedPosting<P>, Positions<P>), BookingError>
 where
     P: PostingSpec + Debug + 'a,
 {
@@ -367,15 +345,9 @@ fn reduce_ordered_positions<'a, P>(
     cost_currency: P::Currency,
     posting: P,
     posting_idx: usize,
-    positions: &Positions<P::Date, P::Number, P::Currency, P::Label>,
+    positions: &Positions<P>,
     matched: &[usize],
-) -> Result<
-    (
-        BookedOrUnbookedPosting<P>,
-        Positions<P::Date, P::Number, P::Currency, P::Label>,
-    ),
-    BookingError,
->
+) -> Result<(BookedOrUnbookedPosting<P>, Positions<P>), BookingError>
 where
     P: PostingSpec + Debug + 'a,
 {
@@ -447,19 +419,16 @@ where
     ))
 }
 
-fn check_sufficient_matched_units<D, N, C, L>(
-    posting_units: N,
+fn check_sufficient_matched_units<B>(
+    posting_units: B::Number,
     posting_idx: usize,
-    positions: &Positions<D, N, C, L>,
+    positions: &Positions<B>,
     matched: &[usize],
 ) -> Result<(), BookingError>
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
-    let total_matched_units: N = matched.iter().map(|i| positions[*i].units).sum();
+    let total_matched_units: B::Number = matched.iter().map(|i| positions[*i].units).sum();
 
     if posting_units <= total_matched_units {
         Ok(())
@@ -476,15 +445,9 @@ fn reduce_all_sold_at_cost<'a, P>(
     posting_currency: &P::Currency,
     posting: P,
     posting_idx: usize,
-    positions: &Positions<P::Date, P::Number, P::Currency, P::Label>,
+    positions: &Positions<P>,
     matched: Vec<usize>,
-) -> Result<
-    (
-        BookedOrUnbookedPosting<P>,
-        Positions<P::Date, P::Number, P::Currency, P::Label>,
-    ),
-    BookingError,
->
+) -> Result<(BookedOrUnbookedPosting<P>, Positions<P>), BookingError>
 where
     P: PostingSpec + Debug + 'a,
 {
@@ -539,16 +502,13 @@ where
     ))
 }
 
-fn get_unique_cost_currency<D, N, C, L>(
+fn get_unique_cost_currency<B>(
     posting_idx: usize,
-    positions: &Positions<D, N, C, L>,
+    positions: &Positions<B>,
     matched: &[usize],
-) -> Result<C, BookingError>
+) -> Result<B::Currency, BookingError>
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
     let cost_currencies = matched
         .iter()
@@ -566,17 +526,15 @@ where
     }
 }
 
-fn match_positions<D, N, C, L, CS>(
-    posting_currency: &C,
+fn match_positions<B, CS>(
+    posting_currency: &B::Currency,
     cost_spec: Option<&CS>,
-    positions: &Positions<D, N, C, L>,
+    positions: &Positions<B>,
 ) -> Vec<usize>
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
-    CS: CostSpec<Date = D, Number = N, Currency = C, Label = L> + Debug,
+    B: BookingTypes,
+    CS: CostSpec<Date = B::Date, Number = B::Number, Currency = B::Currency, Label = B::Label>
+        + Debug,
 {
     positions
         .iter()

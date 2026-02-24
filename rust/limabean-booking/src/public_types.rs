@@ -3,16 +3,20 @@ use std::{
     cmp::Ordering,
     fmt::{Debug, Display},
     hash::Hash,
-    iter::{repeat, Sum},
+    iter::{Sum, repeat},
     ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign},
 };
 use strum_macros::Display;
 
-pub trait PostingSpec: Clone {
-    type Date: Eq + Ord + Copy + Display + Debug;
+pub trait BookingTypes {
     type Account: Eq + Hash + Clone + Display + Debug;
+    type Date: Eq + Ord + Copy + Display + Debug;
     type Currency: Eq + Hash + Ord + Clone + Display + Debug;
     type Number: Number + Display + Debug;
+    type Label: Eq + Ord + Clone + Display + Debug;
+}
+
+pub trait PostingSpec: BookingTypes + Clone {
     type CostSpec: CostSpec<
             Date = Self::Date,
             Currency = Self::Currency,
@@ -21,7 +25,6 @@ pub trait PostingSpec: Clone {
         > + Clone
         + Debug;
     type PriceSpec: PriceSpec<Currency = Self::Currency, Number = Self::Number> + Clone + Debug;
-    type Label: Eq + Ord + Clone + Display + Debug;
 
     fn account(&self) -> Self::Account;
     fn currency(&self) -> Option<Self::Currency>;
@@ -30,13 +33,7 @@ pub trait PostingSpec: Clone {
     fn price(&self) -> Option<Self::PriceSpec>;
 }
 
-pub trait Posting: Clone {
-    type Date: Eq + Ord + Copy + Display + Debug;
-    type Account: Eq + Hash + Clone + Display + Debug;
-    type Currency: Eq + Hash + Ord + Clone + Display + Debug;
-    type Number: Number + Display + Debug;
-    type Label: Eq + Ord + Clone + Display + Debug;
-
+pub trait Posting: BookingTypes + Clone {
     fn account(&self) -> Self::Account;
     fn currency(&self) -> Self::Currency;
     fn units(&self) -> Self::Number;
@@ -44,12 +41,7 @@ pub trait Posting: Clone {
     fn price(&self) -> Option<Price<Self::Number, Self::Currency>>;
 }
 
-pub trait CostSpec: Clone {
-    type Date: Eq + Ord + Copy + Display + Debug;
-    type Currency: Eq + Hash + Ord + Clone + Display + Debug;
-    type Number: Number + Display + Debug;
-    type Label: Eq + Ord + Clone + Display + Debug;
-
+pub trait CostSpec: BookingTypes + Clone {
     fn date(&self) -> Option<Self::Date>;
     fn per_unit(&self) -> Option<Self::Number>;
     fn total(&self) -> Option<Self::Number>;
@@ -58,10 +50,7 @@ pub trait CostSpec: Clone {
     fn merge(&self) -> bool;
 }
 
-pub trait PriceSpec: Clone {
-    type Currency: Eq + Hash + Ord + Clone + Display + Debug;
-    type Number: Number + Display + Debug;
-
+pub trait PriceSpec: BookingTypes + Clone {
     fn currency(&self) -> Option<Self::Currency>;
     fn per_unit(&self) -> Option<Self::Number>;
     fn total(&self) -> Option<Self::Number>;
@@ -312,27 +301,24 @@ pub struct Bookings<P>
 where
     P: PostingSpec,
 {
-    pub interpolated_postings: Vec<Interpolated<P, P::Date, P::Number, P::Currency, P::Label>>,
-    pub updated_inventory: Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
+    pub interpolated_postings: Vec<Interpolated<P>>,
+    pub updated_inventory: Inventory<P>,
 }
 
 #[derive(Clone, Debug)]
-pub struct Interpolated<P, D, N, C, L>
+pub struct Interpolated<P>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    P: PostingSpec,
 {
     pub(crate) posting: P,
     pub(crate) idx: usize,
-    pub units: N,
-    pub currency: C,
-    pub cost: Option<PostingCosts<D, N, C, L>>,
-    pub price: Option<Price<N, C>>,
+    pub units: P::Number,
+    pub currency: P::Currency,
+    pub cost: Option<PostingCosts<P::Date, P::Number, P::Currency, P::Label>>,
+    pub price: Option<Price<P::Number, P::Currency>>,
 }
 
-impl<P> Posting for Interpolated<P, P::Date, P::Number, P::Currency, P::Label>
+impl<P> BookingTypes for Interpolated<P>
 where
     P: PostingSpec,
 {
@@ -341,7 +327,12 @@ where
     type Currency = P::Currency;
     type Number = P::Number;
     type Label = P::Label;
+}
 
+impl<P> Posting for Interpolated<P>
+where
+    P: PostingSpec,
+{
     fn account(&self) -> Self::Account {
         self.posting.account()
     }
@@ -363,10 +354,7 @@ where
     }
 }
 
-pub trait Tolerance {
-    type Currency;
-    type Number;
-
+pub trait Tolerance: BookingTypes {
     /// compute residual, ignoring sums which are tolerably small
     fn residual(
         &self,
@@ -424,19 +412,13 @@ pub enum Booking {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Positions<D, N, C, L>(Vec<Position<D, N, C, L>>)
+pub struct Positions<B>(Vec<Position<B::Date, B::Number, B::Currency, B::Label>>)
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug;
+    B: BookingTypes;
 
-impl<D, N, C, L> Display for Positions<D, N, C, L>
+impl<B> Display for Positions<B>
 where
-    D: Eq + Ord + Copy + Debug + Display,
-    N: Number + Debug + Display,
-    C: Eq + Hash + Ord + Clone + Debug + Display,
-    L: Eq + Ord + Clone + Debug + Display,
+    B: BookingTypes,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (i, p) in self.0.iter().enumerate() {
@@ -446,27 +428,33 @@ where
     }
 }
 
-impl<D, N, C, L> Positions<D, N, C, L>
+impl<B> Positions<B>
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
     // Requires that `positions` satisfy our invariants, so can't be public.
-    pub(crate) fn from_previous(positions: Vec<Position<D, N, C, L>>) -> Self {
+    pub(crate) fn from_previous(
+        positions: Vec<Position<B::Date, B::Number, B::Currency, B::Label>>,
+    ) -> Self {
         Self(positions)
     }
 
-    pub(crate) fn get_mut(&mut self, i: usize) -> Option<&mut Position<D, N, C, L>> {
+    pub(crate) fn get_mut(
+        &mut self,
+        i: usize,
+    ) -> Option<&mut Position<B::Date, B::Number, B::Currency, B::Label>> {
         self.0.get_mut(i)
     }
 
-    pub(crate) fn insert(&mut self, i: usize, element: Position<D, N, C, L>) {
+    pub(crate) fn insert(
+        &mut self,
+        i: usize,
+        element: Position<B::Date, B::Number, B::Currency, B::Label>,
+    ) {
         self.0.insert(i, element)
     }
 
-    pub fn units(&self) -> HashMap<&C, N> {
+    pub fn units(&self) -> HashMap<&B::Currency, B::Number> {
         let mut units_by_currency = HashMap::default();
         for Position {
             currency, units, ..
@@ -483,9 +471,9 @@ where
 
     pub fn accumulate(
         &mut self,
-        units: N,
-        currency: C,
-        cost: Option<Cost<D, N, C, L>>,
+        units: B::Number,
+        currency: B::Currency,
+        cost: Option<Cost<B::Date, B::Number, B::Currency, B::Label>>,
         method: Booking,
     ) {
         use Ordering::*;
@@ -566,26 +554,20 @@ where
     }
 }
 
-impl<D, N, C, L> Default for Positions<D, N, C, L>
+impl<B> Default for Positions<B>
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
     fn default() -> Self {
         Self(Default::default())
     }
 }
 
-impl<D, N, C, L> Deref for Positions<D, N, C, L>
+impl<B> Deref for Positions<B>
 where
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
-    type Target = Vec<Position<D, N, C, L>>;
+    type Target = Vec<Position<B::Date, B::Number, B::Currency, B::Label>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -593,24 +575,16 @@ where
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct Inventory<A, D, N, C, L>
+pub struct Inventory<B>
 where
-    A: Eq + Hash + Clone + Display + Debug,
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
-    value: HashMap<A, Positions<D, N, C, L>>,
+    value: HashMap<B::Account, Positions<B>>,
 }
 
-impl<A, D, N, C, L> Default for Inventory<A, D, N, C, L>
+impl<B> Default for Inventory<B>
 where
-    A: Eq + Hash + Clone + Display + Debug,
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
     fn default() -> Self {
         Self {
@@ -619,63 +593,43 @@ where
     }
 }
 
-impl<A, D, N, C, L> From<HashMap<A, Positions<D, N, C, L>>> for Inventory<A, D, N, C, L>
+impl<B> From<HashMap<B::Account, Positions<B>>> for Inventory<B>
 where
-    A: Eq + Hash + Clone + Display + Debug,
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
-    fn from(value: HashMap<A, Positions<D, N, C, L>>) -> Self {
+    fn from(value: HashMap<B::Account, Positions<B>>) -> Self {
         Self { value }
     }
 }
 
-impl<A, D, N, C, L> Deref for Inventory<A, D, N, C, L>
+impl<B> Deref for Inventory<B>
 where
-    A: Eq + Hash + Clone + Display + Debug,
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
-    type Target = HashMap<A, Positions<D, N, C, L>>;
+    type Target = HashMap<B::Account, Positions<B>>;
 
     fn deref(&self) -> &Self::Target {
         &self.value
     }
 }
 
-impl<A, D, N, C, L> IntoIterator for Inventory<A, D, N, C, L>
+impl<B> IntoIterator for Inventory<B>
 where
-    A: Eq + Hash + Clone + Display + Debug,
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
-    type Item = (A, Positions<D, N, C, L>);
-    type IntoIter = hashbrown::hash_map::IntoIter<A, Positions<D, N, C, L>>;
+    type Item = (B::Account, Positions<B>);
+    type IntoIter = hashbrown::hash_map::IntoIter<B::Account, Positions<B>>;
 
-    fn into_iter(self) -> hashbrown::hash_map::IntoIter<A, Positions<D, N, C, L>> {
+    fn into_iter(self) -> hashbrown::hash_map::IntoIter<B::Account, Positions<B>> {
         self.value.into_iter()
     }
 }
 
-impl<A, D, N, C, L> Inventory<A, D, N, C, L>
+impl<B> Inventory<B>
 where
-    A: Eq + Hash + Clone + Display + Debug,
-    D: Eq + Ord + Copy + Debug,
-    N: Number + Debug,
-    C: Eq + Hash + Ord + Clone + Debug,
-    L: Eq + Ord + Clone + Debug,
+    B: BookingTypes,
 {
-    pub(crate) fn insert(
-        &mut self,
-        k: A,
-        v: Positions<D, N, C, L>,
-    ) -> Option<Positions<D, N, C, L>> {
+    pub(crate) fn insert(&mut self, k: B::Account, v: Positions<B>) -> Option<Positions<B>> {
         self.value.insert(k, v)
     }
 }

@@ -6,8 +6,8 @@ use time::Date;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    book_with_residuals, is_supported_method, Booking, BookingError, Bookings, Cost, Interpolated,
-    Inventory, Position, Positions, Tolerance,
+    Booking, BookingError, Bookings, Cost, Interpolated, Inventory, Position, Positions, Tolerance,
+    book_with_residuals, is_supported_method,
 };
 
 const ANTE_TAG: &str = "ante";
@@ -224,15 +224,7 @@ fn check_inventory_as_expected<'a, 'b, T>(
 }
 
 fn check_postings_as_expected<'a>(
-    actual_postings: Vec<
-        Interpolated<
-            &'a parser::Spanned<parser::Posting<'a>>,
-            time::Date,
-            Decimal,
-            parser::Currency<'a>,
-            &'a str,
-        >,
-    >,
+    actual_postings: Vec<Interpolated<&'a parser::Spanned<parser::Posting<'a>>>>,
     directives: &'a [parser::Spanned<parser::Directive<'a>>],
 ) {
     if let Some((_date, expected_postings, _)) = get_postings(directives, BOOKED_TAG).next() {

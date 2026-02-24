@@ -1,4 +1,4 @@
-use super::{Booking, CostSpec, Number, PostingSpec, PriceSpec, Sign, Tolerance};
+use super::{Booking, BookingTypes, CostSpec, Number, PostingSpec, PriceSpec, Sign, Tolerance};
 
 #[cfg(feature = "lima-parser-types")]
 mod lima_parser_types;

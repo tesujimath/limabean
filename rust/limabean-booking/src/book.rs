@@ -5,9 +5,9 @@ use hashbrown::HashMap;
 use std::{fmt::Debug, iter::repeat_n};
 
 use super::{
-    book_reductions, categorize_by_currency, interpolate_from_costed, AnnotatedPosting, Booking,
-    BookingError, Bookings, Interpolated, Interpolation, Inventory, Positions, Posting,
-    PostingSpec, Reductions, Tolerance, TransactionBookingError,
+    AnnotatedPosting, Booking, BookingError, BookingTypes, Bookings, Interpolated, Interpolation,
+    Inventory, Positions, Posting, PostingSpec, Reductions, Tolerance, TransactionBookingError,
+    book_reductions, categorize_by_currency, interpolate_from_costed,
 };
 
 pub fn is_supported_method(method: Booking) -> bool {
@@ -37,7 +37,7 @@ pub fn book<'a, 'b, P, T, I, M>(
 where
     P: PostingSpec + Debug + 'a,
     T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'b Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    I: Fn(P::Account) -> Option<&'b Positions<P>> + Copy,
     M: Fn(P::Account) -> Booking + Copy,
     'a: 'b,
 {
@@ -72,7 +72,7 @@ pub(crate) fn book_with_residuals<'a, 'b, P, T, I, M>(
 where
     P: PostingSpec + Debug + 'a,
     T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'b Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    I: Fn(P::Account) -> Option<&'b Positions<P>> + Copy,
     M: Fn(P::Account) -> Booking + Copy,
     'a: 'b,
 {
@@ -119,16 +119,14 @@ pub(crate) fn book_currency_group<'a, 'b, P, T, I, M>(
     tolerance: &'b T,
     inventory: I,
     method: M,
-    interpolated_postings: &mut Vec<
-        Option<Interpolated<P, P::Date, P::Number, P::Currency, P::Label>>,
-    >,
-    updated_inventory: &mut Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
+    interpolated_postings: &mut Vec<Option<Interpolated<P>>>,
+    updated_inventory: &mut Inventory<P>,
     residuals: &mut Residuals<P::Currency, P::Number>,
 ) -> Result<(), BookingError>
 where
     P: PostingSpec + Debug + 'a,
     T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'b Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    I: Fn(P::Account) -> Option<&'b Positions<P>> + Copy,
     M: Fn(P::Account) -> Booking + Copy,
     'a: 'b,
 {
@@ -182,10 +180,8 @@ where
     Ok(())
 }
 
-fn incorporate_inventory_updates<P>(
-    updates: Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
-    inventory: &mut Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>,
-) where
+fn incorporate_inventory_updates<P>(updates: Inventory<P>, inventory: &mut Inventory<P>)
+where
     P: PostingSpec + Debug,
 {
     for (account, positions) in updates {
@@ -199,10 +195,10 @@ pub fn accumulate<'a, P, I, M>(
     postings: impl Iterator<Item = P>,
     inventory: I,
     method: M,
-) -> Result<Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>, BookingError>
+) -> Result<Inventory<P>, BookingError>
 where
     P: Posting + Debug + 'a,
-    I: Fn(P::Account) -> Option<&'a Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
     M: Fn(P::Account) -> Booking + Copy,
 {
     let mut updated_inventory = HashMap::default();
@@ -242,15 +238,15 @@ where
 
 fn book_augmentations<'a, 'b, P, T, I, M>(
     date: P::Date,
-    interpolateds: impl Iterator<Item = &'b Interpolated<P, P::Date, P::Number, P::Currency, P::Label>>,
+    interpolateds: impl Iterator<Item = &'b Interpolated<P>>,
     tolerance: &T,
     inventory: I,
     method: M,
-) -> Result<Inventory<P::Account, P::Date, P::Number, P::Currency, P::Label>, BookingError>
+) -> Result<Inventory<P>, BookingError>
 where
     P: PostingSpec + Debug + 'a,
     T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'a Positions<P::Date, P::Number, P::Currency, P::Label>> + Copy,
+    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
     M: Fn(P::Account) -> Booking + Copy,
     'a: 'b,
 {
