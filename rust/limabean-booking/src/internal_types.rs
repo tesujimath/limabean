@@ -13,21 +13,15 @@ use super::{BookingTypes, Cost, CostSpec, Interpolated, Number, PostingSpec, Pri
 /// 3. Sort order of these is by date then currency then label.
 /// 4. All positions are non-empty.
 #[derive(PartialEq, Eq, Default, Debug)]
-pub(crate) struct CurrencyPositions<D, N, C, L>(Vec<CurrencyPosition<D, N, C, L>>)
+pub(crate) struct CurrencyPositions<B>(Vec<CurrencyPosition<B>>)
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone;
+    B: BookingTypes;
 
-impl<D, N, C, L> Deref for CurrencyPositions<D, N, C, L>
+impl<B> Deref for CurrencyPositions<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    type Target = Vec<CurrencyPosition<D, N, C, L>>;
+    type Target = Vec<CurrencyPosition<B>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -36,28 +30,19 @@ where
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 /// CurrencyPosition for implicit currency, which is kept externally
-pub(crate) struct CurrencyPosition<D, N, C, L>
+pub(crate) struct CurrencyPosition<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    units: N,
-    cost: Option<Cost<D, N, C, L>>,
+    units: B::Number,
+    cost: Option<Cost<B>>,
 }
 
-impl<D, N, C, L> CurrencyPosition<D, N, C, L>
+impl<B> CurrencyPosition<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    pub(crate) fn is_below(&self, threshold: N) -> bool
-    where
-        N: Number + Ord,
-    {
+    pub(crate) fn is_below(&self, threshold: B::Number) -> bool {
         // TODO ensure that costs are not left below threshold
         self.units.abs() <= threshold && self.cost.is_none()
     }

@@ -1,11 +1,11 @@
 use beancount_parser_lima as parser;
+use limabean_booking::LimaParserBookingTypes;
 use rust_decimal::Decimal;
 use std::{
     collections::{HashMap, HashSet},
     fmt,
 };
 use tabulator::{Align, Cell};
-use time::Date;
 
 use crate::{
     format::{EMPTY, GUTTER_MINOR, SPACE, format, plain},
@@ -48,7 +48,7 @@ pub(crate) struct Posting<'a> {
     // pub(crate) metadata: Metadata<'a>,
 }
 
-pub(crate) type Cost<'a> = limabean_booking::Cost<Date, Decimal, parser::Currency<'a>, &'a str>;
+pub(crate) type Cost<'a> = limabean_booking::Cost<limabean_booking::LimaParserBookingTypes<'a>>;
 
 pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
     let Cost {
@@ -157,8 +157,7 @@ pub(crate) fn positions_into_cell<'a>(positions: Positions<'a>) -> Cell<'a, 'sta
     )
 }
 
-pub(crate) type Position<'a> =
-    limabean_booking::Position<Date, Decimal, parser::Currency<'a>, &'a str>;
+pub(crate) type Position<'a> = limabean_booking::Position<LimaParserBookingTypes<'a>>;
 
 pub(crate) fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static> {
     let Position {

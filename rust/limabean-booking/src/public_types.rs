@@ -8,7 +8,7 @@ use std::{
 };
 use strum_macros::Display;
 
-pub trait BookingTypes: Clone {
+pub trait BookingTypes: Clone + Debug {
     type Account: Eq + Hash + Clone + Display + Debug;
     type Date: Eq + Ord + Copy + Display + Debug;
     type Currency: Eq + Hash + Ord + Clone + Display + Debug;
@@ -75,24 +75,18 @@ pub type PriceSpecNumber<T> = <<T as PriceSpec>::Types as BookingTypes>::Number;
 pub type PriceSpecCurrency<T> = <<T as PriceSpec>::Types as BookingTypes>::Currency;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Position<D, N, C, L>
+pub struct Position<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    pub units: N,
-    pub currency: C,
-    pub cost: Option<Cost<D, N, C, L>>,
+    pub units: B::Number,
+    pub currency: B::Currency,
+    pub cost: Option<Cost<B>>,
 }
 
-impl<D, N, C, L> Display for Position<D, N, C, L>
+impl<B> Display for Position<B>
 where
-    D: Copy + Display,
-    N: Copy + Display,
-    C: Clone + Display,
-    L: Clone + Display,
+    B: BookingTypes,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {}", &self.currency, self.units)?;
@@ -103,14 +97,11 @@ where
     }
 }
 
-impl<D, N, C, L> From<(N, C)> for Position<D, N, C, L>
+impl<B> From<(B::Number, B::Currency)> for Position<B>
 where
-    D: Copy + Display,
-    N: Copy + Display,
-    C: Clone + Display,
-    L: Clone + Display,
+    B: BookingTypes,
 {
-    fn from(value: (N, C)) -> Self {
+    fn from(value: (B::Number, B::Currency)) -> Self {
         Self {
             currency: value.1,
             units: value.0,
@@ -119,18 +110,11 @@ where
     }
 }
 
-impl<D, N, C, L> Position<D, N, C, L>
+impl<B> Position<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    pub(crate) fn with_accumulated(&self, units: N) -> Self
-    where
-        C: Clone,
-        N: Add<Output = N> + Copy,
-    {
+    pub(crate) fn with_accumulated(&self, units: B::Number) -> Self {
         let cost = self.cost.as_ref().cloned();
         Position {
             currency: self.currency.clone(),
@@ -140,27 +124,21 @@ where
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Cost<D, N, C, L>
+#[derive(Clone, Debug)]
+pub struct Cost<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    pub date: D,
-    pub per_unit: N,
-    pub currency: C,
-    pub label: Option<L>,
+    pub date: B::Date,
+    pub per_unit: B::Number,
+    pub currency: B::Currency,
+    pub label: Option<B::Label>,
     pub merge: bool,
 }
 
-impl<D, N, C, L> Display for Cost<D, N, C, L>
+impl<B> Display for Cost<B>
 where
-    D: Copy + Display,
-    N: Copy + Display,
-    C: Clone + Display,
-    L: Clone + Display,
+    B: BookingTypes,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{{}, {} {}", &self.date, &self.per_unit, &self.currency)?;
@@ -177,12 +155,28 @@ where
     }
 }
 
-impl<D, N, C, L> Ord for Cost<D, N, C, L>
+impl<B> PartialEq for Cost<B>
 where
-    D: Ord + Copy,
-    N: Ord + Copy,
-    C: Ord + Clone,
-    L: Ord + Clone,
+    B: BookingTypes,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.date == other.date
+            && self.per_unit == other.per_unit
+            && self.currency == other.currency
+            && self.label == other.label
+            && self.merge == other.merge
+    }
+}
+
+impl<B> Eq for Cost<B> where B: BookingTypes {}
+
+impl<B> Ord for Cost<B>
+where
+    B: BookingTypes,
+    B::Date: Ord,
+    B::Currency: Ord,
+    B::Number: Ord,
+    B::Label: Ord,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match self.date.cmp(&other.date) {
@@ -209,12 +203,13 @@ where
     }
 }
 
-impl<D, N, C, L> PartialOrd for Cost<D, N, C, L>
+impl<B> PartialOrd for Cost<B>
 where
-    D: Ord + Copy,
-    N: Ord + Copy,
-    C: Ord + Clone,
-    L: Ord + Clone,
+    B: BookingTypes,
+    B::Date: Ord,
+    B::Currency: Ord,
+    B::Number: Ord,
+    B::Label: Ord,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
@@ -258,7 +253,7 @@ where
     pub merge: bool,
 }
 
-impl<B> From<(B::Currency, PostingCost<B>)> for Cost<B::Date, B::Number, B::Currency, B::Label>
+impl<B> From<(B::Currency, PostingCost<B>)> for Cost<B>
 where
     B: BookingTypes,
 {
@@ -418,7 +413,7 @@ pub enum Booking {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Positions<B>(Vec<Position<B::Date, B::Number, B::Currency, B::Label>>)
+pub struct Positions<B>(Vec<Position<B>>)
 where
     B: BookingTypes;
 
@@ -439,24 +434,15 @@ where
     B: BookingTypes,
 {
     // Requires that `positions` satisfy our invariants, so can't be public.
-    pub(crate) fn from_previous(
-        positions: Vec<Position<B::Date, B::Number, B::Currency, B::Label>>,
-    ) -> Self {
+    pub(crate) fn from_previous(positions: Vec<Position<B>>) -> Self {
         Self(positions)
     }
 
-    pub(crate) fn get_mut(
-        &mut self,
-        i: usize,
-    ) -> Option<&mut Position<B::Date, B::Number, B::Currency, B::Label>> {
+    pub(crate) fn get_mut(&mut self, i: usize) -> Option<&mut Position<B>> {
         self.0.get_mut(i)
     }
 
-    pub(crate) fn insert(
-        &mut self,
-        i: usize,
-        element: Position<B::Date, B::Number, B::Currency, B::Label>,
-    ) {
+    pub(crate) fn insert(&mut self, i: usize, element: Position<B>) {
         self.0.insert(i, element)
     }
 
@@ -479,7 +465,7 @@ where
         &mut self,
         units: B::Number,
         currency: B::Currency,
-        cost: Option<Cost<B::Date, B::Number, B::Currency, B::Label>>,
+        cost: Option<Cost<B>>,
         method: Booking,
     ) {
         use Ordering::*;
@@ -573,7 +559,7 @@ impl<B> Deref for Positions<B>
 where
     B: BookingTypes,
 {
-    type Target = Vec<Position<B::Date, B::Number, B::Currency, B::Label>>;
+    type Target = Vec<Position<B>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -584,7 +570,7 @@ impl<B> IntoIterator for Positions<B>
 where
     B: BookingTypes,
 {
-    type Item = Position<B::Date, B::Number, B::Currency, B::Label>;
+    type Item = Position<B>;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {

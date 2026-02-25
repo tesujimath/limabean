@@ -560,10 +560,7 @@ where
         .collect::<Vec<_>>()
 }
 
-fn cost_matches_spec<B, CS>(
-    cost: &Cost<B::Date, B::Number, B::Currency, B::Label>,
-    cost_spec: &CS,
-) -> bool
+fn cost_matches_spec<B, CS>(cost: &Cost<B>, cost_spec: &CS) -> bool
 where
     B: BookingTypes,
     CS: CostSpec<Types = B>,
