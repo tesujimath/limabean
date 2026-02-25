@@ -611,11 +611,12 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         if pad_idx.is_none() {
             // balance assertion is incorrect and we have no pad to take up the slack, so:
 
-            let err = Err(construct_balance_error(account, &margin, &element));
+            let err = Err(construct_balance_error_and_clear_diagnostics(
+                account, &margin, &element,
+            ));
 
             // even though we have a balance error, we adjust the account to match, in order to localise balance failures
             adjust_account_to_match_balance(account, &margin, Adjustment::Add);
-            account.balance_diagnostics.clear();
 
             return err;
         }
@@ -857,7 +858,7 @@ fn calculate_balance_pad_postings<'a>(
         .collect::<Vec<_>>()
 }
 
-fn construct_balance_error<'a>(
+fn construct_balance_error_and_clear_diagnostics<'a>(
     account: &mut AccountBuilder<'a>,
     margin: &HashMap<parser::Currency<'a>, Decimal>,
     element: &parser::Spanned<Element>,
@@ -880,19 +881,13 @@ fn construct_balance_error<'a>(
     let annotation = Cell::Stack(
         account
             .balance_diagnostics
-            .iter()
+            .drain(..)
             .map(|bd| {
                 Cell::Row(
                     vec![
                         (bd.date.to_string(), Align::Left).into(),
-                        bd.amount
-                            .as_ref()
-                            .map(|amt| amt.into())
-                            .unwrap_or(Cell::Empty),
-                        bd.positions
-                            .as_ref()
-                            .map(positions_to_cell)
-                            .unwrap_or(Cell::Empty),
+                        bd.amount.map(|amt| amt.into()).unwrap_or(Cell::Empty),
+                        bd.positions.map(positions_into_cell).unwrap_or(Cell::Empty),
                         bd.description
                             .map(|d| (d, Align::Left).into())
                             .unwrap_or(Cell::Empty),

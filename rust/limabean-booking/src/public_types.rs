@@ -64,8 +64,8 @@ where
     C: Clone,
     L: Clone,
 {
-    pub currency: C,
     pub units: N,
+    pub currency: C,
     pub cost: Option<Cost<D, N, C, L>>,
 }
 
@@ -571,6 +571,18 @@ where
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<B> IntoIterator for Positions<B>
+where
+    B: BookingTypes,
+{
+    type Item = Position<B::Date, B::Number, B::Currency, B::Label>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

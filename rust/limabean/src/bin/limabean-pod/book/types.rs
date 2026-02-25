@@ -8,7 +8,7 @@ use tabulator::{Align, Cell};
 use time::Date;
 
 use crate::{
-    format::{format, plain, EMPTY, GUTTER_MINOR, SPACE},
+    format::{EMPTY, GUTTER_MINOR, SPACE, format, plain},
     options::defaults::default_inferred_tolerance_multiplier,
 };
 
@@ -50,14 +50,18 @@ pub(crate) struct Posting<'a> {
 
 pub(crate) type Cost<'a> = limabean_booking::Cost<Date, Decimal, parser::Currency<'a>, &'a str>;
 
-pub(crate) fn cost_to_cell<'a, 'b>(cost: &'b Cost<'a>) -> Cell<'a, 'static>
-where
-    'b: 'a,
-{
+pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
+    let Cost {
+        date,
+        per_unit,
+        currency,
+        label,
+        merge,
+    } = cost;
     let mut cells = vec![
-        (cost.date.to_string(), Align::Left).into(),
-        cost.per_unit.into(),
-        (cost.currency.as_ref(), Align::Left).into(),
+        (date.to_string(), Align::Left).into(),
+        per_unit.into(),
+        (Into::<&str>::into(currency), Align::Left).into(),
     ];
     if let Some(label) = &cost.label {
         cells.push((*label, Align::Left).into())
@@ -143,26 +147,30 @@ pub(crate) type Positions<'a> =
     limabean_booking::Positions<&'a parser::Spanned<parser::Posting<'a>>>;
 
 // should be From, but both types are third-party
-pub(crate) fn positions_to_cell<'a, 'b>(positions: &'b Positions<'a>) -> Cell<'a, 'static>
-where
-    'b: 'a,
-{
-    Cell::Stack(positions.iter().map(position_to_cell).collect::<Vec<_>>())
+pub(crate) fn positions_into_cell<'a>(positions: Positions<'a>) -> Cell<'a, 'static> {
+    Cell::Stack(
+        positions
+            .into_iter()
+            .map(position_into_cell)
+            .collect::<Vec<_>>(),
+    )
 }
 
 pub(crate) type Position<'a> =
     limabean_booking::Position<Date, Decimal, parser::Currency<'a>, &'a str>;
 
-pub(crate) fn position_to_cell<'a, 'b>(position: &'b Position<'a>) -> Cell<'a, 'static>
-where
-    'b: 'a,
-{
+pub(crate) fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static> {
+    let Position {
+        units,
+        currency,
+        cost,
+    } = position;
     let mut cells = vec![
-        position.units.into(),
-        (position.currency.as_ref(), Align::Left).into(),
+        units.into(),
+        (Into::<&str>::into(currency), Align::Left).into(),
     ];
-    if let Some(cost) = &position.cost {
-        cells.push(cost_to_cell(cost))
+    if let Some(cost) = cost {
+        cells.push(cost_into_cell(cost))
     }
     Cell::Row(cells, GUTTER_MINOR)
 }
