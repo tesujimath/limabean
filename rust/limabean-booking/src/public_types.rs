@@ -8,7 +8,7 @@ use std::{
 };
 use strum_macros::Display;
 
-pub trait BookingTypes {
+pub trait BookingTypes: Clone {
     type Account: Eq + Hash + Clone + Display + Debug;
     type Date: Eq + Ord + Copy + Display + Debug;
     type Currency: Eq + Hash + Ord + Clone + Display + Debug;
@@ -16,7 +16,7 @@ pub trait BookingTypes {
     type Label: Eq + Ord + Clone + Display + Debug;
 }
 
-pub trait PostingSpec: BookingTypes + Clone {
+pub trait PostingSpec: BookingTypes {
     type CostSpec: CostSpec<
             Date = Self::Date,
             Currency = Self::Currency,
@@ -33,7 +33,7 @@ pub trait PostingSpec: BookingTypes + Clone {
     fn price(&self) -> Option<Self::PriceSpec>;
 }
 
-pub trait Posting: BookingTypes + Clone {
+pub trait Posting: BookingTypes {
     fn account(&self) -> Self::Account;
     fn currency(&self) -> Self::Currency;
     fn units(&self) -> Self::Number;
@@ -41,7 +41,7 @@ pub trait Posting: BookingTypes + Clone {
     fn price(&self) -> Option<Price<Self::Number, Self::Currency>>;
 }
 
-pub trait CostSpec: BookingTypes + Clone {
+pub trait CostSpec: BookingTypes {
     fn date(&self) -> Option<Self::Date>;
     fn per_unit(&self) -> Option<Self::Number>;
     fn total(&self) -> Option<Self::Number>;
@@ -50,7 +50,7 @@ pub trait CostSpec: BookingTypes + Clone {
     fn merge(&self) -> bool;
 }
 
-pub trait PriceSpec: BookingTypes + Clone {
+pub trait PriceSpec: BookingTypes {
     fn currency(&self) -> Option<Self::Currency>;
     fn per_unit(&self) -> Option<Self::Number>;
     fn total(&self) -> Option<Self::Number>;

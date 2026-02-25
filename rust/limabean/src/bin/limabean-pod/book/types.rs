@@ -143,8 +143,9 @@ where
     }
 }
 
-pub(crate) type Positions<'a> =
-    limabean_booking::Positions<&'a parser::Spanned<parser::Posting<'a>>>;
+pub(crate) type ConcreteBookingTypes<'a> = &'a parser::Spanned<parser::Posting<'a>>;
+
+pub(crate) type Positions<'a> = limabean_booking::Positions<ConcreteBookingTypes<'a>>;
 
 // should be From, but both types are third-party
 pub(crate) fn positions_into_cell<'a>(positions: Positions<'a>) -> Cell<'a, 'static> {
