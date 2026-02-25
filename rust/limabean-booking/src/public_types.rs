@@ -40,7 +40,7 @@ pub trait Posting: Clone {
     fn units(&self) -> PostingNumber<Self>;
     fn currency(&self) -> PostingCurrency<Self>;
     fn cost(&self) -> Option<PostingCosts<Self::Types>>;
-    fn price(&self) -> Option<Price<PostingNumber<Self>, PostingCurrency<Self>>>;
+    fn price(&self) -> Option<Price<Self::Types>>;
 }
 
 pub type PostingAccount<T> = <<T as Posting>::Types as BookingTypes>::Account;
@@ -279,19 +279,17 @@ where
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct Price<N, C>
+pub struct Price<B>
 where
-    N: Copy,
-    C: Clone,
+    B: BookingTypes,
 {
-    pub per_unit: N,
-    pub currency: C,
+    pub per_unit: B::Number,
+    pub currency: B::Currency,
 }
 
-impl<N, C> Display for Price<N, C>
+impl<B> Display for Price<B>
 where
-    N: Copy + Display,
-    C: Clone + Display,
+    B: BookingTypes,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "@ {} {}", &self.per_unit, &self.currency)
@@ -319,7 +317,7 @@ where
     pub units: B::Number,
     pub currency: B::Currency,
     pub cost: Option<PostingCosts<B>>,
-    pub price: Option<Price<B::Number, B::Currency>>,
+    pub price: Option<Price<B>>,
 }
 
 impl<B, P> Posting for Interpolated<B, P>
@@ -345,7 +343,7 @@ where
         self.cost.clone()
     }
 
-    fn price(&self) -> Option<Price<B::Number, B::Currency>> {
+    fn price(&self) -> Option<Price<B>> {
         self.price.clone()
     }
 }

@@ -91,7 +91,7 @@ pub(crate) fn cur_posting_cost_to_cost<'a>(
 pub(crate) type PostingCosts<'a> =
     limabean_booking::PostingCosts<limabean_booking::LimaParserBookingTypes<'a>>;
 
-pub(crate) type Price<'a> = limabean_booking::Price<Decimal, parser::Currency<'a>>;
+pub(crate) type Price<'a> = limabean_booking::Price<limabean_booking::LimaParserBookingTypes<'a>>;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct Amount<'a> {
