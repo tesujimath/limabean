@@ -16,7 +16,7 @@ pub trait BookingTypes: Clone + Debug {
     type Label: Eq + Ord + Clone + Display + Debug;
 }
 
-pub trait PostingSpec: Clone {
+pub trait PostingSpec: Clone + Debug {
     type Types: BookingTypes;
 
     type CostSpec: CostSpec<Types = Self::Types> + Clone + Debug;
@@ -33,7 +33,7 @@ pub type PostingSpecAccount<T> = <<T as PostingSpec>::Types as BookingTypes>::Ac
 pub type PostingSpecNumber<T> = <<T as PostingSpec>::Types as BookingTypes>::Number;
 pub type PostingSpecCurrency<T> = <<T as PostingSpec>::Types as BookingTypes>::Currency;
 
-pub trait Posting: Clone {
+pub trait Posting: Clone + Debug {
     type Types: BookingTypes;
 
     fn account(&self) -> PostingAccount<Self>;
@@ -47,7 +47,7 @@ pub type PostingAccount<T> = <<T as Posting>::Types as BookingTypes>::Account;
 pub type PostingNumber<T> = <<T as Posting>::Types as BookingTypes>::Number;
 pub type PostingCurrency<T> = <<T as Posting>::Types as BookingTypes>::Currency;
 
-pub trait CostSpec: Clone {
+pub trait CostSpec: Clone + Debug {
     type Types: BookingTypes;
 
     fn date(&self) -> Option<CostSpecDate<Self>>;
@@ -63,7 +63,7 @@ pub type CostSpecNumber<T> = <<T as CostSpec>::Types as BookingTypes>::Number;
 pub type CostSpecCurrency<T> = <<T as CostSpec>::Types as BookingTypes>::Currency;
 pub type CostSpecLabel<T> = <<T as CostSpec>::Types as BookingTypes>::Label;
 
-pub trait PriceSpec: Clone {
+pub trait PriceSpec: Clone + Debug {
     type Types: BookingTypes;
 
     fn per_unit(&self) -> Option<PriceSpecNumber<Self>>;
@@ -348,7 +348,7 @@ where
     }
 }
 
-pub trait Tolerance: Clone {
+pub trait Tolerance: Clone + Debug {
     type Types: BookingTypes;
 
     /// compute residual, ignoring sums which are tolerably small

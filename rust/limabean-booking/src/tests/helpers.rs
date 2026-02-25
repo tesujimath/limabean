@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 use beancount_parser_lima::{self as parser, DirectiveVariant};
 use hashbrown::HashMap;
 use rust_decimal::Decimal;
@@ -7,7 +8,8 @@ use tracing_subscriber::EnvFilter;
 
 use crate::{
     Booking, BookingError, Bookings, Cost, Interpolated, Inventory, LimaParserBookingTypes,
-    Position, Positions, Tolerance, book_with_residuals, is_supported_method,
+    Position, Positions, Tolerance, book::BookingsAndResiduals, book_with_residuals,
+    is_supported_method,
 };
 
 const ANTE_TAG: &str = "ante";
@@ -53,12 +55,13 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
             let mut ante_inventory = Inventory::default();
 
             if let Some((date, ante_postings, _)) = get_postings(&directives, ANTE_TAG).next() {
-                let (
-                    Bookings {
-                        updated_inventory, ..
-                    },
-                    _residuals,
-                ) = book_with_residuals(date, &ante_postings, &tolerance, |_| None, |_| method)
+                let BookingsAndResiduals {
+                    bookings:
+                        Bookings {
+                            updated_inventory, ..
+                        },
+                    ..
+                } = book_with_residuals(date, &ante_postings, &tolerance, |_| None, |_| method)
                     .unwrap();
 
                 ante_inventory = updated_inventory;
@@ -154,6 +157,8 @@ fn ordinal(i: usize) -> String {
     )
 }
 
+// it's only a test, bah!
+#[allow(clippy::too_many_arguments)]
 fn book_and_check_error<'a, 'b, T>(
     date: Date,
     postings: &[&'a parser::Spanned<parser::Posting<'a>>],
@@ -177,7 +182,7 @@ where
         ),
         expected_err,
     ) {
-        (Ok((bookings, _residuals)), None) => Some(bookings),
+        (Ok(BookingsAndResiduals { bookings, .. }), None) => Some(bookings),
         (Err(e), Some(expected_err)) => {
             assert_eq!(&e, expected_err);
             None
@@ -202,13 +207,14 @@ fn check_inventory_as_expected<'a, 'b, T>(
     let (date, postings, _) = get_postings(directives, EX_TAG)
         .next()
         .expect("missing ex tag in test data");
-    let (
-        Bookings {
-            updated_inventory: expected_inventory,
-            ..
-        },
-        _residuals,
-    ) = book_with_residuals(date, &postings, tolerance, |_| None, |_| method).unwrap();
+    let BookingsAndResiduals {
+        bookings:
+            Bookings {
+                updated_inventory: expected_inventory,
+                ..
+            },
+        ..
+    } = book_with_residuals(date, &postings, tolerance, |_| None, |_| method).unwrap();
 
     // since we can't build an expected inventory with an empty account, we remove all such from the result before comparison
     let actual_inventory = Into::<Inventory<_>>::into(

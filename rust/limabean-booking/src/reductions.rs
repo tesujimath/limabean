@@ -46,7 +46,10 @@ where
             .or_else(|| inventory(account.clone()));
         let account_method = method(account.clone());
 
-        let (costed_posting, updated_positions) = reduce(
+        let Reduced {
+            reducing_posting: costed_posting,
+            updated_positions,
+        } = reduce(
             annotated,
             date,
             tolerance,
@@ -66,13 +69,22 @@ where
     })
 }
 
+struct Reduced<B, P>
+where
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
+{
+    reducing_posting: BookedOrUnbookedPosting<B, P>,
+    updated_positions: Option<Positions<B>>,
+}
+
 fn reduce<'a, B, P, T>(
     annotated: AnnotatedPosting<P, B::Currency>,
     date: B::Date,
     tolerance: &T,
     method: Booking,
     previous_positions: Option<&Positions<B>>,
-) -> Result<(BookedOrUnbookedPosting<B, P>, Option<Positions<B>>), BookingError>
+) -> Result<Reduced<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
@@ -111,7 +123,10 @@ where
                 matched[0],
             )?;
 
-            Ok((reducing_posting, Some(updated_positions)))
+            Ok(Reduced {
+                reducing_posting,
+                updated_positions: Some(updated_positions),
+            })
         } else if is_sell_all_at_cost(
             posting_units,
             posting_currency,
@@ -128,7 +143,10 @@ where
                 matched,
             )?;
 
-            Ok((reducing_posting, Some(updated_positions)))
+            Ok(Reduced {
+                reducing_posting,
+                updated_positions: Some(updated_positions),
+            })
         } else {
             let (reducing_posting, updated_positions) = reduce_multiple_positions(
                 posting_units,
@@ -140,10 +158,16 @@ where
                 method,
             )?;
 
-            Ok((reducing_posting, Some(updated_positions)))
+            Ok(Reduced {
+                reducing_posting,
+                updated_positions: Some(updated_positions),
+            })
         }
     } else {
-        Ok((Unbooked(annotated), None))
+        Ok(Reduced {
+            reducing_posting: Unbooked(annotated),
+            updated_positions: None,
+        })
     }
 }
 

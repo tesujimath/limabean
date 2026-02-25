@@ -1,9 +1,10 @@
+#![allow(clippy::type_complexity)]
 use rstest::rstest;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use time::macros::date;
 
-use super::{positions_test, Booking};
+use super::{Booking, positions_test};
 
 #[rstest]
 #[case(r#"

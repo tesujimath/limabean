@@ -5,9 +5,9 @@ use hashbrown::HashMap;
 use std::{fmt::Debug, iter::repeat_n};
 
 use super::{
-    AnnotatedPosting, Booking, BookingError, BookingTypes, Bookings, Interpolated, Interpolation,
-    Inventory, Positions, Posting, PostingSpec, Reductions, Tolerance, TransactionBookingError,
-    book_reductions, categorize_by_currency, interpolate_from_costed,
+    AnnotatedPosting, Booking, BookingError, BookingTypes, Bookings, CategorizedByCurrency,
+    Interpolated, Interpolation, Inventory, Positions, Posting, PostingSpec, Reductions, Tolerance,
+    TransactionBookingError, book_reductions, categorize_by_currency, interpolate_from_costed,
 };
 
 pub fn is_supported_method(method: Booking) -> bool {
@@ -42,7 +42,10 @@ where
     M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
 {
-    let (bookings, residuals) = book_with_residuals(date, postings, tolerance, inventory, method)?;
+    let BookingsAndResiduals {
+        bookings,
+        residuals,
+    } = book_with_residuals(date, postings, tolerance, inventory, method)?;
     if !residuals.is_empty() {
         let mut currencies = residuals.keys().collect::<Vec<_>>();
         currencies.sort();
@@ -61,6 +64,15 @@ where
 
 pub(crate) type Residuals<C, N> = HashMap<C, N>;
 
+pub(crate) struct BookingsAndResiduals<B, P>
+where
+    B: BookingTypes,
+    P: PostingSpec<Types = B> + Debug,
+{
+    pub(crate) bookings: Bookings<B, P>,
+    pub(crate) residuals: Residuals<B::Currency, B::Number>,
+}
+
 // this exists so we can test the booking algorithm with unbalanced transactions
 // as per OG Beancount booking_full_test.py
 pub(crate) fn book_with_residuals<'a, 'b, B, P, T, I, M>(
@@ -69,7 +81,7 @@ pub(crate) fn book_with_residuals<'a, 'b, B, P, T, I, M>(
     tolerance: &'b T,
     inventory: I,
     method: M,
-) -> Result<(Bookings<B, P>, Residuals<B::Currency, B::Number>), BookingError>
+) -> Result<BookingsAndResiduals<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
@@ -78,11 +90,12 @@ where
     M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
 {
-    let currency_groups = categorize_by_currency(postings, inventory)?;
+    let CategorizedByCurrency(currency_groups) = categorize_by_currency(postings, inventory)?;
 
-    let mut interpolated_postings = repeat_n(None, postings.len()).collect::<Vec<_>>();
-    let mut updated_inventory = Inventory::default();
-    let mut residuals = Residuals::<B::Currency, B::Number>::default();
+    let mut booking_accumulator = BookingAccumulator::new(postings.len());
+    // let mut interpolated_postings = repeat_n(None, postings.len()).collect::<Vec<_>>();
+    // let mut updated_inventory = Inventory::default();
+    // let mut residuals = Residuals::<B::Currency, B::Number>::default();
 
     for (cur, annotated_postings) in currency_groups {
         book_currency_group(
@@ -92,38 +105,62 @@ where
             tolerance,
             inventory,
             method,
-            &mut interpolated_postings,
-            &mut updated_inventory,
-            &mut residuals,
+            &mut booking_accumulator,
         )?;
     }
+
+    let BookingAccumulator {
+        interpolated_postings,
+        updated_inventory,
+        residuals,
+    } = booking_accumulator;
 
     let interpolated_postings = interpolated_postings
         .into_iter()
         .map(|p| p.unwrap())
         .collect::<Vec<_>>();
 
-    Ok((
-        Bookings {
+    Ok(BookingsAndResiduals {
+        bookings: Bookings {
             interpolated_postings,
             updated_inventory,
         },
         residuals,
-    ))
+    })
 }
 
-// TODO mitigate too many arguments
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn book_currency_group<'a, 'b, B, P, T, I, M>(
+struct BookingAccumulator<B, P>
+where
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
+{
+    interpolated_postings: Vec<Option<Interpolated<B, P>>>,
+    updated_inventory: Inventory<B>,
+    residuals: Residuals<B::Currency, B::Number>,
+}
+
+impl<B, P> BookingAccumulator<B, P>
+where
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
+{
+    fn new(n_postings: usize) -> Self {
+        BookingAccumulator {
+            interpolated_postings: repeat_n(None, n_postings).collect::<Vec<_>>(),
+            updated_inventory: Inventory::default(),
+            residuals: Residuals::<B::Currency, B::Number>::default(),
+        }
+    }
+}
+
+fn book_currency_group<'a, 'b, B, P, T, I, M>(
     date: B::Date,
     cur: B::Currency,
     annotated_postings: Vec<AnnotatedPosting<P, B::Currency>>,
     tolerance: &'b T,
     inventory: I,
     method: M,
-    interpolated_postings: &mut [Option<Interpolated<B, P>>],
-    updated_inventory: &mut Inventory<B>,
-    residuals: &mut Residuals<B::Currency, B::Number>,
+    accumulator: &mut BookingAccumulator<B, P>,
 ) -> Result<(), BookingError>
 where
     B: BookingTypes + 'a,
@@ -141,14 +178,18 @@ where
         annotated_postings,
         tolerance,
         |account| {
-            updated_inventory
+            accumulator
+                .updated_inventory
                 .get(&account)
                 .or_else(|| inventory(account.clone()))
         },
         method,
     )?;
 
-    incorporate_inventory_updates::<B>(updated_inventory_for_cur, updated_inventory);
+    incorporate_inventory_updates::<B>(
+        updated_inventory_for_cur,
+        &mut accumulator.updated_inventory,
+    );
 
     let Interpolation {
         booked_and_unbooked_postings,
@@ -156,7 +197,7 @@ where
     } = interpolate_from_costed(date, &cur, costed_postings, tolerance)?;
 
     if let Some(residual) = residual {
-        residuals.insert(cur.clone(), residual);
+        accumulator.residuals.insert(cur.clone(), residual);
     }
 
     let updated_inventory_for_cur = book_augmentations(
@@ -166,18 +207,22 @@ where
             .filter_map(|(p, booked)| (!booked).then_some(p)),
         tolerance,
         |account| {
-            updated_inventory
+            accumulator
+                .updated_inventory
                 .get(&account)
                 .or_else(|| inventory(account.clone()))
         },
         method,
     )?;
 
-    incorporate_inventory_updates::<B>(updated_inventory_for_cur, updated_inventory);
+    incorporate_inventory_updates::<B>(
+        updated_inventory_for_cur,
+        &mut accumulator.updated_inventory,
+    );
 
     for (p, _) in booked_and_unbooked_postings.into_iter() {
         let idx = p.idx;
-        interpolated_postings[idx] = Some(p);
+        accumulator.interpolated_postings[idx] = Some(p);
     }
 
     Ok(())

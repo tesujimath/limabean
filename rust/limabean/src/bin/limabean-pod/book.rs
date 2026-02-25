@@ -280,7 +280,8 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
             HashSet::default()
         };
 
-        let (postings, prices) = self.book(&element, date, &postings, description)?;
+        let BookedPostingsAndPrices { postings, prices } =
+            self.book(&element, date, &postings, description)?;
 
         Ok(DirectiveVariant::Transaction(Transaction {
             postings,
@@ -295,13 +296,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         date: Date,
         postings: &[&'a parser::Spanned<parser::Posting<'a>>],
         description: &'a str,
-    ) -> Result<
-        (
-            Vec<Posting<'a>>,
-            HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
-        ),
-        parser::AnnotatedError,
-    >
+    ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
     {
@@ -450,7 +445,10 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                     }
                 }
 
-                Ok((booked_postings, prices))
+                Ok(BookedPostingsAndPrices {
+                    postings: booked_postings,
+                    prices,
+                })
             }
             Err(e) => {
                 tracing::error!("booking error {}", &e);
@@ -794,6 +792,11 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
             postings: Vec::default(),
         }))
     }
+}
+
+struct BookedPostingsAndPrices<'a> {
+    postings: Vec<Posting<'a>>,
+    prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
 }
 
 fn calculate_balance_margin<'a>(

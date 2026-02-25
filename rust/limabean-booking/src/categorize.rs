@@ -9,11 +9,18 @@ use super::{
     PostingBookingError, PostingSpec, PriceSpec, TransactionBookingError,
 };
 
+pub(crate) struct CategorizedByCurrency<B, P>(
+    pub(crate) HashMapOfVec<B::Currency, AnnotatedPosting<P, B::Currency>>,
+)
+where
+    B: BookingTypes,
+    P: PostingSpec<Types = B>;
+
 // See OG Beancount function of the same name
 pub(crate) fn categorize_by_currency<'a, 'b, B, P, I>(
     postings: &'b [P],
     inventory: I,
-) -> Result<HashMapOfVec<B::Currency, AnnotatedPosting<P, B::Currency>>, BookingError>
+) -> Result<CategorizedByCurrency<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
@@ -45,7 +52,7 @@ where
 
     categorize_auto_postings(auto_postings, &mut currency_groups)?;
 
-    Ok(currency_groups)
+    Ok(CategorizedByCurrency(currency_groups))
 }
 
 pub(crate) fn categorize_with_auto_postings_and_unknowns<B, P>(
