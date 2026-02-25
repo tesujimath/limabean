@@ -121,7 +121,7 @@ pub(crate) fn book_currency_group<'a, 'b, B, P, T, I, M>(
     tolerance: &'b T,
     inventory: I,
     method: M,
-    interpolated_postings: &mut Vec<Option<Interpolated<B, P>>>,
+    interpolated_postings: &mut [Option<Interpolated<B, P>>],
     updated_inventory: &mut Inventory<B>,
     residuals: &mut Residuals<B::Currency, B::Number>,
 ) -> Result<(), BookingError>
