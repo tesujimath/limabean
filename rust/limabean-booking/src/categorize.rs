@@ -10,17 +10,18 @@ use super::{
 };
 
 // See OG Beancount function of the same name
-pub(crate) fn categorize_by_currency<'a, 'b, P, I>(
+pub(crate) fn categorize_by_currency<'a, 'b, B, P, I>(
     postings: &'b [P],
     inventory: I,
-) -> Result<HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>, BookingError>
+) -> Result<HashMapOfVec<B::Currency, AnnotatedPosting<P, B::Currency>>, BookingError>
 where
-    P: PostingSpec + Debug + 'a,
-    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
+    B: BookingTypes + 'a,
+    P: PostingSpec<Types = B> + Debug + 'a,
+    I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
 {
     let mut currency_groups = HashMapOfVec::default();
     let mut auto_postings =
-        HashMap::<Option<P::Currency>, AnnotatedPosting<P, P::Currency>>::default();
+        HashMap::<Option<B::Currency>, AnnotatedPosting<P, B::Currency>>::default();
     let mut unknown = Vec::default();
 
     categorize_with_auto_postings_and_unknowns(
@@ -47,14 +48,15 @@ where
     Ok(currency_groups)
 }
 
-pub(crate) fn categorize_with_auto_postings_and_unknowns<P>(
+pub(crate) fn categorize_with_auto_postings_and_unknowns<B, P>(
     postings: &[P],
-    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
-    auto_postings: &mut HashMap<Option<P::Currency>, AnnotatedPosting<P, P::Currency>>,
-    unknown: &mut Vec<AnnotatedPosting<P, P::Currency>>,
+    currency_groups: &mut HashMapOfVec<B::Currency, AnnotatedPosting<P, B::Currency>>,
+    auto_postings: &mut HashMap<Option<B::Currency>, AnnotatedPosting<P, B::Currency>>,
+    unknown: &mut Vec<AnnotatedPosting<P, B::Currency>>,
 ) -> Result<(), BookingError>
 where
-    P: PostingSpec + Debug,
+    B: BookingTypes,
+    P: PostingSpec<Types = B> + Debug,
 {
     for (idx, posting) in postings.iter().enumerate() {
         let annotated = annotate(posting, idx);
@@ -81,9 +83,10 @@ where
 }
 
 // annotate a posting along with its index in the list of postings
-fn annotate<P>(posting: &P, idx: usize) -> AnnotatedPosting<P, P::Currency>
+fn annotate<B, P>(posting: &P, idx: usize) -> AnnotatedPosting<P, B::Currency>
 where
-    P: PostingSpec + Debug,
+    B: BookingTypes,
+    P: PostingSpec<Types = B> + Debug,
 {
     let currency = posting.currency();
     let posting_cost_currency = posting.cost().and_then(|cost_spec| cost_spec.currency());
@@ -106,11 +109,12 @@ where
     }
 }
 
-fn infer_unknown_from_single_currency_group<P>(
-    unknown: AnnotatedPosting<P, P::Currency>,
-    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
+fn infer_unknown_from_single_currency_group<B, P>(
+    unknown: AnnotatedPosting<P, B::Currency>,
+    currency_groups: &mut HashMapOfVec<B::Currency, AnnotatedPosting<P, B::Currency>>,
 ) where
-    P: PostingSpec + Debug,
+    B: BookingTypes,
+    P: PostingSpec<Types = B> + Debug,
 {
     let only_bucket = currency_groups
         .keys()
@@ -143,16 +147,17 @@ fn infer_unknown_from_single_currency_group<P>(
     currency_groups.push_or_insert(only_bucket.clone(), inferred);
 }
 
-pub(crate) fn infer_unknowns_from_account_inference<'a, 'b, P, I>(
-    unknown: Vec<AnnotatedPosting<P, P::Currency>>,
+pub(crate) fn infer_unknowns_from_account_inference<'a, 'b, B, P, I>(
+    unknown: Vec<AnnotatedPosting<P, B::Currency>>,
     inventory: I,
-    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
+    currency_groups: &mut HashMapOfVec<B::Currency, AnnotatedPosting<P, B::Currency>>,
 ) -> Result<(), BookingError>
 where
-    P: PostingSpec + Debug + 'a,
-    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
+    B: BookingTypes + 'a,
+    P: PostingSpec<Types = B> + Debug + 'a,
+    I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
 {
-    let mut account_currency_lookup = HashMap::<P::Account, Option<P::Currency>>::default();
+    let mut account_currency_lookup = HashMap::<B::Account, Option<B::Currency>>::default();
     for u in unknown {
         let u_account = u.posting.account();
         if let Some(bucket) = account_currency(u_account, inventory, &mut account_currency_lookup) {
@@ -166,12 +171,13 @@ where
     }
     Ok(())
 }
-pub(crate) fn categorize_auto_postings<P>(
-    mut auto_postings: HashMap<Option<P::Currency>, AnnotatedPosting<P, P::Currency>>,
-    currency_groups: &mut HashMapOfVec<P::Currency, AnnotatedPosting<P, P::Currency>>,
+pub(crate) fn categorize_auto_postings<B, P>(
+    mut auto_postings: HashMap<Option<B::Currency>, AnnotatedPosting<P, B::Currency>>,
+    currency_groups: &mut HashMapOfVec<B::Currency, AnnotatedPosting<P, B::Currency>>,
 ) -> Result<(), BookingError>
 where
-    P: PostingSpec + Debug,
+    B: BookingTypes,
+    P: PostingSpec<Types = B> + Debug,
 {
     if let Some(auto_posting) = auto_postings.remove(&None) {
         if !auto_postings.is_empty() {

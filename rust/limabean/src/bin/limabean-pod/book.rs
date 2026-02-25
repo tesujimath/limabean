@@ -191,7 +191,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     pub(crate) fn collect<I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
         I: IntoIterator<Item = &'a Spanned<parser::Directive<'a>>>,
-        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
     {
         let mut errors = Vec::default();
 
@@ -217,7 +217,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         directive: &'a Spanned<parser::Directive<'a>>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
     {
         use parser::DirectiveVariant::*;
 
@@ -247,7 +247,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
     {
         let description = transaction.payee().map_or_else(
             || {
@@ -303,7 +303,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         parser::AnnotatedError,
     >
     where
-        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
     {
         match limabean_booking::book(
             date,
@@ -577,7 +577,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
     {
         let account_name = balance.account().item().as_ref();
         let balance_currency = *balance.atol().amount().currency().item();

@@ -6,8 +6,8 @@ use time::Date;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    Booking, BookingError, Bookings, Cost, Interpolated, Inventory, Position, Positions, Tolerance,
-    book_with_residuals, is_supported_method,
+    Booking, BookingError, Bookings, Cost, Interpolated, Inventory, LimaParserBookingTypes,
+    Position, Positions, Tolerance, book_with_residuals, is_supported_method,
 };
 
 const ANTE_TAG: &str = "ante";
@@ -163,9 +163,9 @@ fn book_and_check_error<'a, 'b, T>(
     expected_err: Option<&BookingError>,
     location_in_case_of_error: &str,
     source_in_case_of_error: &str,
-) -> Option<Bookings<&'a parser::Spanned<parser::Posting<'a>>>>
+) -> Option<Bookings<LimaParserBookingTypes<'a>, &'a parser::Spanned<parser::Posting<'a>>>>
 where
-    T: Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+    T: Tolerance<Types = LimaParserBookingTypes<'a>>,
 {
     match (
         book_with_residuals(
@@ -197,7 +197,7 @@ fn check_inventory_as_expected<'a, 'b, T>(
     tolerance: &'b T,
     method: Booking,
 ) where
-    T: Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+    T: Tolerance<Types = LimaParserBookingTypes<'a>>,
 {
     let (date, postings, _) = get_postings(directives, EX_TAG)
         .next()
@@ -224,7 +224,9 @@ fn check_inventory_as_expected<'a, 'b, T>(
 }
 
 fn check_postings_as_expected<'a>(
-    actual_postings: Vec<Interpolated<&'a parser::Spanned<parser::Posting<'a>>>>,
+    actual_postings: Vec<
+        Interpolated<LimaParserBookingTypes<'a>, &'a parser::Spanned<parser::Posting<'a>>>,
+    >,
     directives: &'a [parser::Spanned<parser::Directive<'a>>],
 ) {
     if let Some((_date, expected_postings, _)) = get_postings(directives, BOOKED_TAG).next() {

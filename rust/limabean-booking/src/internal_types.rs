@@ -4,7 +4,7 @@
 use hashbrown::{HashMap, hash_map::Entry};
 use std::{fmt::Debug, hash::Hash, ops::Deref};
 
-use super::{Cost, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
+use super::{BookingTypes, Cost, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
 
 ///
 /// A list of positions for a currency satisfying these invariants:
@@ -145,21 +145,23 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum BookedOrUnbookedPosting<P>
+pub(crate) enum BookedOrUnbookedPosting<B, P>
 where
-    P: PostingSpec,
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
 {
-    Booked(Interpolated<P>),
-    Unbooked(AnnotatedPosting<P, P::Currency>),
+    Booked(Interpolated<B, P>),
+    Unbooked(AnnotatedPosting<P, B::Currency>),
 }
 
-impl<P> BookedOrUnbookedPosting<P>
+impl<B, P> BookedOrUnbookedPosting<B, P>
 where
-    P: PostingSpec,
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
 {
     // determine the weight of a posting
     // https://beancount.github.io/docs/beancount_language_syntax.html#balancing-rule-the-weight-of-postings
-    pub(crate) fn weight(&self) -> Option<P::Number> {
+    pub(crate) fn weight(&self) -> Option<B::Number> {
         use BookedOrUnbookedPosting::*;
 
         match self {

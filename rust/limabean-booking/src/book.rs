@@ -27,18 +27,19 @@ pub fn is_supported_method(method: Booking) -> bool {
 /// Book the postings for the given date, returning updated inventory and interpolated postings.
 /// The interpolated postings are aligned with the original postings, in that they may be zipped together and
 /// will always correspond.
-pub fn book<'a, 'b, P, T, I, M>(
-    date: P::Date,
+pub fn book<'a, 'b, B, P, T, I, M>(
+    date: B::Date,
     postings: &[P],
     tolerance: &'b T,
     inventory: I,
     method: M,
-) -> Result<Bookings<P>, BookingError>
+) -> Result<Bookings<B, P>, BookingError>
 where
-    P: PostingSpec + Debug + 'a,
-    T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'b Positions<P>> + Copy,
-    M: Fn(P::Account) -> Booking + Copy,
+    B: BookingTypes + 'a,
+    P: PostingSpec<Types = B> + Debug + 'a,
+    T: Tolerance<Types = B>,
+    I: Fn(B::Account) -> Option<&'b Positions<B>> + Copy,
+    M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
 {
     let (bookings, residuals) = book_with_residuals(date, postings, tolerance, inventory, method)?;
@@ -62,25 +63,26 @@ pub(crate) type Residuals<C, N> = HashMap<C, N>;
 
 // this exists so we can test the booking algorithm with unbalanced transactions
 // as per OG Beancount booking_full_test.py
-pub(crate) fn book_with_residuals<'a, 'b, P, T, I, M>(
-    date: P::Date,
+pub(crate) fn book_with_residuals<'a, 'b, B, P, T, I, M>(
+    date: B::Date,
     postings: &[P],
     tolerance: &'b T,
     inventory: I,
     method: M,
-) -> Result<(Bookings<P>, Residuals<P::Currency, P::Number>), BookingError>
+) -> Result<(Bookings<B, P>, Residuals<B::Currency, B::Number>), BookingError>
 where
-    P: PostingSpec + Debug + 'a,
-    T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'b Positions<P>> + Copy,
-    M: Fn(P::Account) -> Booking + Copy,
+    B: BookingTypes + 'a,
+    P: PostingSpec<Types = B> + Debug + 'a,
+    T: Tolerance<Types = B>,
+    I: Fn(B::Account) -> Option<&'b Positions<B>> + Copy,
+    M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
 {
     let currency_groups = categorize_by_currency(postings, inventory)?;
 
     let mut interpolated_postings = repeat_n(None, postings.len()).collect::<Vec<_>>();
     let mut updated_inventory = Inventory::default();
-    let mut residuals = Residuals::<P::Currency, P::Number>::default();
+    let mut residuals = Residuals::<B::Currency, B::Number>::default();
 
     for (cur, annotated_postings) in currency_groups {
         book_currency_group(
@@ -112,22 +114,23 @@ where
 
 // TODO mitigate too many arguments
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn book_currency_group<'a, 'b, P, T, I, M>(
-    date: P::Date,
-    cur: P::Currency,
-    annotated_postings: Vec<AnnotatedPosting<P, P::Currency>>,
+pub(crate) fn book_currency_group<'a, 'b, B, P, T, I, M>(
+    date: B::Date,
+    cur: B::Currency,
+    annotated_postings: Vec<AnnotatedPosting<P, B::Currency>>,
     tolerance: &'b T,
     inventory: I,
     method: M,
-    interpolated_postings: &mut Vec<Option<Interpolated<P>>>,
-    updated_inventory: &mut Inventory<P>,
-    residuals: &mut Residuals<P::Currency, P::Number>,
+    interpolated_postings: &mut Vec<Option<Interpolated<B, P>>>,
+    updated_inventory: &mut Inventory<B>,
+    residuals: &mut Residuals<B::Currency, B::Number>,
 ) -> Result<(), BookingError>
 where
-    P: PostingSpec + Debug + 'a,
-    T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'b Positions<P>> + Copy,
-    M: Fn(P::Account) -> Booking + Copy,
+    B: BookingTypes + 'a,
+    P: PostingSpec<Types = B> + Debug + 'a,
+    T: Tolerance<Types = B>,
+    I: Fn(B::Account) -> Option<&'b Positions<B>> + Copy,
+    M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
 {
     let Reductions {
@@ -145,7 +148,7 @@ where
         method,
     )?;
 
-    incorporate_inventory_updates::<P>(updated_inventory_for_cur, updated_inventory);
+    incorporate_inventory_updates::<B>(updated_inventory_for_cur, updated_inventory);
 
     let Interpolation {
         booked_and_unbooked_postings,
@@ -170,7 +173,7 @@ where
         method,
     )?;
 
-    incorporate_inventory_updates::<P>(updated_inventory_for_cur, updated_inventory);
+    incorporate_inventory_updates::<B>(updated_inventory_for_cur, updated_inventory);
 
     for (p, _) in booked_and_unbooked_postings.into_iter() {
         let idx = p.idx;
@@ -180,9 +183,9 @@ where
     Ok(())
 }
 
-fn incorporate_inventory_updates<P>(updates: Inventory<P>, inventory: &mut Inventory<P>)
+fn incorporate_inventory_updates<B>(updates: Inventory<B>, inventory: &mut Inventory<B>)
 where
-    P: PostingSpec + Debug,
+    B: BookingTypes,
 {
     for (account, positions) in updates {
         inventory.insert(account, positions);
@@ -190,16 +193,17 @@ where
 }
 
 /// book without the need for interpolation
-pub fn accumulate<'a, P, I, M>(
-    date: P::Date,
+pub fn accumulate<'a, B, P, I, M>(
+    date: B::Date,
     postings: impl Iterator<Item = P>,
     inventory: I,
     method: M,
-) -> Result<Inventory<P>, BookingError>
+) -> Result<Inventory<B>, BookingError>
 where
-    P: Posting + Debug + 'a,
-    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
-    M: Fn(P::Account) -> Booking + Copy,
+    B: BookingTypes + 'a,
+    P: Posting<Types = B> + Debug + 'a,
+    I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
+    M: Fn(B::Account) -> Booking + Copy,
 {
     let mut updated_inventory = HashMap::default();
 
@@ -236,18 +240,19 @@ where
     Ok(updated_inventory.into())
 }
 
-fn book_augmentations<'a, 'b, P, T, I, M>(
-    date: P::Date,
-    interpolateds: impl Iterator<Item = &'b Interpolated<P>>,
+fn book_augmentations<'a, 'b, B, P, T, I, M>(
+    date: B::Date,
+    interpolateds: impl Iterator<Item = &'b Interpolated<B, P>>,
     tolerance: &T,
     inventory: I,
     method: M,
-) -> Result<Inventory<P>, BookingError>
+) -> Result<Inventory<B>, BookingError>
 where
-    P: PostingSpec + Debug + 'a,
-    T: Tolerance<Currency = P::Currency, Number = P::Number>,
-    I: Fn(P::Account) -> Option<&'a Positions<P>> + Copy,
-    M: Fn(P::Account) -> Booking + Copy,
+    B: BookingTypes + 'a,
+    P: PostingSpec<Types = B> + Debug + 'a,
+    T: Tolerance<Types = B>,
+    I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
+    M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
 {
     let mut updated_inventory = HashMap::default();

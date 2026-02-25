@@ -72,7 +72,8 @@ pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
     Cell::Row(cells, GUTTER_MINOR)
 }
 
-pub(crate) type PostingCost<'a> = limabean_booking::PostingCost<Date, Decimal, &'a str>;
+pub(crate) type PostingCost<'a> =
+    limabean_booking::PostingCost<limabean_booking::LimaParserBookingTypes<'a>>;
 
 pub(crate) fn cur_posting_cost_to_cost<'a>(
     currency: parser::Currency<'a>,
@@ -88,7 +89,7 @@ pub(crate) fn cur_posting_cost_to_cost<'a>(
 }
 
 pub(crate) type PostingCosts<'a> =
-    limabean_booking::PostingCosts<Date, Decimal, parser::Currency<'a>, &'a str>;
+    limabean_booking::PostingCosts<limabean_booking::LimaParserBookingTypes<'a>>;
 
 pub(crate) type Price<'a> = limabean_booking::Price<Decimal, parser::Currency<'a>>;
 
@@ -143,9 +144,8 @@ where
     }
 }
 
-pub(crate) type ConcreteBookingTypes<'a> = &'a parser::Spanned<parser::Posting<'a>>;
-
-pub(crate) type Positions<'a> = limabean_booking::Positions<ConcreteBookingTypes<'a>>;
+pub(crate) type Positions<'a> =
+    limabean_booking::Positions<limabean_booking::LimaParserBookingTypes<'a>>;
 
 // should be From, but both types are third-party
 pub(crate) fn positions_into_cell<'a>(positions: Positions<'a>) -> Cell<'a, 'static> {

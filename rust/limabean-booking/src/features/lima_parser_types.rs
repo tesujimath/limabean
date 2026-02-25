@@ -1,8 +1,12 @@
-use super::{Booking, BookingTypes, CostSpec, PostingSpec, PriceSpec, Tolerance};
+use super::{
+    Booking, BookingTypes, CostSpec, PostingSpec, PostingSpecAccount, PostingSpecCurrency,
+    PostingSpecNumber, PriceSpec, Tolerance, ToleranceNumber,
+};
 use beancount_parser_lima as parser;
 use rust_decimal::Decimal;
 use time::Date;
 
+// TODO is this needed, or just the spanned one?
 impl<'a> BookingTypes for &'a parser::Posting<'a> {
     type Account = &'a str;
     type Date = time::Date;
@@ -11,7 +15,19 @@ impl<'a> BookingTypes for &'a parser::Posting<'a> {
     type Label = &'a str;
 }
 
+impl<'a> BookingTypes for &'a parser::Spanned<parser::Posting<'a>> {
+    type Account = &'a str;
+    type Date = time::Date;
+    type Currency = parser::Currency<'a>;
+    type Number = Decimal;
+    type Label = &'a str;
+}
+
+pub type LimaParserBookingTypes<'a> = &'a parser::Spanned<parser::Posting<'a>>;
+
+// TODO is this needed, or just the spanned one?
 impl<'a> PostingSpec for &'a parser::Posting<'a> {
+    type Types = LimaParserBookingTypes<'a>;
     type CostSpec = &'a parser::CostSpec<'a>;
     type PriceSpec = &'a parser::PriceSpec<'a>;
 
@@ -38,6 +54,33 @@ impl<'a> PostingSpec for &'a parser::Posting<'a> {
     }
 }
 
+impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
+    type Types = LimaParserBookingTypes<'a>;
+
+    type CostSpec = &'a parser::CostSpec<'a>;
+    type PriceSpec = &'a parser::PriceSpec<'a>;
+
+    fn account(&self) -> PostingSpecAccount<Self> {
+        PostingSpec::account(&self.item())
+    }
+
+    fn currency(&self) -> Option<PostingSpecCurrency<Self>> {
+        PostingSpec::currency(&self.item())
+    }
+
+    fn units(&self) -> Option<PostingSpecNumber<Self>> {
+        PostingSpec::units(&self.item())
+    }
+
+    fn cost(&self) -> Option<Self::CostSpec> {
+        PostingSpec::cost(&self.item())
+    }
+
+    fn price(&self) -> Option<Self::PriceSpec> {
+        PostingSpec::price(&self.item())
+    }
+}
+
 impl<'a> BookingTypes for &'a parser::CostSpec<'a> {
     type Account = &'a str;
     type Date = time::Date;
@@ -47,6 +90,8 @@ impl<'a> BookingTypes for &'a parser::CostSpec<'a> {
 }
 
 impl<'a> CostSpec for &'a parser::CostSpec<'a> {
+    type Types = LimaParserBookingTypes<'a>;
+
     fn currency(&self) -> Option<parser::Currency<'a>> {
         parser::CostSpec::currency(self).map(|currency| *currency.item())
     }
@@ -81,6 +126,8 @@ impl<'a> BookingTypes for &'a parser::PriceSpec<'a> {
 }
 
 impl<'a> PriceSpec for &'a parser::PriceSpec<'a> {
+    type Types = LimaParserBookingTypes<'a>;
+
     fn currency(&self) -> Option<parser::Currency<'a>> {
         use parser::PriceSpec::*;
 
@@ -152,13 +199,15 @@ impl<'a> BookingTypes for &parser::Options<'a> {
 }
 
 impl<'a> Tolerance for &parser::Options<'a> {
+    type Types = LimaParserBookingTypes<'a>;
+
     // Beancount Precision & Tolerances
     // https://docs.google.com/document/d/1lgHxUUEY-UVEgoF6cupz2f_7v7vEF7fiJyiSlYYlhOo
     fn residual(
         &self,
-        values: impl Iterator<Item = Self::Number>,
-        cur: &Self::Currency,
-    ) -> Option<Self::Number> {
+        values: impl Iterator<Item = ToleranceNumber<Self>>,
+        cur: &<Self::Types as BookingTypes>::Currency,
+    ) -> Option<<Self::Types as BookingTypes>::Number> {
         // TODO don't iterate twice over values
         let values = values.collect::<Vec<_>>();
         tracing::debug!("calculating tolerance residual for {} {:?}", cur, &values);
@@ -219,37 +268,4 @@ impl From<parser::Booking> for Booking {
 // (we can't depend on the main limabean crate here)
 fn default_inferred_tolerance_multiplier() -> Decimal {
     Decimal::new(5, 1) // 0.5
-}
-
-impl<'a> BookingTypes for &'a parser::Spanned<parser::Posting<'a>> {
-    type Account = &'a str;
-    type Date = time::Date;
-    type Currency = parser::Currency<'a>;
-    type Number = Decimal;
-    type Label = &'a str;
-}
-
-impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
-    type CostSpec = &'a parser::CostSpec<'a>;
-    type PriceSpec = &'a parser::PriceSpec<'a>;
-
-    fn account(&self) -> Self::Account {
-        PostingSpec::account(&self.item())
-    }
-
-    fn currency(&self) -> Option<Self::Currency> {
-        PostingSpec::currency(&self.item())
-    }
-
-    fn units(&self) -> Option<Self::Number> {
-        PostingSpec::units(&self.item())
-    }
-
-    fn cost(&self) -> Option<Self::CostSpec> {
-        PostingSpec::cost(&self.item())
-    }
-
-    fn price(&self) -> Option<Self::PriceSpec> {
-        PostingSpec::price(&self.item())
-    }
 }

@@ -16,45 +16,63 @@ pub trait BookingTypes: Clone {
     type Label: Eq + Ord + Clone + Display + Debug;
 }
 
-pub trait PostingSpec: BookingTypes {
-    type CostSpec: CostSpec<
-            Date = Self::Date,
-            Currency = Self::Currency,
-            Number = Self::Number,
-            Label = Self::Label,
-        > + Clone
-        + Debug;
-    type PriceSpec: PriceSpec<Currency = Self::Currency, Number = Self::Number> + Clone + Debug;
+pub trait PostingSpec: Clone {
+    type Types: BookingTypes;
 
-    fn account(&self) -> Self::Account;
-    fn currency(&self) -> Option<Self::Currency>;
-    fn units(&self) -> Option<Self::Number>;
+    type CostSpec: CostSpec<Types = Self::Types> + Clone + Debug;
+    type PriceSpec: PriceSpec<Types = Self::Types> + Clone + Debug;
+
+    fn account(&self) -> PostingSpecAccount<Self>;
+    fn units(&self) -> Option<PostingSpecNumber<Self>>;
+    fn currency(&self) -> Option<PostingSpecCurrency<Self>>;
     fn cost(&self) -> Option<Self::CostSpec>;
     fn price(&self) -> Option<Self::PriceSpec>;
 }
 
-pub trait Posting: BookingTypes {
-    fn account(&self) -> Self::Account;
-    fn currency(&self) -> Self::Currency;
-    fn units(&self) -> Self::Number;
-    fn cost(&self) -> Option<PostingCosts<Self::Date, Self::Number, Self::Currency, Self::Label>>;
-    fn price(&self) -> Option<Price<Self::Number, Self::Currency>>;
+pub type PostingSpecAccount<T> = <<T as PostingSpec>::Types as BookingTypes>::Account;
+pub type PostingSpecNumber<T> = <<T as PostingSpec>::Types as BookingTypes>::Number;
+pub type PostingSpecCurrency<T> = <<T as PostingSpec>::Types as BookingTypes>::Currency;
+
+pub trait Posting: Clone {
+    type Types: BookingTypes;
+
+    fn account(&self) -> PostingAccount<Self>;
+    fn units(&self) -> PostingNumber<Self>;
+    fn currency(&self) -> PostingCurrency<Self>;
+    fn cost(&self) -> Option<PostingCosts<Self::Types>>;
+    fn price(&self) -> Option<Price<PostingNumber<Self>, PostingCurrency<Self>>>;
 }
 
-pub trait CostSpec: BookingTypes {
-    fn date(&self) -> Option<Self::Date>;
-    fn per_unit(&self) -> Option<Self::Number>;
-    fn total(&self) -> Option<Self::Number>;
-    fn currency(&self) -> Option<Self::Currency>;
-    fn label(&self) -> Option<Self::Label>;
+pub type PostingAccount<T> = <<T as Posting>::Types as BookingTypes>::Account;
+pub type PostingNumber<T> = <<T as Posting>::Types as BookingTypes>::Number;
+pub type PostingCurrency<T> = <<T as Posting>::Types as BookingTypes>::Currency;
+
+pub trait CostSpec: Clone {
+    type Types: BookingTypes;
+
+    fn date(&self) -> Option<CostSpecDate<Self>>;
+    fn per_unit(&self) -> Option<CostSpecNumber<Self>>;
+    fn total(&self) -> Option<CostSpecNumber<Self>>;
+    fn currency(&self) -> Option<CostSpecCurrency<Self>>;
+    fn label(&self) -> Option<CostSpecLabel<Self>>;
     fn merge(&self) -> bool;
 }
 
-pub trait PriceSpec: BookingTypes {
-    fn currency(&self) -> Option<Self::Currency>;
-    fn per_unit(&self) -> Option<Self::Number>;
-    fn total(&self) -> Option<Self::Number>;
+pub type CostSpecDate<T> = <<T as CostSpec>::Types as BookingTypes>::Date;
+pub type CostSpecNumber<T> = <<T as CostSpec>::Types as BookingTypes>::Number;
+pub type CostSpecCurrency<T> = <<T as CostSpec>::Types as BookingTypes>::Currency;
+pub type CostSpecLabel<T> = <<T as CostSpec>::Types as BookingTypes>::Label;
+
+pub trait PriceSpec: Clone {
+    type Types: BookingTypes;
+
+    fn per_unit(&self) -> Option<PriceSpecNumber<Self>>;
+    fn total(&self) -> Option<PriceSpecNumber<Self>>;
+    fn currency(&self) -> Option<PriceSpecCurrency<Self>>;
 }
+
+pub type PriceSpecNumber<T> = <<T as PriceSpec>::Types as BookingTypes>::Number;
+pub type PriceSpecCurrency<T> = <<T as PriceSpec>::Types as BookingTypes>::Currency;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Position<D, N, C, L>
@@ -207,55 +225,44 @@ where
 // Multiple different lots may be reduced by a single post,
 // but only for a single cost currency.
 // This is so that reductions don't violate the categorize by currency buckets.
-pub struct PostingCosts<D, N, C, L>
+pub struct PostingCosts<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    pub(crate) cost_currency: C,
-    pub(crate) adjustments: Vec<PostingCost<D, N, L>>,
+    pub(crate) cost_currency: B::Currency,
+    pub(crate) adjustments: Vec<PostingCost<B>>,
 }
 
-impl<D, N, C, L> PostingCosts<D, N, C, L>
+impl<B> PostingCosts<B>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    pub fn iter(&self) -> impl Iterator<Item = (&C, &PostingCost<D, N, L>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&B::Currency, &PostingCost<B>)> {
         repeat(&self.cost_currency).zip(self.adjustments.iter())
     }
 
-    pub fn into_currency_costs(self) -> impl Iterator<Item = (C, PostingCost<D, N, L>)> {
+    pub fn into_currency_costs(self) -> impl Iterator<Item = (B::Currency, PostingCost<B>)> {
         repeat(self.cost_currency).zip(self.adjustments)
     }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PostingCost<D, N, L>
+pub struct PostingCost<B>
 where
-    D: Copy,
-    N: Copy,
-    L: Clone,
+    B: BookingTypes,
 {
-    pub date: D,
-    pub units: N,
-    pub per_unit: N,
-    pub label: Option<L>,
+    pub date: B::Date,
+    pub units: B::Number,
+    pub per_unit: B::Number,
+    pub label: Option<B::Label>,
     pub merge: bool,
 }
 
-impl<D, N, C, L> From<(C, PostingCost<D, N, L>)> for Cost<D, N, C, L>
+impl<B> From<(B::Currency, PostingCost<B>)> for Cost<B::Date, B::Number, B::Currency, B::Label>
 where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
+    B: BookingTypes,
 {
-    fn from(value: (C, PostingCost<D, N, L>)) -> Self {
+    fn from(value: (B::Currency, PostingCost<B>)) -> Self {
         let (
             currency,
             PostingCost {
@@ -297,71 +304,70 @@ where
 }
 
 #[derive(Debug)]
-pub struct Bookings<P>
+pub struct Bookings<B, P>
 where
-    P: PostingSpec,
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
 {
-    pub interpolated_postings: Vec<Interpolated<P>>,
-    pub updated_inventory: Inventory<P>,
+    pub interpolated_postings: Vec<Interpolated<B, P>>,
+    pub updated_inventory: Inventory<B>,
 }
 
 #[derive(Clone, Debug)]
-pub struct Interpolated<P>
+pub struct Interpolated<B, P>
 where
-    P: PostingSpec,
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
 {
     pub(crate) posting: P,
     pub(crate) idx: usize,
-    pub units: P::Number,
-    pub currency: P::Currency,
-    pub cost: Option<PostingCosts<P::Date, P::Number, P::Currency, P::Label>>,
-    pub price: Option<Price<P::Number, P::Currency>>,
+    pub units: B::Number,
+    pub currency: B::Currency,
+    pub cost: Option<PostingCosts<B>>,
+    pub price: Option<Price<B::Number, B::Currency>>,
 }
 
-impl<P> BookingTypes for Interpolated<P>
+impl<B, P> Posting for Interpolated<B, P>
 where
-    P: PostingSpec,
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
 {
-    type Date = P::Date;
-    type Account = P::Account;
-    type Currency = P::Currency;
-    type Number = P::Number;
-    type Label = P::Label;
-}
+    type Types = B;
 
-impl<P> Posting for Interpolated<P>
-where
-    P: PostingSpec,
-{
-    fn account(&self) -> Self::Account {
+    fn account(&self) -> B::Account {
         self.posting.account()
     }
 
-    fn currency(&self) -> Self::Currency {
+    fn currency(&self) -> B::Currency {
         self.currency.clone()
     }
 
-    fn units(&self) -> Self::Number {
+    fn units(&self) -> B::Number {
         self.units
     }
 
-    fn cost(&self) -> Option<PostingCosts<P::Date, P::Number, P::Currency, P::Label>> {
+    fn cost(&self) -> Option<PostingCosts<B>> {
         self.cost.clone()
     }
 
-    fn price(&self) -> Option<Price<Self::Number, Self::Currency>> {
+    fn price(&self) -> Option<Price<B::Number, B::Currency>> {
         self.price.clone()
     }
 }
 
-pub trait Tolerance: BookingTypes {
+pub trait Tolerance: Clone {
+    type Types: BookingTypes;
+
     /// compute residual, ignoring sums which are tolerably small
     fn residual(
         &self,
-        values: impl Iterator<Item = Self::Number>,
-        cur: &Self::Currency,
-    ) -> Option<Self::Number>;
+        values: impl Iterator<Item = ToleranceNumber<Self>>,
+        cur: &ToleranceCurrency<Self>,
+    ) -> Option<ToleranceNumber<Self>>;
 }
+
+pub type ToleranceNumber<T> = <<T as Tolerance>::Types as BookingTypes>::Number;
+pub type ToleranceCurrency<T> = <<T as Tolerance>::Types as BookingTypes>::Currency;
 
 pub trait Number:
     Copy
