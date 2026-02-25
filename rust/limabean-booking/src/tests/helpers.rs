@@ -157,7 +157,7 @@ fn ordinal(i: usize) -> String {
 fn book_and_check_error<'a, 'b, T>(
     date: Date,
     postings: &[&'a parser::Spanned<parser::Posting<'a>>],
-    inventory: &mut Inventory<&'a str, time::Date, Decimal, parser::Currency<'a>, &'a str>,
+    inventory: &mut Inventory<&'a parser::Spanned<parser::Posting<'a>>>,
     tolerance: &'b T,
     method: Booking,
     expected_err: Option<&BookingError>,
@@ -192,7 +192,7 @@ where
 }
 
 fn check_inventory_as_expected<'a, 'b, T>(
-    actual_inventory: Inventory<&'a str, time::Date, Decimal, parser::Currency<'a>, &'a str>,
+    actual_inventory: Inventory<&'a parser::Spanned<parser::Posting<'a>>>,
     directives: &'a [parser::Spanned<parser::Directive<'a>>],
     tolerance: &'b T,
     method: Booking,
@@ -211,7 +211,7 @@ fn check_inventory_as_expected<'a, 'b, T>(
     ) = book_with_residuals(date, &postings, tolerance, |_| None, |_| method).unwrap();
 
     // since we can't build an expected inventory with an empty account, we remove all such from the result before comparison
-    let actual_inventory = Into::<Inventory<_, _, _, _, _>>::into(
+    let actual_inventory = Into::<Inventory<_>>::into(
         actual_inventory
             .into_iter()
             .filter_map(|(account, positions)| {
@@ -388,19 +388,19 @@ pub(crate) fn positions_test(
                             let cost = Cost {
                                 date: cost_date,
                                 per_unit: cost_per_unit,
-                                currency: cost_currency,
+                                currency: *cost_currency,
                                 label: cost_label,
                                 merge,
                             };
 
                             Position {
-                                currency,
+                                currency: *currency,
                                 units,
                                 cost: Some(cost),
                             }
                         } else {
                             Position {
-                                currency,
+                                currency: *currency,
                                 units,
                                 cost: None,
                             }
@@ -411,7 +411,7 @@ pub(crate) fn positions_test(
                 init_tracing();
 
                 let mut actual_positions =
-                    Positions::<Date, Decimal, &parser::Currency, &str>::default();
+                    Positions::<&parser::Spanned<parser::Posting>>::default();
                 for Position {
                     currency,
                     units,
