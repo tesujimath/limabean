@@ -1,6 +1,3 @@
-// TODO remove dead code suppression
-#![allow(dead_code, unused_variables)]
-
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
 };
@@ -134,7 +131,6 @@ pub(crate) struct LoadSuccess<'a> {
 
 pub(crate) struct LoadError {
     pub(crate) errors: Vec<parser::AnnotatedError>,
-    pub(crate) warnings: Vec<parser::AnnotatedWarning>,
 }
 
 impl<'a, 'b, T> Loader<'a, 'b, T> {
@@ -166,7 +162,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         let Self {
             directives,
             accounts,
-            currency_usage,
             warnings,
             ..
         } = self;
@@ -184,7 +179,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                 warnings,
             })
         } else {
-            Err(LoadError { errors, warnings })
+            Err(LoadError { errors })
         }
     }
 
@@ -226,17 +221,17 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
         match directive.variant() {
             Transaction(transaction) => self.transaction(transaction, date, element),
-            Price(price) => Ok(DirectiveVariant::NA),
+            Price(_price) => Ok(DirectiveVariant::NA),
             Balance(balance) => self.balance(balance, date, element),
             Open(open) => self.open(open, date, element),
             Close(close) => self.close(close, date, element),
-            Commodity(commodity) => Ok(DirectiveVariant::NA),
+            Commodity(_commodity) => Ok(DirectiveVariant::NA),
             Pad(pad) => self.pad(pad, date, element),
-            Document(document) => Ok(DirectiveVariant::NA),
-            Note(note) => Ok(DirectiveVariant::NA),
-            Event(event) => Ok(DirectiveVariant::NA),
-            Query(query) => Ok(DirectiveVariant::NA),
-            Custom(custom) => Ok(DirectiveVariant::NA),
+            Document(_document) => Ok(DirectiveVariant::NA),
+            Note(_note) => Ok(DirectiveVariant::NA),
+            Event(_event) => Ok(DirectiveVariant::NA),
+            Query(_query) => Ok(DirectiveVariant::NA),
+            Custom(_custom) => Ok(DirectiveVariant::NA),
         }
     }
 
@@ -404,7 +399,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                     self.tally_currency_usage(currency);
 
                     let account_name = booked.account;
-                    let account = self.get_mut_valid_account(element, account_name)?;
 
                     match account_posting_amounts.entry(account_name) {
                         Occupied(entry) => {
@@ -671,7 +665,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     fn open(
         &mut self,
         open: &'a parser::Open,
-        date: Date,
+        _date: Date,
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError> {
         use hashbrown::hash_map::Entry::*;
@@ -736,7 +730,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     fn close(
         &mut self,
         close: &'a parser::Close,
-        date: Date,
+        _date: Date,
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError> {
         use hashbrown::hash_map::Entry::*;
@@ -769,13 +763,12 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     fn pad(
         &mut self,
         pad: &'a parser::Pad<'a>,
-        date: Date,
+        _date: Date,
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError> {
         let n_directives = self.directives.len();
         let account_name = pad.account().item().as_ref();
         let account = self.get_mut_valid_account(&element, account_name)?;
-        let source = pad.source().to_string();
 
         let unused_pad_idx = account.pad_idx.replace(n_directives);
 
@@ -993,5 +986,3 @@ pub(crate) fn pad_flag() -> parser::Flag {
 
 pub(crate) mod types;
 pub(crate) use types::*;
-
-mod util;

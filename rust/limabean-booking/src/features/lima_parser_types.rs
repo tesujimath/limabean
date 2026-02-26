@@ -1,19 +1,7 @@
-use super::{
-    Booking, BookingTypes, CostSpec, PostingSpec, PostingSpecAccount, PostingSpecCurrency,
-    PostingSpecNumber, PriceSpec, Tolerance, ToleranceNumber,
-};
+use super::{Booking, BookingTypes, CostSpec, PostingSpec, PriceSpec, Tolerance, ToleranceNumber};
 use beancount_parser_lima as parser;
 use rust_decimal::Decimal;
 use time::Date;
-
-// TODO is this needed, or just the spanned one?
-impl<'a> BookingTypes for &'a parser::Posting<'a> {
-    type Account = &'a str;
-    type Date = time::Date;
-    type Currency = parser::Currency<'a>;
-    type Number = Decimal;
-    type Label = &'a str;
-}
 
 impl<'a> BookingTypes for &'a parser::Spanned<parser::Posting<'a>> {
     type Account = &'a str;
@@ -25,8 +13,7 @@ impl<'a> BookingTypes for &'a parser::Spanned<parser::Posting<'a>> {
 
 pub type LimaParserBookingTypes<'a> = &'a parser::Spanned<parser::Posting<'a>>;
 
-// TODO is this needed, or just the spanned one?
-impl<'a> PostingSpec for &'a parser::Posting<'a> {
+impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
     type Types = LimaParserBookingTypes<'a>;
     type CostSpec = &'a parser::CostSpec<'a>;
     type PriceSpec = &'a parser::PriceSpec<'a>;
@@ -51,33 +38,6 @@ impl<'a> PostingSpec for &'a parser::Posting<'a> {
         self.price_annotation()
             .as_ref()
             .map(|cost_spec| cost_spec.item())
-    }
-}
-
-impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
-    type Types = LimaParserBookingTypes<'a>;
-
-    type CostSpec = &'a parser::CostSpec<'a>;
-    type PriceSpec = &'a parser::PriceSpec<'a>;
-
-    fn account(&self) -> PostingSpecAccount<Self> {
-        PostingSpec::account(&self.item())
-    }
-
-    fn currency(&self) -> Option<PostingSpecCurrency<Self>> {
-        PostingSpec::currency(&self.item())
-    }
-
-    fn units(&self) -> Option<PostingSpecNumber<Self>> {
-        PostingSpec::units(&self.item())
-    }
-
-    fn cost(&self) -> Option<Self::CostSpec> {
-        PostingSpec::cost(&self.item())
-    }
-
-    fn price(&self) -> Option<Self::PriceSpec> {
-        PostingSpec::price(&self.item())
     }
 }
 

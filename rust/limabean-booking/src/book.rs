@@ -1,12 +1,9 @@
-// TODO remove dead code suppression
-#![allow(dead_code, unused_variables)]
-
 use hashbrown::HashMap;
 use std::{fmt::Debug, iter::repeat_n};
 
 use super::{
     AnnotatedPosting, Booking, BookingError, BookingTypes, Bookings, CategorizedByCurrency,
-    Interpolated, Interpolation, Inventory, Positions, Posting, PostingSpec, Reductions, Tolerance,
+    Interpolated, Interpolation, Inventory, Positions, PostingSpec, Reductions, Tolerance,
     TransactionBookingError, book_reductions, categorize_by_currency, interpolate_from_costed,
 };
 
@@ -177,7 +174,6 @@ where
         updated_inventory: updated_inventory_for_cur,
         postings: costed_postings,
     } = book_reductions(
-        date,
         annotated_postings,
         tolerance,
         |account| {
@@ -204,11 +200,9 @@ where
     }
 
     let updated_inventory_for_cur = book_augmentations(
-        date,
         booked_and_unbooked_postings
             .iter()
             .filter_map(|(p, booked)| (!booked).then_some(p)),
-        tolerance,
         |account| {
             accumulator
                 .updated_inventory
@@ -240,65 +234,14 @@ where
     }
 }
 
-/// book without the need for interpolation
-pub(crate) fn accumulate<'a, B, P, I, M>(
-    date: B::Date,
-    postings: impl Iterator<Item = P>,
-    inventory: I,
-    method: M,
-) -> Result<Inventory<B>, BookingError>
-where
-    B: BookingTypes + 'a,
-    P: Posting<Types = B> + Debug + 'a,
-    I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
-    M: Fn(B::Account) -> Booking + Copy,
-{
-    let mut updated_inventory = HashMap::default();
-
-    for posting in postings {
-        use hashbrown::hash_map::Entry::*;
-
-        let account = posting.account();
-        let account_method = method(account.clone());
-
-        let previous_positions = match updated_inventory.entry(account.clone()) {
-            Occupied(entry) => entry.into_mut(),
-            Vacant(entry) => entry.insert(inventory(account).cloned().unwrap_or_default()),
-        };
-
-        if let Some(posting_costs) = posting.cost() {
-            for (cur, cost) in posting_costs.iter() {
-                previous_positions.accumulate(
-                    cost.units,
-                    posting.currency(),
-                    Some((cur.clone(), cost.clone()).into()),
-                    account_method,
-                );
-            }
-        } else {
-            previous_positions.accumulate(
-                posting.units(),
-                posting.currency(),
-                None,
-                account_method,
-            );
-        }
-    }
-
-    Ok(updated_inventory.into())
-}
-
-fn book_augmentations<'a, 'b, B, P, T, I, M>(
-    date: B::Date,
+fn book_augmentations<'a, 'b, B, P, I, M>(
     interpolateds: impl Iterator<Item = &'b Interpolated<B, P>>,
-    tolerance: &T,
     inventory: I,
     method: M,
 ) -> Result<Inventory<B>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
-    T: Tolerance<Types = B>,
     I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
     M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,

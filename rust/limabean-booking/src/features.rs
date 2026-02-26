@@ -1,6 +1,6 @@
 use super::{
-    Booking, BookingTypes, CostSpec, Number, PostingSpec, PostingSpecAccount, PostingSpecCurrency,
-    PostingSpecNumber, PriceSpec, Sign, Tolerance, ToleranceNumber,
+    Booking, BookingTypes, CostSpec, Number, PostingSpec, PriceSpec, Sign, Tolerance,
+    ToleranceNumber,
 };
 
 #[cfg(feature = "lima-parser-types")]

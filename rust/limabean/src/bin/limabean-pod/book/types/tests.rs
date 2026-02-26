@@ -8,7 +8,6 @@ use super::*;
 
 static GBP: LazyLock<parser::Currency<'static>> = LazyLock::new(|| "GBP".try_into().unwrap());
 static NZD: LazyLock<parser::Currency<'static>> = LazyLock::new(|| "NZD".try_into().unwrap());
-static USD: LazyLock<parser::Currency<'static>> = LazyLock::new(|| "USD".try_into().unwrap());
 
 const fn cost(
     date: Date,

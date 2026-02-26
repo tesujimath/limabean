@@ -1,6 +1,3 @@
-// TODO remove dead code suppression
-#![allow(dead_code)]
-
 use std::fmt::Debug;
 
 use super::{

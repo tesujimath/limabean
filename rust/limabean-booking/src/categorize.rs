@@ -1,6 +1,3 @@
-// TODO remove dead code suppression
-#![allow(dead_code, unused_variables)]
-
 use hashbrown::{HashMap, HashSet};
 use std::fmt::Debug;
 

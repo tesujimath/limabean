@@ -1,6 +1,3 @@
-// TODO remove dead code suppression
-#![allow(dead_code, unused_variables)]
-
 use hashbrown::{HashMap, HashSet};
 use std::{fmt::Debug, iter::once};
 
@@ -23,7 +20,6 @@ where
 }
 
 pub(crate) fn book_reductions<'a, B, P, T, I, M>(
-    date: B::Date,
     annotateds: Vec<AnnotatedPosting<P, B::Currency>>,
     tolerance: &T,
     inventory: I,
@@ -49,13 +45,7 @@ where
         let Reduced {
             reducing_posting: costed_posting,
             updated_positions,
-        } = reduce(
-            annotated,
-            date,
-            tolerance,
-            account_method,
-            previous_positions,
-        )?;
+        } = reduce(annotated, tolerance, account_method, previous_positions)?;
 
         costed_postings.push(costed_posting);
         if let Some(updated_positions) = updated_positions {
@@ -80,7 +70,6 @@ where
 
 fn reduce<'a, B, P, T>(
     annotated: AnnotatedPosting<P, B::Currency>,
-    date: B::Date,
     tolerance: &T,
     method: Booking,
     previous_positions: Option<&Positions<B>>,
@@ -93,7 +82,7 @@ where
     use BookedOrUnbookedPosting::*;
 
     if method != Booking::None
-        && let (Some(posting_currency), Some(posting_units), Some(posting_cost), Some(positions)) = (
+        && let (Some(posting_currency), Some(posting_units), Some(_posting_cost), Some(positions)) = (
             &annotated.currency,
             annotated.posting.units(),
             annotated.posting.cost(),
@@ -211,7 +200,7 @@ where
     use BookedOrUnbookedPosting::*;
 
     let Position {
-        currency: matched_currency,
+        currency: _matched_currency,
         units: matched_units,
         cost: matched_cost,
     } = &previous_positions[matched_position_idx];
@@ -485,13 +474,6 @@ where
     use BookedOrUnbookedPosting::*;
 
     let cost_currency = get_unique_cost_currency(posting_idx, positions, &matched)?;
-    let cost_units: B::Number = matched
-        .iter()
-        .map(|i| {
-            (positions[*i].cost.as_ref().unwrap().per_unit * posting_units)
-                .rescaled(posting_units.scale())
-        })
-        .sum();
 
     let matched_set = matched.iter().copied().collect::<HashSet<_>>();
 

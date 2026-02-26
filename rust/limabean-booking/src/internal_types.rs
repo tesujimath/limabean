@@ -1,54 +1,7 @@
-// TODO remove dead code suppression
-#![allow(dead_code, unused_variables)]
-
 use hashbrown::{HashMap, hash_map::Entry};
 use std::{fmt::Debug, hash::Hash, ops::Deref};
 
-use super::{
-    BookingTypes, Cost, CostSpec, Interpolated, Number, PostingCosts, PostingSpec, Price, PriceSpec,
-};
-
-///
-/// A list of positions for a currency satisfying these invariants:
-/// 1. If there is a simple position without cost, it occurs first in the list
-/// 2. All other positions are unique w.r.t cost.(currency, date, label)
-/// 3. Sort order of these is by date then currency then label.
-/// 4. All positions are non-empty.
-#[derive(PartialEq, Eq, Default, Debug)]
-pub(crate) struct CurrencyPositions<B>(Vec<CurrencyPosition<B>>)
-where
-    B: BookingTypes;
-
-impl<B> Deref for CurrencyPositions<B>
-where
-    B: BookingTypes,
-{
-    type Target = Vec<CurrencyPosition<B>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(PartialEq, Eq, Clone, Debug)]
-/// CurrencyPosition for implicit currency, which is kept externally
-pub(crate) struct CurrencyPosition<B>
-where
-    B: BookingTypes,
-{
-    units: B::Number,
-    cost: Option<Cost<B>>,
-}
-
-impl<B> CurrencyPosition<B>
-where
-    B: BookingTypes,
-{
-    pub(crate) fn is_below(&self, threshold: B::Number) -> bool {
-        // TODO ensure that costs are not left below threshold
-        self.units.abs() <= threshold && self.cost.is_none()
-    }
-}
+use super::{BookingTypes, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
 
 #[derive(Debug)]
 pub(crate) struct HashMapOfVec<K, V>(HashMap<K, Vec<V>>);
@@ -182,50 +135,5 @@ where
                 }
             }
         }
-    }
-}
-
-/// Interface defining a fully interpolated posting.
-///
-/// Once a [PostingSpec] has been booked, it is returned as [Interpolated], which implements [Posting].
-pub trait Posting: Clone + Debug {
-    type Types: BookingTypes;
-
-    fn account(&self) -> PostingAccount<Self>;
-    fn units(&self) -> PostingNumber<Self>;
-    fn currency(&self) -> PostingCurrency<Self>;
-    fn cost(&self) -> Option<PostingCosts<Self::Types>>;
-    fn price(&self) -> Option<Price<Self::Types>>;
-}
-
-pub type PostingAccount<T> = <<T as Posting>::Types as BookingTypes>::Account;
-pub type PostingNumber<T> = <<T as Posting>::Types as BookingTypes>::Number;
-pub type PostingCurrency<T> = <<T as Posting>::Types as BookingTypes>::Currency;
-
-impl<B, P> Posting for Interpolated<B, P>
-where
-    B: BookingTypes,
-    P: PostingSpec<Types = B>,
-{
-    type Types = B;
-
-    fn account(&self) -> B::Account {
-        self.posting.account()
-    }
-
-    fn currency(&self) -> B::Currency {
-        self.currency.clone()
-    }
-
-    fn units(&self) -> B::Number {
-        self.units
-    }
-
-    fn cost(&self) -> Option<PostingCosts<B>> {
-        self.cost.clone()
-    }
-
-    fn price(&self) -> Option<Price<B>> {
-        self.price.clone()
     }
 }

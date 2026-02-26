@@ -1,16 +1,10 @@
 use beancount_parser_lima as parser;
 use limabean_booking::LimaParserBookingTypes;
 use rust_decimal::Decimal;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-};
+use std::collections::{HashMap, HashSet};
 use tabulator::{Align, Cell};
 
-use crate::{
-    format::{EMPTY, GUTTER_MINOR, SPACE, format, plain},
-    options::defaults::default_inferred_tolerance_multiplier,
-};
+use crate::{format::GUTTER_MINOR, options::defaults::default_inferred_tolerance_multiplier};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Directive<'a> {
@@ -55,8 +49,8 @@ pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
         date,
         per_unit,
         currency,
-        label,
-        merge,
+        label: _label,
+        merge: _merge,
     } = cost;
     let mut cells = vec![
         (date.to_string(), Align::Left).into(),
@@ -87,9 +81,6 @@ pub(crate) fn cur_posting_cost_to_cost<'a>(
         merge: cost.merge,
     }
 }
-
-pub(crate) type PostingCosts<'a> =
-    limabean_booking::PostingCosts<limabean_booking::LimaParserBookingTypes<'a>>;
 
 pub(crate) type Price<'a> = limabean_booking::Price<limabean_booking::LimaParserBookingTypes<'a>>;
 
@@ -173,29 +164,6 @@ pub(crate) fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static
         cells.push(cost_into_cell(cost))
     }
     Cell::Row(cells, GUTTER_MINOR)
-}
-
-#[derive(PartialEq, Eq, Clone, Debug)]
-/// CurrencyPosition for implicit currency, which is kept externally
-pub(crate) struct CurrencyPosition<'a> {
-    pub(crate) units: Decimal,
-    pub(crate) cost: Option<Cost<'a>>,
-}
-
-impl<'a> CurrencyPosition<'a> {
-    pub(crate) fn is_empty(&self) -> bool {
-        // TODO do we need a tolerance check here?
-        self.units.is_zero() && self.cost.is_none()
-    }
-
-    pub(crate) fn format(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        cur: parser::Currency<'a>,
-    ) -> fmt::Result {
-        write!(f, "{} {}", self.units, cur)?;
-        format(f, &self.cost, plain, EMPTY, Some(SPACE))
-    }
 }
 
 #[derive(Debug)]
