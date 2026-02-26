@@ -10,6 +10,9 @@ use super::{
     TransactionBookingError, book_reductions, categorize_by_currency, interpolate_from_costed,
 };
 
+/// Whether the given booking method is supported by this crate.
+///
+/// See this [issue for the current status of the average booking method](https://github.com/tesujimath/limabean/issues/7).
 pub fn is_supported_method(method: Booking) -> bool {
     use Booking::*;
 

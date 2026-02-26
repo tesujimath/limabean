@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 mod book;
 #[cfg(test)]
 pub(crate) use book::book_with_residuals;

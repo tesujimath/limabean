@@ -16,6 +16,7 @@ pub trait BookingTypes: Clone + Debug {
     type Label: Eq + Ord + Clone + Display + Debug;
 }
 
+/// The interface which must be supported by a posting to be bookable.
 pub trait PostingSpec: Clone + Debug {
     type Types: BookingTypes;
 
@@ -33,6 +34,9 @@ pub type PostingSpecAccount<T> = <<T as PostingSpec>::Types as BookingTypes>::Ac
 pub type PostingSpecNumber<T> = <<T as PostingSpec>::Types as BookingTypes>::Number;
 pub type PostingSpecCurrency<T> = <<T as PostingSpec>::Types as BookingTypes>::Currency;
 
+/// Interface defining a fully interpolated posting.
+///
+/// Once a [PostingSpec] has been booked, it is returned as [Interpolated], which implements [Posting].
 pub trait Posting: Clone + Debug {
     type Types: BookingTypes;
 
@@ -47,6 +51,9 @@ pub type PostingAccount<T> = <<T as Posting>::Types as BookingTypes>::Account;
 pub type PostingNumber<T> = <<T as Posting>::Types as BookingTypes>::Number;
 pub type PostingCurrency<T> = <<T as Posting>::Types as BookingTypes>::Currency;
 
+/// A cost specification, which may be rather loosely specified.
+///
+/// After booking, the process of interpolation turns each cost spec into a [Cost].
 pub trait CostSpec: Clone + Debug {
     type Types: BookingTypes;
 
@@ -63,6 +70,9 @@ pub type CostSpecNumber<T> = <<T as CostSpec>::Types as BookingTypes>::Number;
 pub type CostSpecCurrency<T> = <<T as CostSpec>::Types as BookingTypes>::Currency;
 pub type CostSpecLabel<T> = <<T as CostSpec>::Types as BookingTypes>::Label;
 
+/// A price specification, which may be rather loosely specified.
+///
+/// After booking, the process of interpolation turns each price spec into a [Price].
 pub trait PriceSpec: Clone + Debug {
     type Types: BookingTypes;
 
@@ -74,6 +84,10 @@ pub trait PriceSpec: Clone + Debug {
 pub type PriceSpecNumber<T> = <<T as PriceSpec>::Types as BookingTypes>::Number;
 pub type PriceSpecCurrency<T> = <<T as PriceSpec>::Types as BookingTypes>::Currency;
 
+/// A single position in a currency, optionally at given cost.
+///
+/// Lots held at cost are split into separate positions, each with a unique combination of cost attributes, with at most
+/// one position having no cost.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Position<B>
 where
@@ -124,6 +138,7 @@ where
     }
 }
 
+/// A cost complete with any fields which were missing from its [CostSpec].
 #[derive(Clone, Debug)]
 pub struct Cost<B>
 where
@@ -216,10 +231,12 @@ where
     }
 }
 
+/// The list of posting costs for an [InterpolatedPosting].
+///
+/// Multiple different lots may be reduced by a single post,
+/// but only for a single cost currency.
+// (so that reductions don't violate the categorize by currency buckets)
 #[derive(PartialEq, Eq, Clone, Debug)]
-// Multiple different lots may be reduced by a single post,
-// but only for a single cost currency.
-// This is so that reductions don't violate the categorize by currency buckets.
 pub struct PostingCosts<B>
 where
     B: BookingTypes,
@@ -241,6 +258,7 @@ where
     }
 }
 
+/// One of potentially a number of posting costs for an [InterpolatedPosting].
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct PostingCost<B>
 where
@@ -278,6 +296,7 @@ where
     }
 }
 
+/// A price complete with any fields which were missing from its [PriceSpec].
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Price<B>
 where
@@ -296,6 +315,7 @@ where
     }
 }
 
+/// The interpolated postings and updated inventory after booking all postings in a transaction.
 #[derive(Debug)]
 pub struct Bookings<B, P>
 where
@@ -306,6 +326,7 @@ where
     pub updated_inventory: Inventory<B>,
 }
 
+/// An interpolated posting is one complete with any fields which were missing from its [PostingSpec].
 #[derive(Clone, Debug)]
 pub struct Interpolated<B, P>
 where
@@ -348,6 +369,7 @@ where
     }
 }
 
+/// The interface used by the booking algorithm for querying the tolerance for a given currency.
 pub trait Tolerance: Clone + Debug {
     type Types: BookingTypes;
 
@@ -362,6 +384,7 @@ pub trait Tolerance: Clone + Debug {
 pub type ToleranceNumber<T> = <<T as Tolerance>::Types as BookingTypes>::Number;
 pub type ToleranceCurrency<T> = <<T as Tolerance>::Types as BookingTypes>::Currency;
 
+/// The properties required for a decimal type to be usable for booking.
 pub trait Number:
     Copy
     + Add<Output = Self>
@@ -391,6 +414,7 @@ pub trait Number:
     fn rescaled(self, scale: u32) -> Self;
 }
 
+/// Positive or negative, with zero being neither.
 #[derive(PartialEq, Eq, Clone, Copy, Display, Debug)]
 pub enum Sign {
     Positive,
@@ -410,6 +434,7 @@ pub enum Booking {
     Hifo,
 }
 
+/// The list of positions for an account.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Positions<B>(Vec<Position<B>>)
 where
@@ -576,6 +601,7 @@ where
     }
 }
 
+/// All account positions.
 #[derive(PartialEq, Eq, Debug)]
 pub struct Inventory<B>
 where
