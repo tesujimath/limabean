@@ -1,0 +1,21 @@
+plugin "beancount.plugins.implicit_prices"
+
+2020-01-01 open Assets:Bank:Current
+2020-01-01 open Assets:ETrade:IBM
+2020-01-01 open Expenses:Financial:Commissions
+2020-01-01 open Expenses:Food
+2020-01-01 open Expenses:News
+
+2023-04-10 * "KFC" ""
+  Assets:Bank:Current  NZD
+  Expenses:Food                      10.00 GBP @ 2.2 NZD
+
+2023-04-12 * "Various"
+  Assets:Bank:Current  NZD
+  Expenses:News                       3.00 EUR @ 1.9 NZD
+  Expenses:Food                       8.00 GBP @ 2.15 NZD
+
+2023-05-01 * "Buy some IBM"
+  Assets:ETrade:IBM                     10 IBM {300.00 NZD}
+  Assets:Bank:Current             -3020.00 NZD
+  Expenses:Financial:Commissions     20.00 NZD

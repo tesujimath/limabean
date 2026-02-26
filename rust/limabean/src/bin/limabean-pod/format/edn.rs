@@ -1,7 +1,11 @@
 use rust_decimal::Decimal;
 use time::Date;
 
-use crate::book::{pad_flag, types::*};
+use crate::{
+    book::{pad_flag, types::*},
+    format::DirectiveWithPlugins,
+    plugins::InternalPlugins,
+};
 use beancount_parser_lima as parser;
 use std::fmt::{self, Display, Formatter, Write};
 use std::io;
@@ -11,6 +15,7 @@ use strum_macros::{EnumIter, EnumString, IntoStaticStr};
 pub(crate) fn write_booked_as_edn<'a, W>(
     directives: &[Directive<'a>],
     options: &parser::Options,
+    plugins: &InternalPlugins,
     out_w: W,
 ) -> io::Result<()>
 where
@@ -28,7 +33,7 @@ where
     )?;
 
     for d in directives {
-        writeln!(buffered_out_w, "{}", Edn(d))?;
+        writeln!(buffered_out_w, "{}", Edn(DirectiveWithPlugins(d, plugins)))?;
     }
 
     writeln!(buffered_out_w, "{VECTOR_END}")?;
@@ -58,17 +63,19 @@ trait FmtEdn {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result;
 }
 
-impl<'a> FmtEdn for &Directive<'a> {
+impl<'a, 'b> FmtEdn for DirectiveWithPlugins<'a, 'b> {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
         use crate::book::DirectiveVariant as LDV;
         use parser::DirectiveVariant as PDV;
 
-        let directive = self.parsed.item();
-        let date = *directive.date().item();
+        let DirectiveWithPlugins(dct, plugins) = self;
 
-        match (self.parsed.variant(), &self.loaded) {
+        let dct_parsed = dct.parsed.item();
+        let date = *dct_parsed.date().item();
+
+        match (dct_parsed.variant(), &dct.loaded) {
             (PDV::Transaction(parsed), LDV::Transaction(loaded)) => {
-                (loaded, date, parsed).fmt_edn(f) // TODO metadata
+                (loaded, date, parsed, plugins).fmt_edn(f) // TODO metadata
             }
             (PDV::Pad(parsed), LDV::Pad(loaded)) => {
                 (loaded, date, parsed).fmt_edn(f) // TODO metadata
@@ -108,11 +115,18 @@ impl<'a> FmtEdn for &Directive<'a> {
     }
 }
 
-impl<'a> FmtEdn for (&Transaction<'a>, Date, &parser::Transaction<'a>) {
+impl<'a> FmtEdn
+    for (
+        &Transaction<'a>,
+        Date,
+        &parser::Transaction<'a>,
+        &InternalPlugins,
+    )
+{
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
         use Separator::*;
 
-        let (loaded, date, parsed) = self;
+        let (loaded, date, parsed, plugins) = self;
 
         if !loaded.auto_accounts.is_empty() {
             let mut auto_accounts = loaded.auto_accounts.iter().collect::<Vec<_>>();
@@ -140,7 +154,17 @@ impl<'a> FmtEdn for (&Transaction<'a>, Date, &parser::Transaction<'a>) {
             (Keyword::Narration, narration, Spaced).fmt_edn(f)?;
         }
         (Keyword::Postings, EdnVector(loaded.postings.iter()), Spaced).fmt_edn(f)?;
-        map_end(f)
+        map_end(f)?;
+
+        if plugins.implicit_prices && !loaded.prices.is_empty() {
+            let mut prices = loaded.prices.iter().collect::<Vec<_>>();
+            prices.sort();
+            for (cur, price_cur, price_per_unit) in &prices {
+                fmt_price(f, date, *cur, *price_per_unit, *price_cur, true)?;
+            }
+        }
+
+        Ok(())
     }
 }
 impl<'a> FmtEdn for (&Pad<'a>, Date, &parser::Pad<'a>) {
@@ -168,20 +192,39 @@ impl<'a> FmtEdn for (&Pad<'a>, Date, &parser::Pad<'a>) {
 
 impl<'a> FmtEdn for (Date, &parser::Price<'a>) {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
-        use Separator::*;
-
         let (date, parsed) = self;
-        let price = Price {
-            per_unit: parsed.amount().number().value(),
-            currency: *parsed.amount().currency().item(),
-        };
-        map_begin(f)?;
-        (Keyword::Date, date, Flush).fmt_edn(f)?;
-        (Keyword::Directive, Keyword::Price, Spaced).fmt_edn(f)?;
-        (Keyword::Currency, parsed.currency().item().as_ref(), Spaced).fmt_edn(f)?;
-        (Keyword::Price, &price, Spaced).fmt_edn(f)?;
-        map_end(f)
+        fmt_price(
+            f,
+            date,
+            *parsed.currency().item(),
+            parsed.amount().number().value(),
+            *parsed.amount().currency().item(),
+            false,
+        )
     }
+}
+
+fn fmt_price<'a>(
+    f: &mut Formatter<'_>,
+    date: Date,
+    cur: parser::Currency<'a>,
+    price_per_unit: Decimal,
+    price_cur: parser::Currency<'a>,
+    // TODO: metadata, so we can write implicit: TRUE for implicit prices
+    _implicit: bool,
+) -> fmt::Result {
+    use Separator::*;
+
+    let price = Price {
+        per_unit: price_per_unit,
+        currency: price_cur,
+    };
+    map_begin(f)?;
+    (Keyword::Date, date, Flush).fmt_edn(f)?;
+    (Keyword::Directive, Keyword::Price, Spaced).fmt_edn(f)?;
+    (Keyword::Currency, cur.as_ref(), Spaced).fmt_edn(f)?;
+    (Keyword::Price, &price, Spaced).fmt_edn(f)?;
+    map_end(f)
 }
 
 impl<'a> FmtEdn for (Date, &parser::Balance<'a>) {

@@ -3,51 +3,61 @@ use std::fmt::{self, Display, Formatter};
 use time::Date;
 
 use super::*;
-use crate::book::{pad_flag, types::*};
+use crate::{book::pad_flag, plugins::InternalPlugins};
 
 pub(crate) fn write_booked_as_beancount<'a, W>(
     directives: &[Directive<'a>],
-    _options: &parser::Options,
+    _options: &parser::Options<'a>,
+    plugins: &InternalPlugins,
     mut out_w: W,
 ) -> Result<(), crate::Error>
 where
     W: std::io::Write + Copy,
 {
     for d in directives {
-        writeln!(out_w, "{d}")?;
+        writeln!(out_w, "{}", DirectiveWithPlugins(d, plugins))?;
     }
     Ok(())
 }
 
-// adapted from beancount-parser-lima
-
 impl<'a> Display for Directive<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let no_plugins = InternalPlugins::default();
+        write!(f, "{}", DirectiveWithPlugins(self, &no_plugins))
+    }
+}
+
+impl<'a, 'b> Display for DirectiveWithPlugins<'a, 'b> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use crate::book::DirectiveVariant as LDV;
         use parser::DirectiveVariant as PDV;
 
-        let directive = self.parsed.item();
-        let date = *directive.date().item();
+        let DirectiveWithPlugins(dct, plugins) = self;
 
-        match (self.parsed.variant(), &self.loaded) {
+        let dct_parsed = dct.parsed.item();
+        let date = *dct_parsed.date().item();
+
+        match (dct_parsed.variant(), &dct.loaded) {
             (PDV::Transaction(parsed), LDV::Transaction(loaded)) => {
-                loaded.fmt(f, date, parsed /*, &self.metadata*/)
+                loaded.fmt(f, date, parsed, plugins /*, &self.metadata*/)
             }
             (PDV::Pad(_parsed), LDV::Pad(loaded)) => {
-                // TODO write pad postings as a transaction
-                loaded.fmt(f, date, directive /*, &self.metadata*/)
+                loaded.fmt(f, date, dct_parsed /*, &self.metadata*/)
             }
-            _ => writeln!(f, "{}", directive),
+            _ => writeln!(f, "{}", dct_parsed),
         }
     }
 }
+
+// adapted from beancount-parser-lima
 
 impl<'a> Transaction<'a> {
     fn fmt(
         &self,
         f: &mut Formatter<'_>,
         date: Date,
-        parsed: &parser::Transaction, /*, metadata: &Metadata*/
+        parsed: &parser::Transaction,
+        plugins: &InternalPlugins, /*, metadata: &Metadata*/
     ) -> fmt::Result {
         if !self.auto_accounts.is_empty() {
             let mut auto_accounts = self.auto_accounts.iter().collect::<Vec<_>>();
@@ -77,7 +87,21 @@ impl<'a> Transaction<'a> {
             NEWLINE_INDENT,
             Some(NEWLINE_INDENT),
         )?;
-        f.write_str(NEWLINE)
+        f.write_str(NEWLINE)?;
+
+        if plugins.implicit_prices && !self.prices.is_empty() {
+            let mut prices = self.prices.iter().collect::<Vec<_>>();
+            prices.sort();
+            for (cur, price_cur, price_per_unit) in &prices {
+                write!(
+                    f,
+                    "{}{} price {} {} {}{}implicit: TRUE{}",
+                    NEWLINE, date, cur, price_per_unit, price_cur, NEWLINE_INDENT, NEWLINE
+                )?;
+            }
+        }
+
+        Ok(())
     }
 }
 

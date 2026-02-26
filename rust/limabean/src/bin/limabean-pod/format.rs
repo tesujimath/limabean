@@ -1,4 +1,8 @@
+use crate::{book::types::*, plugins::InternalPlugins};
 use std::fmt::{self, Display, Formatter};
+
+#[derive(Clone, Debug)]
+struct DirectiveWithPlugins<'a, 'b>(&'b Directive<'a>, &'b InternalPlugins);
 
 // this one is subtly different from the one in beancount-parser-lima
 pub(crate) fn format<C, T, F>(
