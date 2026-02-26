@@ -49,8 +49,6 @@ where
                 warnings.push(unknown.warning("unknown plugin"));
             }
 
-            let inferred_tolerance = InferredTolerance::new(&options);
-
             let default_booking = Booking::default();
             let default_booking_option = if let Some(booking_method) = options.booking_method() {
                 let booking = Into::<Booking>::into(*booking_method.item());
@@ -68,13 +66,8 @@ where
 
             sources.write_errors_or_warnings(error_w, warnings)?;
 
-            match Loader::new(
-                default_booking_option,
-                inferred_tolerance,
-                &options,
-                &internal_plugins,
-            )
-            .collect(&directives)
+            match Loader::new(default_booking_option, &options, &internal_plugins)
+                .collect(&directives)
             {
                 Ok(LoadSuccess {
                     directives,
@@ -119,7 +112,6 @@ pub(crate) struct Loader<'a, 'b, T> {
     currency_usage: hashbrown::HashMap<parser::Currency<'a>, i32>,
     internal_plugins: &'b InternalPlugins,
     default_booking: Booking,
-    inferred_tolerance: InferredTolerance<'a>,
     tolerance: T,
     warnings: Vec<parser::AnnotatedWarning>,
 }
@@ -136,7 +128,6 @@ pub(crate) struct LoadError {
 impl<'a, 'b, T> Loader<'a, 'b, T> {
     pub(crate) fn new(
         default_booking: Booking,
-        inferred_tolerance: InferredTolerance<'a>,
         tolerance: T,
         internal_plugins: &'b InternalPlugins,
     ) -> Self {
@@ -149,7 +140,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
             internal_plugins,
             default_booking,
             tolerance,
-            inferred_tolerance,
             warnings: Vec::default(),
         }
     }

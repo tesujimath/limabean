@@ -1,10 +1,10 @@
 use beancount_parser_lima as parser;
 use limabean_booking::LimaParserBookingTypes;
 use rust_decimal::Decimal;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use tabulator::{Align, Cell};
 
-use crate::{format::GUTTER_MINOR, options::defaults::default_inferred_tolerance_multiplier};
+use crate::format::GUTTER_MINOR;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Directive<'a> {
@@ -164,30 +164,6 @@ pub(crate) fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static
         cells.push(cost_into_cell(cost))
     }
     Cell::Row(cells, GUTTER_MINOR)
-}
-
-#[derive(Debug)]
-pub(crate) struct InferredTolerance<'a> {
-    pub(crate) fallback: Option<Decimal>,
-    pub(crate) by_currency: HashMap<parser::Currency<'a>, Decimal>,
-
-    pub(crate) multiplier: Decimal,
-}
-
-impl<'a> InferredTolerance<'a> {
-    pub(crate) fn new(options: &'a parser::Options<'a>) -> Self {
-        Self {
-            fallback: options.inferred_tolerance_default_fallback(),
-            by_currency: options
-                .inferred_tolerance_defaults()
-                .filter_map(|(cur, value)| cur.map(|cur| (cur, value)))
-                .collect::<HashMap<_, _>>(),
-            multiplier: options
-                .inferred_tolerance_multiplier()
-                .map(|m| *m.item())
-                .unwrap_or(default_inferred_tolerance_multiplier()),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
