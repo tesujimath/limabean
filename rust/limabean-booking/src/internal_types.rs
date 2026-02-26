@@ -123,9 +123,6 @@ where
                         (Some(price_total), _, _) => Some(price_total),
                         (None, Some(price_per_unit), Some(units)) => {
                             let weight = (price_per_unit * units).rescaled(units.scale());
-                            tracing::debug!(
-                                "weight {weight} from price_per_unit {price_per_unit} units {units}"
-                            );
                             Some(weight)
                         }
                         _ => None,

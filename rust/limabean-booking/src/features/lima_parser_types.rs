@@ -170,7 +170,6 @@ impl<'a> Tolerance for &parser::Options<'a> {
     ) -> Option<<Self::Types as BookingTypes>::Number> {
         // TODO don't iterate twice over values
         let values = values.collect::<Vec<_>>();
-        tracing::debug!("calculating tolerance residual for {} {:?}", cur, &values);
         let values = values.into_iter();
 
         let multiplier = self
@@ -180,8 +179,6 @@ impl<'a> Tolerance for &parser::Options<'a> {
         let s = values.collect::<SumWithMinNonZeroScale>();
         let residual = s.sum;
         let abs_residual = residual.abs();
-
-        tracing::debug!("min_nonzero_scale {:?}", s.min_nonzero_scale);
 
         // TODO remove result
         let result = if let Some(min_nonzero_scale) = s.min_nonzero_scale.as_ref() {
@@ -193,15 +190,12 @@ impl<'a> Tolerance for &parser::Options<'a> {
                 .inferred_tolerance_default(&cur)
                 .or(self.inferred_tolerance_default_fallback());
 
-            tracing::debug!("tolerance for {:?} {:?}", cur, &tolerance);
-
             if let Some(tolerance) = tolerance {
                 (abs_residual > tolerance).then_some(residual)
             } else {
                 (!residual.is_zero()).then_some(residual)
             }
         };
-        tracing::debug!("tolerance residual {:?}", &result);
 
         result
     }

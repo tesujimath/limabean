@@ -75,7 +75,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
             {
                 let mut actual_inventory = ante_inventory.clone().into();
 
-                tracing::debug!("book_with_residuals {:?}", &postings);
                 let location = format!("{} {}", ordinal(i_apply), APPLY_TAG);
                 if let Some(Bookings {
                     interpolated_postings,
@@ -91,7 +90,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                     &location,
                     &apply_string,
                 ) {
-                    tracing::debug!("updating test inventory with {:?}", &updated_inventory);
                     for (acc, positions) in updated_inventory {
                         actual_inventory.insert(acc, positions);
                     }
@@ -111,7 +109,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                 let mut actual_postings = Vec::default();
 
                 for (i_apply, (date, postings, apply_string)) in apply_combined {
-                    tracing::debug!("book_with_residuals {:?}", &postings);
                     let location = format!("{} {}", ordinal(i_apply), APPLY_TAG);
                     if let Some(Bookings {
                         interpolated_postings,
@@ -127,7 +124,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                         &location,
                         &apply_string,
                     ) {
-                        tracing::debug!("updating test inventory with {:?}", &updated_inventory);
                         for (acc, positions) in updated_inventory {
                             actual_inventory.insert(acc, positions);
                         }

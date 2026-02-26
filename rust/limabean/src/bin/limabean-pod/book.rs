@@ -311,13 +311,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                 interpolated_postings,
                 updated_inventory,
             }) => {
-                tracing::debug!(
-                    "booking {:?} {:?} for {:?}",
-                    &interpolated_postings,
-                    &updated_inventory,
-                    element
-                );
-
                 let mut prices: HashSet<(parser::Currency, parser::Currency, Decimal)> =
                     HashSet::default();
 
@@ -445,7 +438,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                 })
             }
             Err(e) => {
-                tracing::error!("booking error {}", &e);
                 use limabean_booking::BookingError::*;
 
                 match &e {
@@ -591,8 +583,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         // pad can't last beyond balance
         let pad_idx = account.pad_idx.take();
 
-        tracing::debug!("balance {:?} {:?}", &margin, pad_idx);
-
         if margin.is_empty() {
             // balance assertion is correct, and we already cleared the pad, so:
 
@@ -613,17 +603,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
             return err;
         }
         let pad_idx = pad_idx.unwrap();
-
-        tracing::debug!(
-            "balance {:?} with margin {} and pad_idx {}",
-            balance,
-            margin
-                .iter()
-                .map(|(cur, number)| format!("{} {}", -number, cur))
-                .collect::<Vec<String>>()
-                .join(", "),
-            pad_idx
-        );
 
         adjust_account_to_match_balance(account, &margin, Adjustment::Add);
         account.balance_diagnostics.clear();
@@ -653,7 +632,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
         if let DirectiveVariant::Pad(pad) = &mut pad_directive.loaded {
             pad.postings = pad_postings;
-            tracing::debug!("pad postings inserted for {:?}", pad);
         }
 
         let pad_account = self.accounts.get_mut(pad_source).unwrap();

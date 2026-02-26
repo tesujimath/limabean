@@ -448,13 +448,6 @@ where
     ) {
         use Ordering::*;
 
-        tracing::debug!(
-            "accumulate {method} {:?} {:?} {:?}",
-            &units,
-            &currency,
-            &cost
-        );
-
         let insertion_idx = match method {
             Booking::Strict
             | Booking::StrictWithSize
@@ -489,17 +482,10 @@ where
         match (insertion_idx, cost) {
             (Ok(i), None) => {
                 let position = self.get_mut(i).unwrap();
-                tracing::debug!("augmenting position {:?} with {:?}", &position, units,);
                 position.units += units;
             }
             (Ok(i), Some(cost)) => {
                 let position = self.get_mut(i).unwrap();
-                tracing::debug!(
-                    "augmenting position {:?} with {:?} {:?}",
-                    &position,
-                    units,
-                    &cost
-                );
                 position.units += units;
             }
             (Err(i), None) => {
@@ -508,7 +494,6 @@ where
                     currency,
                     cost: None,
                 };
-                tracing::debug!("inserting new position {:?} at {i}", &position);
                 self.insert(i, position)
             }
             (Err(i), Some(cost)) => {
@@ -517,7 +502,6 @@ where
                     currency,
                     cost: Some(cost),
                 };
-                tracing::debug!("inserting new position {:?} at {i}", &position);
                 self.insert(i, position)
             }
         }
