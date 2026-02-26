@@ -4,7 +4,9 @@
 use hashbrown::{HashMap, hash_map::Entry};
 use std::{fmt::Debug, hash::Hash, ops::Deref};
 
-use super::{BookingTypes, Cost, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
+use super::{
+    BookingTypes, Cost, CostSpec, Interpolated, Number, PostingCosts, PostingSpec, Price, PriceSpec,
+};
 
 ///
 /// A list of positions for a currency satisfying these invariants:
@@ -180,5 +182,50 @@ where
                 }
             }
         }
+    }
+}
+
+/// Interface defining a fully interpolated posting.
+///
+/// Once a [PostingSpec] has been booked, it is returned as [Interpolated], which implements [Posting].
+pub trait Posting: Clone + Debug {
+    type Types: BookingTypes;
+
+    fn account(&self) -> PostingAccount<Self>;
+    fn units(&self) -> PostingNumber<Self>;
+    fn currency(&self) -> PostingCurrency<Self>;
+    fn cost(&self) -> Option<PostingCosts<Self::Types>>;
+    fn price(&self) -> Option<Price<Self::Types>>;
+}
+
+pub type PostingAccount<T> = <<T as Posting>::Types as BookingTypes>::Account;
+pub type PostingNumber<T> = <<T as Posting>::Types as BookingTypes>::Number;
+pub type PostingCurrency<T> = <<T as Posting>::Types as BookingTypes>::Currency;
+
+impl<B, P> Posting for Interpolated<B, P>
+where
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
+{
+    type Types = B;
+
+    fn account(&self) -> B::Account {
+        self.posting.account()
+    }
+
+    fn currency(&self) -> B::Currency {
+        self.currency.clone()
+    }
+
+    fn units(&self) -> B::Number {
+        self.units
+    }
+
+    fn cost(&self) -> Option<PostingCosts<B>> {
+        self.cost.clone()
+    }
+
+    fn price(&self) -> Option<Price<B>> {
+        self.price.clone()
     }
 }

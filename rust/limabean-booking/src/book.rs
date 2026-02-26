@@ -241,7 +241,7 @@ where
 }
 
 /// book without the need for interpolation
-pub fn accumulate<'a, B, P, I, M>(
+pub(crate) fn accumulate<'a, B, P, I, M>(
     date: B::Date,
     postings: impl Iterator<Item = P>,
     inventory: I,

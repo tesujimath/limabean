@@ -34,23 +34,6 @@ pub type PostingSpecAccount<T> = <<T as PostingSpec>::Types as BookingTypes>::Ac
 pub type PostingSpecNumber<T> = <<T as PostingSpec>::Types as BookingTypes>::Number;
 pub type PostingSpecCurrency<T> = <<T as PostingSpec>::Types as BookingTypes>::Currency;
 
-/// Interface defining a fully interpolated posting.
-///
-/// Once a [PostingSpec] has been booked, it is returned as [Interpolated], which implements [Posting].
-pub trait Posting: Clone + Debug {
-    type Types: BookingTypes;
-
-    fn account(&self) -> PostingAccount<Self>;
-    fn units(&self) -> PostingNumber<Self>;
-    fn currency(&self) -> PostingCurrency<Self>;
-    fn cost(&self) -> Option<PostingCosts<Self::Types>>;
-    fn price(&self) -> Option<Price<Self::Types>>;
-}
-
-pub type PostingAccount<T> = <<T as Posting>::Types as BookingTypes>::Account;
-pub type PostingNumber<T> = <<T as Posting>::Types as BookingTypes>::Number;
-pub type PostingCurrency<T> = <<T as Posting>::Types as BookingTypes>::Currency;
-
 /// A cost specification, which may be rather loosely specified.
 ///
 /// After booking, the process of interpolation turns each cost spec into a [Cost].
@@ -231,7 +214,7 @@ where
     }
 }
 
-/// The list of posting costs for an [InterpolatedPosting].
+/// The list of posting costs for an [Interpolated] posting.
 ///
 /// Multiple different lots may be reduced by a single post,
 /// but only for a single cost currency.
@@ -258,7 +241,7 @@ where
     }
 }
 
-/// One of potentially a number of posting costs for an [InterpolatedPosting].
+/// One of potentially a number of posting costs for an [Interpolated] posting.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct PostingCost<B>
 where
@@ -339,34 +322,6 @@ where
     pub currency: B::Currency,
     pub cost: Option<PostingCosts<B>>,
     pub price: Option<Price<B>>,
-}
-
-impl<B, P> Posting for Interpolated<B, P>
-where
-    B: BookingTypes,
-    P: PostingSpec<Types = B>,
-{
-    type Types = B;
-
-    fn account(&self) -> B::Account {
-        self.posting.account()
-    }
-
-    fn currency(&self) -> B::Currency {
-        self.currency.clone()
-    }
-
-    fn units(&self) -> B::Number {
-        self.units
-    }
-
-    fn cost(&self) -> Option<PostingCosts<B>> {
-        self.cost.clone()
-    }
-
-    fn price(&self) -> Option<Price<B>> {
-        self.price.clone()
-    }
 }
 
 /// The interface used by the booking algorithm for querying the tolerance for a given currency.

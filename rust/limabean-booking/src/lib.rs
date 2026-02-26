@@ -24,10 +24,10 @@ pub(crate) use internal_types::*;
 mod public_types;
 pub use public_types::{
     Booking, BookingTypes, Bookings, Cost, CostSpec, CostSpecCurrency, CostSpecDate, CostSpecLabel,
-    CostSpecNumber, Interpolated, Inventory, Number, Position, Positions, Posting, PostingAccount,
-    PostingCost, PostingCosts, PostingCurrency, PostingNumber, PostingSpec, PostingSpecAccount,
-    PostingSpecCurrency, PostingSpecNumber, Price, PriceSpec, PriceSpecCurrency, PriceSpecNumber,
-    Sign, Tolerance, ToleranceCurrency, ToleranceNumber,
+    CostSpecNumber, Interpolated, Inventory, Number, Position, Positions, PostingCost,
+    PostingCosts, PostingSpec, PostingSpecAccount, PostingSpecCurrency, PostingSpecNumber, Price,
+    PriceSpec, PriceSpecCurrency, PriceSpecNumber, Sign, Tolerance, ToleranceCurrency,
+    ToleranceNumber,
 };
 
 mod reductions;
