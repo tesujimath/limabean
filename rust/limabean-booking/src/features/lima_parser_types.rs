@@ -1,16 +1,22 @@
-use super::{Booking, CostSpec, PostingSpec, PriceSpec, Tolerance};
+use super::{Booking, BookingTypes, CostSpec, PostingSpec, PriceSpec, Tolerance, ToleranceNumber};
 use beancount_parser_lima as parser;
 use rust_decimal::Decimal;
 use time::Date;
 
-impl<'a> PostingSpec for &'a parser::Posting<'a> {
-    type Date = time::Date;
+impl<'a> BookingTypes for &'a parser::Spanned<parser::Posting<'a>> {
     type Account = &'a str;
+    type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
+    type Label = &'a str;
+}
+
+pub type LimaParserBookingTypes<'a> = &'a parser::Spanned<parser::Posting<'a>>;
+
+impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
+    type Types = LimaParserBookingTypes<'a>;
     type CostSpec = &'a parser::CostSpec<'a>;
     type PriceSpec = &'a parser::PriceSpec<'a>;
-    type Label = &'a str;
 
     fn account(&self) -> &'a str {
         parser::Posting::account(self).item().as_ref()
@@ -35,11 +41,16 @@ impl<'a> PostingSpec for &'a parser::Posting<'a> {
     }
 }
 
-impl<'a> CostSpec for &'a parser::CostSpec<'a> {
+impl<'a> BookingTypes for &'a parser::CostSpec<'a> {
+    type Account = &'a str;
     type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
     type Label = &'a str;
+}
+
+impl<'a> CostSpec for &'a parser::CostSpec<'a> {
+    type Types = LimaParserBookingTypes<'a>;
 
     fn currency(&self) -> Option<parser::Currency<'a>> {
         parser::CostSpec::currency(self).map(|currency| *currency.item())
@@ -66,9 +77,16 @@ impl<'a> CostSpec for &'a parser::CostSpec<'a> {
     }
 }
 
-impl<'a> PriceSpec for &'a parser::PriceSpec<'a> {
+impl<'a> BookingTypes for &'a parser::PriceSpec<'a> {
+    type Account = &'a str;
+    type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
+    type Label = &'a str;
+}
+
+impl<'a> PriceSpec for &'a parser::PriceSpec<'a> {
+    type Types = LimaParserBookingTypes<'a>;
 
     fn currency(&self) -> Option<parser::Currency<'a>> {
         use parser::PriceSpec::*;
@@ -132,20 +150,26 @@ impl FromIterator<Decimal> for SumWithMinNonZeroScale {
     }
 }
 
-impl<'a> Tolerance for &parser::Options<'a> {
+impl<'a> BookingTypes for &parser::Options<'a> {
+    type Account = &'a str;
+    type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
+    type Label = &'a str;
+}
+
+impl<'a> Tolerance for &parser::Options<'a> {
+    type Types = LimaParserBookingTypes<'a>;
 
     // Beancount Precision & Tolerances
     // https://docs.google.com/document/d/1lgHxUUEY-UVEgoF6cupz2f_7v7vEF7fiJyiSlYYlhOo
     fn residual(
         &self,
-        values: impl Iterator<Item = Self::Number>,
-        cur: &Self::Currency,
-    ) -> Option<Self::Number> {
+        values: impl Iterator<Item = ToleranceNumber<Self>>,
+        cur: &<Self::Types as BookingTypes>::Currency,
+    ) -> Option<<Self::Types as BookingTypes>::Number> {
         // TODO don't iterate twice over values
         let values = values.collect::<Vec<_>>();
-        tracing::debug!("calculating tolerance residual for {} {:?}", cur, &values);
         let values = values.into_iter();
 
         let multiplier = self
@@ -156,10 +180,7 @@ impl<'a> Tolerance for &parser::Options<'a> {
         let residual = s.sum;
         let abs_residual = residual.abs();
 
-        tracing::debug!("min_nonzero_scale {:?}", s.min_nonzero_scale);
-
-        // TODO remove result
-        let result = if let Some(min_nonzero_scale) = s.min_nonzero_scale.as_ref() {
+        if let Some(min_nonzero_scale) = s.min_nonzero_scale.as_ref() {
             (abs_residual >= Decimal::new(1, *min_nonzero_scale) * multiplier).then_some(residual)
         } else {
             // TODO should we have kept currency as a parser::Currency all along, to avoid extra validation here??
@@ -168,24 +189,19 @@ impl<'a> Tolerance for &parser::Options<'a> {
                 .inferred_tolerance_default(&cur)
                 .or(self.inferred_tolerance_default_fallback());
 
-            tracing::debug!("tolerance for {:?} {:?}", cur, &tolerance);
-
             if let Some(tolerance) = tolerance {
                 (abs_residual > tolerance).then_some(residual)
             } else {
                 (!residual.is_zero()).then_some(residual)
             }
-        };
-        tracing::debug!("tolerance residual {:?}", &result);
-
-        result
+        }
     }
 }
 
 impl From<parser::Booking> for Booking {
     fn from(value: parser::Booking) -> Self {
-        use parser::Booking as parser;
         use Booking::*;
+        use parser::Booking as parser;
 
         match value {
             parser::Strict => Strict,
@@ -203,34 +219,4 @@ impl From<parser::Booking> for Booking {
 // (we can't depend on the main limabean crate here)
 fn default_inferred_tolerance_multiplier() -> Decimal {
     Decimal::new(5, 1) // 0.5
-}
-
-impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
-    type Date = time::Date;
-    type Account = &'a str;
-    type Currency = parser::Currency<'a>;
-    type Number = Decimal;
-    type CostSpec = &'a parser::CostSpec<'a>;
-    type PriceSpec = &'a parser::PriceSpec<'a>;
-    type Label = &'a str;
-
-    fn account(&self) -> Self::Account {
-        PostingSpec::account(&self.item())
-    }
-
-    fn currency(&self) -> Option<Self::Currency> {
-        PostingSpec::currency(&self.item())
-    }
-
-    fn units(&self) -> Option<Self::Number> {
-        PostingSpec::units(&self.item())
-    }
-
-    fn cost(&self) -> Option<Self::CostSpec> {
-        PostingSpec::cost(&self.item())
-    }
-
-    fn price(&self) -> Option<Self::PriceSpec> {
-        PostingSpec::price(&self.item())
-    }
 }

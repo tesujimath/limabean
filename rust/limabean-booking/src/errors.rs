@@ -5,6 +5,7 @@ use std::{
 
 use super::Booking;
 
+/// A booking error, either for an individual posting or for the transaction as a whole.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum BookingError {
     Transaction(TransactionBookingError),
@@ -22,6 +23,7 @@ impl Display for BookingError {
     }
 }
 
+/// A booking error for the transaction as a whole.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum TransactionBookingError {
     UnsupportedBookingMethod(Booking, String),
@@ -55,6 +57,7 @@ impl Display for TransactionBookingError {
 
 impl Error for TransactionBookingError {}
 
+/// A booking error for an individual posting.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum PostingBookingError {
     AmbiguousAutoPost,

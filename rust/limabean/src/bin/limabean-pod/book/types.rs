@@ -1,16 +1,10 @@
 use beancount_parser_lima as parser;
+use limabean_booking::LimaParserBookingTypes;
 use rust_decimal::Decimal;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-};
+use std::collections::HashSet;
 use tabulator::{Align, Cell};
-use time::Date;
 
-use crate::{
-    format::{format, plain, EMPTY, GUTTER_MINOR, SPACE},
-    options::defaults::default_inferred_tolerance_multiplier,
-};
+use crate::format::GUTTER_MINOR;
 
 #[derive(Clone, Debug)]
 pub(crate) struct Directive<'a> {
@@ -28,7 +22,8 @@ pub(crate) enum DirectiveVariant<'a> {
 #[derive(Clone, Debug)]
 pub(crate) struct Transaction<'a> {
     pub(crate) postings: Vec<Posting<'a>>,
-    pub(crate) prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
+    // TODO use for implicit prices plugin if enabled
+    pub(crate) _prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
     pub(crate) auto_accounts: HashSet<&'a str>,
 }
 
@@ -48,16 +43,20 @@ pub(crate) struct Posting<'a> {
     // pub(crate) metadata: Metadata<'a>,
 }
 
-pub(crate) type Cost<'a> = limabean_booking::Cost<Date, Decimal, parser::Currency<'a>, &'a str>;
+pub(crate) type Cost<'a> = limabean_booking::Cost<limabean_booking::LimaParserBookingTypes<'a>>;
 
-pub(crate) fn cost_to_cell<'a, 'b>(cost: &'b Cost<'a>) -> Cell<'a, 'static>
-where
-    'b: 'a,
-{
+pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
+    let Cost {
+        date,
+        per_unit,
+        currency,
+        label: _label,
+        merge: _merge,
+    } = cost;
     let mut cells = vec![
-        (cost.date.to_string(), Align::Left).into(),
-        cost.per_unit.into(),
-        (cost.currency.as_ref(), Align::Left).into(),
+        (date.to_string(), Align::Left).into(),
+        per_unit.into(),
+        (Into::<&str>::into(currency), Align::Left).into(),
     ];
     if let Some(label) = &cost.label {
         cells.push((*label, Align::Left).into())
@@ -68,7 +67,8 @@ where
     Cell::Row(cells, GUTTER_MINOR)
 }
 
-pub(crate) type PostingCost<'a> = limabean_booking::PostingCost<Date, Decimal, &'a str>;
+pub(crate) type PostingCost<'a> =
+    limabean_booking::PostingCost<limabean_booking::LimaParserBookingTypes<'a>>;
 
 pub(crate) fn cur_posting_cost_to_cost<'a>(
     currency: parser::Currency<'a>,
@@ -83,10 +83,7 @@ pub(crate) fn cur_posting_cost_to_cost<'a>(
     }
 }
 
-pub(crate) type PostingCosts<'a> =
-    limabean_booking::PostingCosts<Date, Decimal, parser::Currency<'a>, &'a str>;
-
-pub(crate) type Price<'a> = limabean_booking::Price<Decimal, parser::Currency<'a>>;
+pub(crate) type Price<'a> = limabean_booking::Price<limabean_booking::LimaParserBookingTypes<'a>>;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct Amount<'a> {
@@ -140,78 +137,34 @@ where
 }
 
 pub(crate) type Positions<'a> =
-    limabean_booking::Positions<Date, Decimal, parser::Currency<'a>, &'a str>;
+    limabean_booking::Positions<limabean_booking::LimaParserBookingTypes<'a>>;
 
 // should be From, but both types are third-party
-pub(crate) fn positions_to_cell<'a, 'b>(positions: &'b Positions<'a>) -> Cell<'a, 'static>
-where
-    'b: 'a,
-{
-    Cell::Stack(positions.iter().map(position_to_cell).collect::<Vec<_>>())
+pub(crate) fn positions_into_cell<'a>(positions: Positions<'a>) -> Cell<'a, 'static> {
+    Cell::Stack(
+        positions
+            .into_iter()
+            .map(position_into_cell)
+            .collect::<Vec<_>>(),
+    )
 }
 
-pub(crate) type Position<'a> =
-    limabean_booking::Position<Date, Decimal, parser::Currency<'a>, &'a str>;
+pub(crate) type Position<'a> = limabean_booking::Position<LimaParserBookingTypes<'a>>;
 
-pub(crate) fn position_to_cell<'a, 'b>(position: &'b Position<'a>) -> Cell<'a, 'static>
-where
-    'b: 'a,
-{
+pub(crate) fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static> {
+    let Position {
+        units,
+        currency,
+        cost,
+    } = position;
     let mut cells = vec![
-        position.units.into(),
-        (position.currency.as_ref(), Align::Left).into(),
+        units.into(),
+        (Into::<&str>::into(currency), Align::Left).into(),
     ];
-    if let Some(cost) = &position.cost {
-        cells.push(cost_to_cell(cost))
+    if let Some(cost) = cost {
+        cells.push(cost_into_cell(cost))
     }
     Cell::Row(cells, GUTTER_MINOR)
-}
-
-#[derive(PartialEq, Eq, Clone, Debug)]
-/// CurrencyPosition for implicit currency, which is kept externally
-pub(crate) struct CurrencyPosition<'a> {
-    pub(crate) units: Decimal,
-    pub(crate) cost: Option<Cost<'a>>,
-}
-
-impl<'a> CurrencyPosition<'a> {
-    pub(crate) fn is_empty(&self) -> bool {
-        // TODO do we need a tolerance check here?
-        self.units.is_zero() && self.cost.is_none()
-    }
-
-    pub(crate) fn format(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-        cur: parser::Currency<'a>,
-    ) -> fmt::Result {
-        write!(f, "{} {}", self.units, cur)?;
-        format(f, &self.cost, plain, EMPTY, Some(SPACE))
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct InferredTolerance<'a> {
-    pub(crate) fallback: Option<Decimal>,
-    pub(crate) by_currency: HashMap<parser::Currency<'a>, Decimal>,
-
-    pub(crate) multiplier: Decimal,
-}
-
-impl<'a> InferredTolerance<'a> {
-    pub(crate) fn new(options: &'a parser::Options<'a>) -> Self {
-        Self {
-            fallback: options.inferred_tolerance_default_fallback(),
-            by_currency: options
-                .inferred_tolerance_defaults()
-                .filter_map(|(cur, value)| cur.map(|cur| (cur, value)))
-                .collect::<HashMap<_, _>>(),
-            multiplier: options
-                .inferred_tolerance_multiplier()
-                .map(|m| *m.item())
-                .unwrap_or(default_inferred_tolerance_multiplier()),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

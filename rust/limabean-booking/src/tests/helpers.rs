@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 use beancount_parser_lima::{self as parser, DirectiveVariant};
 use hashbrown::HashMap;
 use rust_decimal::Decimal;
@@ -6,8 +7,9 @@ use time::Date;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
-    book_with_residuals, is_supported_method, Booking, BookingError, Bookings, Cost, Interpolated,
-    Inventory, Position, Positions, Tolerance,
+    Booking, BookingError, Bookings, Cost, Interpolated, Inventory, LimaParserBookingTypes,
+    Position, Positions, Tolerance, book::BookingsAndResiduals, book_with_residuals,
+    is_supported_method,
 };
 
 const ANTE_TAG: &str = "ante";
@@ -53,12 +55,13 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
             let mut ante_inventory = Inventory::default();
 
             if let Some((date, ante_postings, _)) = get_postings(&directives, ANTE_TAG).next() {
-                let (
-                    Bookings {
-                        updated_inventory, ..
-                    },
-                    _residuals,
-                ) = book_with_residuals(date, &ante_postings, &tolerance, |_| None, |_| method)
+                let BookingsAndResiduals {
+                    bookings:
+                        Bookings {
+                            updated_inventory, ..
+                        },
+                    ..
+                } = book_with_residuals(date, &ante_postings, &tolerance, |_| None, |_| method)
                     .unwrap();
 
                 ante_inventory = updated_inventory;
@@ -72,7 +75,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
             {
                 let mut actual_inventory = ante_inventory.clone().into();
 
-                tracing::debug!("book_with_residuals {:?}", &postings);
                 let location = format!("{} {}", ordinal(i_apply), APPLY_TAG);
                 if let Some(Bookings {
                     interpolated_postings,
@@ -88,7 +90,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                     &location,
                     &apply_string,
                 ) {
-                    tracing::debug!("updating test inventory with {:?}", &updated_inventory);
                     for (acc, positions) in updated_inventory {
                         actual_inventory.insert(acc, positions);
                     }
@@ -108,7 +109,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                 let mut actual_postings = Vec::default();
 
                 for (i_apply, (date, postings, apply_string)) in apply_combined {
-                    tracing::debug!("book_with_residuals {:?}", &postings);
                     let location = format!("{} {}", ordinal(i_apply), APPLY_TAG);
                     if let Some(Bookings {
                         interpolated_postings,
@@ -124,7 +124,6 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                         &location,
                         &apply_string,
                     ) {
-                        tracing::debug!("updating test inventory with {:?}", &updated_inventory);
                         for (acc, positions) in updated_inventory {
                             actual_inventory.insert(acc, positions);
                         }
@@ -154,18 +153,20 @@ fn ordinal(i: usize) -> String {
     )
 }
 
+// it's only a test, bah!
+#[allow(clippy::too_many_arguments)]
 fn book_and_check_error<'a, 'b, T>(
     date: Date,
     postings: &[&'a parser::Spanned<parser::Posting<'a>>],
-    inventory: &mut Inventory<&'a str, time::Date, Decimal, parser::Currency<'a>, &'a str>,
+    inventory: &mut Inventory<LimaParserBookingTypes<'a>>,
     tolerance: &'b T,
     method: Booking,
     expected_err: Option<&BookingError>,
     location_in_case_of_error: &str,
     source_in_case_of_error: &str,
-) -> Option<Bookings<&'a parser::Spanned<parser::Posting<'a>>>>
+) -> Option<Bookings<LimaParserBookingTypes<'a>, &'a parser::Spanned<parser::Posting<'a>>>>
 where
-    T: Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+    T: Tolerance<Types = LimaParserBookingTypes<'a>>,
 {
     match (
         book_with_residuals(
@@ -177,7 +178,7 @@ where
         ),
         expected_err,
     ) {
-        (Ok((bookings, _residuals)), None) => Some(bookings),
+        (Ok(BookingsAndResiduals { bookings, .. }), None) => Some(bookings),
         (Err(e), Some(expected_err)) => {
             assert_eq!(&e, expected_err);
             None
@@ -192,26 +193,27 @@ where
 }
 
 fn check_inventory_as_expected<'a, 'b, T>(
-    actual_inventory: Inventory<&'a str, time::Date, Decimal, parser::Currency<'a>, &'a str>,
+    actual_inventory: Inventory<LimaParserBookingTypes<'a>>,
     directives: &'a [parser::Spanned<parser::Directive<'a>>],
     tolerance: &'b T,
     method: Booking,
 ) where
-    T: Tolerance<Currency = parser::Currency<'a>, Number = Decimal>,
+    T: Tolerance<Types = LimaParserBookingTypes<'a>>,
 {
     let (date, postings, _) = get_postings(directives, EX_TAG)
         .next()
         .expect("missing ex tag in test data");
-    let (
-        Bookings {
-            updated_inventory: expected_inventory,
-            ..
-        },
-        _residuals,
-    ) = book_with_residuals(date, &postings, tolerance, |_| None, |_| method).unwrap();
+    let BookingsAndResiduals {
+        bookings:
+            Bookings {
+                updated_inventory: expected_inventory,
+                ..
+            },
+        ..
+    } = book_with_residuals(date, &postings, tolerance, |_| None, |_| method).unwrap();
 
     // since we can't build an expected inventory with an empty account, we remove all such from the result before comparison
-    let actual_inventory = Into::<Inventory<_, _, _, _, _>>::into(
+    let actual_inventory = Into::<Inventory<_>>::into(
         actual_inventory
             .into_iter()
             .filter_map(|(account, positions)| {
@@ -225,13 +227,7 @@ fn check_inventory_as_expected<'a, 'b, T>(
 
 fn check_postings_as_expected<'a>(
     actual_postings: Vec<
-        Interpolated<
-            &'a parser::Spanned<parser::Posting<'a>>,
-            time::Date,
-            Decimal,
-            parser::Currency<'a>,
-            &'a str,
-        >,
+        Interpolated<LimaParserBookingTypes<'a>, &'a parser::Spanned<parser::Posting<'a>>>,
     >,
     directives: &'a [parser::Spanned<parser::Directive<'a>>],
 ) {
@@ -396,19 +392,19 @@ pub(crate) fn positions_test(
                             let cost = Cost {
                                 date: cost_date,
                                 per_unit: cost_per_unit,
-                                currency: cost_currency,
+                                currency: *cost_currency,
                                 label: cost_label,
                                 merge,
                             };
 
                             Position {
-                                currency,
+                                currency: *currency,
                                 units,
                                 cost: Some(cost),
                             }
                         } else {
                             Position {
-                                currency,
+                                currency: *currency,
                                 units,
                                 cost: None,
                             }
@@ -419,7 +415,7 @@ pub(crate) fn positions_test(
                 init_tracing();
 
                 let mut actual_positions =
-                    Positions::<Date, Decimal, &parser::Currency, &str>::default();
+                    Positions::<&parser::Spanned<parser::Posting>>::default();
                 for Position {
                     currency,
                     units,

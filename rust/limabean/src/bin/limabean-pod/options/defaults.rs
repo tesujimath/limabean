@@ -1,5 +1,5 @@
 // TODO remove dead code suppression
-#![allow(dead_code, unused_variables)]
+#![allow(dead_code)]
 
 // Since 0.14.0 beancount-parser-lima no longer provides default options
 

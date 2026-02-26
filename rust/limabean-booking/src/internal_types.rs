@@ -1,67 +1,7 @@
-// TODO remove dead code suppression
-#![allow(dead_code, unused_variables)]
-
-use hashbrown::{hash_map::Entry, HashMap};
+use hashbrown::{HashMap, hash_map::Entry};
 use std::{fmt::Debug, hash::Hash, ops::Deref};
 
-use super::{Cost, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
-
-///
-/// A list of positions for a currency satisfying these invariants:
-/// 1. If there is a simple position without cost, it occurs first in the list
-/// 2. All other positions are unique w.r.t cost.(currency, date, label)
-/// 3. Sort order of these is by date then currency then label.
-/// 4. All positions are non-empty.
-#[derive(PartialEq, Eq, Default, Debug)]
-pub(crate) struct CurrencyPositions<D, N, C, L>(Vec<CurrencyPosition<D, N, C, L>>)
-where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone;
-
-impl<D, N, C, L> Deref for CurrencyPositions<D, N, C, L>
-where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
-{
-    type Target = Vec<CurrencyPosition<D, N, C, L>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(PartialEq, Eq, Clone, Debug)]
-/// CurrencyPosition for implicit currency, which is kept externally
-pub(crate) struct CurrencyPosition<D, N, C, L>
-where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
-{
-    units: N,
-    cost: Option<Cost<D, N, C, L>>,
-}
-
-impl<D, N, C, L> CurrencyPosition<D, N, C, L>
-where
-    D: Copy,
-    N: Copy,
-    C: Clone,
-    L: Clone,
-{
-    pub(crate) fn is_below(&self, threshold: N) -> bool
-    where
-        N: Number + Ord,
-    {
-        // TODO ensure that costs are not left below threshold
-        self.units.abs() <= threshold && self.cost.is_none()
-    }
-}
+use super::{BookingTypes, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
 
 #[derive(Debug)]
 pub(crate) struct HashMapOfVec<K, V>(HashMap<K, Vec<V>>);
@@ -145,21 +85,23 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum BookedOrUnbookedPosting<P>
+pub(crate) enum BookedOrUnbookedPosting<B, P>
 where
-    P: PostingSpec,
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
 {
-    Booked(Interpolated<P, P::Date, P::Number, P::Currency, P::Label>),
-    Unbooked(AnnotatedPosting<P, P::Currency>),
+    Booked(Interpolated<B, P>),
+    Unbooked(AnnotatedPosting<P, B::Currency>),
 }
 
-impl<P> BookedOrUnbookedPosting<P>
+impl<B, P> BookedOrUnbookedPosting<B, P>
 where
-    P: PostingSpec,
+    B: BookingTypes,
+    P: PostingSpec<Types = B>,
 {
     // determine the weight of a posting
     // https://beancount.github.io/docs/beancount_language_syntax.html#balancing-rule-the-weight-of-postings
-    pub(crate) fn weight(&self) -> Option<P::Number> {
+    pub(crate) fn weight(&self) -> Option<B::Number> {
         use BookedOrUnbookedPosting::*;
 
         match self {
@@ -181,7 +123,6 @@ where
                         (Some(price_total), _, _) => Some(price_total),
                         (None, Some(price_per_unit), Some(units)) => {
                             let weight = (price_per_unit * units).rescaled(units.scale());
-                            tracing::debug!("weight {weight} from price_per_unit {price_per_unit} units {units}");
                             Some(weight)
                         }
                         _ => None,
