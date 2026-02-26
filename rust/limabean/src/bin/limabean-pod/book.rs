@@ -270,7 +270,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
         Ok(DirectiveVariant::Transaction(Transaction {
             postings,
-            prices,
+            _prices: prices,
             auto_accounts,
         }))
     }

@@ -22,7 +22,8 @@ pub(crate) enum DirectiveVariant<'a> {
 #[derive(Clone, Debug)]
 pub(crate) struct Transaction<'a> {
     pub(crate) postings: Vec<Posting<'a>>,
-    pub(crate) prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
+    // TODO use for implicit prices plugin if enabled
+    pub(crate) _prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
     pub(crate) auto_accounts: HashSet<&'a str>,
 }
 
