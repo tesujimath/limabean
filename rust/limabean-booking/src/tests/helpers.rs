@@ -162,7 +162,7 @@ fn ordinal(i: usize) -> String {
 fn book_and_check_error<'a, 'b, T>(
     date: Date,
     postings: &[&'a parser::Spanned<parser::Posting<'a>>],
-    inventory: &mut Inventory<&'a parser::Spanned<parser::Posting<'a>>>,
+    inventory: &mut Inventory<LimaParserBookingTypes<'a>>,
     tolerance: &'b T,
     method: Booking,
     expected_err: Option<&BookingError>,
@@ -197,7 +197,7 @@ where
 }
 
 fn check_inventory_as_expected<'a, 'b, T>(
-    actual_inventory: Inventory<&'a parser::Spanned<parser::Posting<'a>>>,
+    actual_inventory: Inventory<LimaParserBookingTypes<'a>>,
     directives: &'a [parser::Spanned<parser::Directive<'a>>],
     tolerance: &'b T,
     method: Booking,
