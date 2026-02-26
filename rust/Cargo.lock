@@ -607,7 +607,7 @@ dependencies = [
 
 [[package]]
 name = "limabean-booking"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "beancount-parser-lima",
  "hashbrown 0.15.5",
