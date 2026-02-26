@@ -484,7 +484,7 @@ where
                 let position = self.get_mut(i).unwrap();
                 position.units += units;
             }
-            (Ok(i), Some(cost)) => {
+            (Ok(i), Some(_cost)) => {
                 let position = self.get_mut(i).unwrap();
                 position.units += units;
             }

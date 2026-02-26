@@ -180,8 +180,7 @@ impl<'a> Tolerance for &parser::Options<'a> {
         let residual = s.sum;
         let abs_residual = residual.abs();
 
-        // TODO remove result
-        let result = if let Some(min_nonzero_scale) = s.min_nonzero_scale.as_ref() {
+        if let Some(min_nonzero_scale) = s.min_nonzero_scale.as_ref() {
             (abs_residual >= Decimal::new(1, *min_nonzero_scale) * multiplier).then_some(residual)
         } else {
             // TODO should we have kept currency as a parser::Currency all along, to avoid extra validation here??
@@ -195,9 +194,7 @@ impl<'a> Tolerance for &parser::Options<'a> {
             } else {
                 (!residual.is_zero()).then_some(residual)
             }
-        };
-
-        result
+        }
     }
 }
 
