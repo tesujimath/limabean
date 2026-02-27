@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use super::{booking_test_err, booking_test_ok, Booking, BookingError, PostingBookingError};
+use super::{Booking, BookingError, PostingBookingError, booking_test_err, booking_test_ok};
 
 // These tests were lifted from:
 // https://github.com/beancount/beancount/blob/master/beancount/parser/booking_full_test.py
@@ -92,20 +92,19 @@ fn test_augment__from_empty__incomplete_cost__empty() {
 
 #[test]
 fn test_augment__from_empty__incomplete_cost__with_currency() {
-    booking_test_err(
+    booking_test_ok(
         r#"
 2015-10-01 * #apply
   Assets:Account          1 HOOL {USD}
 
-2015-10-01 * #booked
+; ANOMALY: added ex
+2015-10-01 * #ex #booked
   Assets:Account          1 HOOL {0 USD, 2015-10-01}
 
 2015-10-01 * #reduced
   'S Assets:Account       1 HOOL {USD, 2015-10-01}
 "#,
         Booking::Strict,
-        // ANOMALY: original test was different, but this seems correct to me
-        BookingError::Posting(0, PostingBookingError::CannotInferUnits),
     );
 }
 

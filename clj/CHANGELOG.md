@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file. This change
 
 - plugin "beancount.plugins.implicit_prices" is now supported #38
 
+### Fixed
+
+- inference of cost-per-unit from posting weight is now supported #42
+
 [commit log]: https://github.com/tesujimath/limabean/compare/0.2.7...HEAD
 
 ## [0.2.7] - 2026-02-23

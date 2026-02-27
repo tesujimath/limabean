@@ -21,8 +21,12 @@ impl Number for rust_decimal::Decimal {
         rust_decimal::Decimal::ZERO
     }
 
+    fn checked_div(self, other: Self) -> Option<Self> {
+        self.checked_div(other)
+    }
+
     fn scale(&self) -> u32 {
-        self.scale()
+        rust_decimal::Decimal::scale(self)
     }
 
     fn rescaled(self, scale: u32) -> Self {
