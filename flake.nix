@@ -42,12 +42,16 @@
             just
 
             cargo
-            gcc
 
             clojure
             neil
             git
-          ];
+          ] ++ (lib.optionals (builtins.match ".*-linux" system != null) [
+            gcc
+          ]) ++ (lib.optionals (builtins.match ".*-darwin" system != null) [
+            clang
+            libiconv
+          ]);
 
           version = (builtins.fromTOML (builtins.readFile ./rust/limabean/Cargo.toml)).package.version;
           limabean =
