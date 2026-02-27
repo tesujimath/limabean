@@ -63,13 +63,8 @@ impl<'a> Transaction<'a> {
             let mut auto_accounts = self.auto_accounts.iter().collect::<Vec<_>>();
             auto_accounts.sort();
 
-            // ugh
             for account in auto_accounts {
-                write!(
-                    f,
-                    "{} open {}{}auto: TRUE{}{}",
-                    date, account, NEWLINE_INDENT, NEWLINE, NEWLINE
-                )?;
+                fmt_open(f, date, account, true)?;
             }
         }
 
@@ -102,6 +97,16 @@ impl<'a> Transaction<'a> {
         }
 
         Ok(())
+    }
+}
+
+fn fmt_open(f: &mut Formatter<'_>, date: Date, account: &str, auto: bool) -> fmt::Result {
+    write!(f, "{} open {}", date, account)?;
+
+    if auto {
+        write!(f, "{}auto: TRUE{}", NEWLINE_INDENT, DOUBLE_NEWLINE)
+    } else {
+        f.write_str(DOUBLE_NEWLINE)
     }
 }
 

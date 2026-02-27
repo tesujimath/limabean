@@ -132,14 +132,8 @@ impl<'a> FmtEdn
             let mut auto_accounts = loaded.auto_accounts.iter().collect::<Vec<_>>();
             auto_accounts.sort();
 
-            // ugh
             for account in auto_accounts {
-                map_begin(f)?;
-                (Keyword::Date, date, Flush).fmt_edn(f)?;
-                (Keyword::Directive, Keyword::Open, Spaced).fmt_edn(f)?;
-                (Keyword::Account, *account, Spaced).fmt_edn(f)?;
-                // TODO auto:TRUE in metadata
-                map_end(f)?;
+                fmt_open(f, date, account, empty(), None, true)?;
             }
         }
 
@@ -257,27 +251,41 @@ impl<'a> FmtEdn for (Date, &parser::Balance<'a>) {
 
 impl<'a> FmtEdn for (Date, &parser::Open<'a>) {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
-        use Separator::*;
-
         let (date, parsed) = self;
-        map_begin(f)?;
-        (Keyword::Date, date, Flush).fmt_edn(f)?;
-        (Keyword::Directive, Keyword::Open, Spaced).fmt_edn(f)?;
-        (Keyword::Account, parsed.account().item().as_ref(), Spaced).fmt_edn(f)?;
-        let mut currencies = parsed.currencies().peekable();
-        if currencies.peek().is_some() {
-            (
-                Keyword::Currencies,
-                EdnSet(currencies.map(|cur| *cur.item())),
-                Spaced,
-            )
-                .fmt_edn(f)?;
-        }
-        if let Some(booking) = parsed.booking() {
-            (Keyword::Booking, *booking.item(), Spaced).fmt_edn(f)?;
-        }
-        map_end(f)
+        fmt_open(
+            f,
+            date,
+            parsed.account().item().as_ref(),
+            parsed.currencies().map(|cur| cur.item()),
+            parsed.booking().map(|booking| *booking.item()),
+            false,
+        )
     }
+}
+
+fn fmt_open<'a>(
+    f: &mut Formatter<'_>,
+    date: Date,
+    account: &str,
+    currencies: impl Iterator<Item = &'a parser::Currency<'a>>,
+    booking: Option<parser::Booking>,
+    // TODO: metadata, so we can write auto: TRUE for implicit prices
+    _auto: bool,
+) -> fmt::Result {
+    use Separator::*;
+
+    map_begin(f)?;
+    (Keyword::Date, date, Flush).fmt_edn(f)?;
+    (Keyword::Directive, Keyword::Open, Spaced).fmt_edn(f)?;
+    (Keyword::Account, account, Spaced).fmt_edn(f)?;
+    let mut currencies = currencies.peekable();
+    if currencies.peek().is_some() {
+        (Keyword::Currencies, EdnSet(currencies.copied()), Spaced).fmt_edn(f)?;
+    }
+    if let Some(booking) = booking {
+        (Keyword::Booking, booking, Spaced).fmt_edn(f)?;
+    }
+    map_end(f)
 }
 
 impl<'a> FmtEdn for (Date, &parser::Close<'a>) {

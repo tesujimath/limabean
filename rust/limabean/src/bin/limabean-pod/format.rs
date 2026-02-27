@@ -74,6 +74,7 @@ where
 pub(crate) const EMPTY: &str = "";
 pub(crate) const SPACE: &str = " ";
 pub(crate) const NEWLINE: &str = "\n";
+pub(crate) const DOUBLE_NEWLINE: &str = "\n\n";
 pub(crate) const NEWLINE_INDENT: &str = "\n  ";
 
 pub(crate) const GUTTER_MINOR: &str = " ";
