@@ -1,4 +1,5 @@
 use beancount_parser_lima as parser;
+use rust_decimal::Decimal;
 use std::fmt::{self, Display, Formatter};
 use time::Date;
 
@@ -88,11 +89,7 @@ impl<'a> Transaction<'a> {
             let mut prices = self.prices.iter().collect::<Vec<_>>();
             prices.sort();
             for (cur, price_cur, price_per_unit) in &prices {
-                write!(
-                    f,
-                    "{}{} price {} {} {}{}implicit: TRUE{}",
-                    NEWLINE, date, cur, price_per_unit, price_cur, NEWLINE_INDENT, NEWLINE
-                )?;
+                fmt_price(f, date, *cur, *price_cur, *price_per_unit, true)?;
             }
         }
 
@@ -107,6 +104,27 @@ fn fmt_open(f: &mut Formatter<'_>, date: Date, account: &str, auto: bool) -> fmt
         write!(f, "{}auto: TRUE{}", NEWLINE_INDENT, DOUBLE_NEWLINE)
     } else {
         f.write_str(DOUBLE_NEWLINE)
+    }
+}
+
+fn fmt_price(
+    f: &mut Formatter<'_>,
+    date: Date,
+    cur: parser::Currency,
+    price_cur: parser::Currency,
+    price_per_unit: Decimal,
+    implicit: bool,
+) -> fmt::Result {
+    write!(
+        f,
+        "{}{} price {} {} {}",
+        NEWLINE, date, cur, price_per_unit, price_cur
+    )?;
+
+    if implicit {
+        write!(f, "{}implicit: TRUE{}", NEWLINE_INDENT, NEWLINE)
+    } else {
+        f.write_str(NEWLINE)
     }
 }
 
