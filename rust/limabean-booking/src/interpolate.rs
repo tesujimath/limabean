@@ -221,6 +221,13 @@ where
     B: BookingTypes,
     CS: CostSpec<Types = B> + Debug,
 {
+    tracing::debug!(
+        "units_from_cost_spec weight {}, posting-units {:?}, cost-per-unit {:?}, cost-total {:?}",
+        weight,
+        posting_units,
+        cost_spec.per_unit(),
+        cost_spec.total()
+    );
     match (posting_units, cost_spec.per_unit(), cost_spec.total()) {
         (Some(units), Some(per_unit), _) => Some(UnitsAndPerUnit {
             units,
