@@ -78,11 +78,16 @@ where
                     }
 
                     match format {
-                        Format::Beancount => {
-                            write_booked_as_beancount(&directives, &options, out_w)
+                        Format::Beancount => write_booked_as_beancount(
+                            &directives,
+                            &options,
+                            &internal_plugins,
+                            out_w,
+                        ),
+                        Format::Edn => {
+                            write_booked_as_edn(&directives, &options, &internal_plugins, out_w)
+                                .map_err(Into::<crate::Error>::into)
                         }
-                        Format::Edn => write_booked_as_edn(&directives, &options, out_w)
-                            .map_err(Into::<crate::Error>::into),
                     }
                 }
                 Err(LoadError { errors, .. }) => {
@@ -270,7 +275,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
         Ok(DirectiveVariant::Transaction(Transaction {
             postings,
-            _prices: prices,
+            prices,
             auto_accounts,
         }))
     }

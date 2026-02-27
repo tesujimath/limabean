@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Added
+
+- plugin "beancount.plugins.implicit_prices" is now supported #38
+
 [commit log]: https://github.com/tesujimath/limabean/compare/0.2.7...HEAD
 
 ## [0.2.7] - 2026-02-23
