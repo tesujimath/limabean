@@ -200,7 +200,6 @@ where
     B: BookingTypes,
     P: PostingSpec<Types = B>,
 {
-    // TODO review unit inference from cost and price and weight
     if let Some(cost_spec) = posting.cost() {
         units_from_cost_spec(posting.units(), weight, &cost_spec)
     } else if let Some(price_spec) = posting.price() {
@@ -241,11 +240,14 @@ where
                 per_unit: Some(per_unit),
             })
         }
-        (Some(units), None, None) => Some(UnitsAndPerUnit {
-            units,
-            per_unit: None,
-        }),
-        (None, None, _) => None, // TODO is this correct?
+        (Some(units), None, None) => {
+            let per_unit = weight / units;
+            Some(UnitsAndPerUnit {
+                units,
+                per_unit: Some(per_unit),
+            })
+        }
+        (None, None, _) => None,
     }
 }
 
