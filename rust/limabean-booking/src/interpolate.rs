@@ -227,26 +227,18 @@ where
             per_unit: Some(per_unit),
         }),
         (None, Some(per_unit), _) => {
-            let units = (weight / per_unit).rescaled(weight.scale());
-            Some(UnitsAndPerUnit {
-                units,
-                per_unit: Some(per_unit),
-            })
+            if let Some(units) = weight.checked_div(per_unit) {
+                let units = units.rescaled(weight.scale());
+                Some(UnitsAndPerUnit {
+                    units,
+                    per_unit: Some(per_unit),
+                })
+            } else {
+                None
+            }
         }
-        (Some(units), None, Some(cost_total)) => {
-            let per_unit = cost_total / units;
-            Some(UnitsAndPerUnit {
-                units,
-                per_unit: Some(per_unit),
-            })
-        }
-        (Some(units), None, None) => {
-            let per_unit = weight / units;
-            Some(UnitsAndPerUnit {
-                units,
-                per_unit: Some(per_unit),
-            })
-        }
+        (Some(units), None, Some(cost_total)) => infer_per_unit::<B>(cost_total, units),
+        (Some(units), None, None) => infer_per_unit::<B>(weight, units),
         (None, None, _) => None,
     }
 }
@@ -266,26 +258,27 @@ where
             per_unit: Some(per_unit),
         }),
         (None, Some(per_unit), _) => {
-            let units = (weight / per_unit).rescaled(weight.scale());
-            Some(UnitsAndPerUnit {
-                units,
-                per_unit: Some(per_unit),
-            })
+            if let Some(units) = weight.checked_div(per_unit) {
+                let units = units.rescaled(weight.scale());
+                Some(UnitsAndPerUnit {
+                    units,
+                    per_unit: Some(per_unit),
+                })
+            } else {
+                None
+            }
         }
-        (Some(units), None, Some(total)) => {
-            let per_unit = total / units;
-            Some(UnitsAndPerUnit {
-                units,
-                per_unit: Some(per_unit),
-            })
-        }
-        (Some(units), None, None) => {
-            let per_unit = weight / units;
-            Some(UnitsAndPerUnit {
-                units,
-                per_unit: Some(per_unit),
-            })
-        }
+        (Some(units), None, Some(price_total)) => infer_per_unit::<B>(price_total, units),
+        (Some(units), None, None) => infer_per_unit::<B>(weight, units),
         (None, None, _) => None,
     }
+}
+
+fn infer_per_unit<B>(total: B::Number, units: B::Number) -> Option<UnitsAndPerUnit<B::Number>>
+where
+    B: BookingTypes,
+{
+    let per_unit = total.checked_div(units);
+    // TODO scale according to tolerance
+    Some(UnitsAndPerUnit { units, per_unit })
 }

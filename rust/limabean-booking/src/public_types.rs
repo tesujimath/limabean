@@ -4,7 +4,7 @@ use std::{
     fmt::{Debug, Display},
     hash::Hash,
     iter::{Sum, repeat},
-    ops::{Add, AddAssign, Deref, Div, Mul, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Deref, Mul, Neg, Sub, SubAssign},
 };
 use strum_macros::Display;
 
@@ -348,7 +348,6 @@ pub trait Number:
     + SubAssign
     + Neg<Output = Self>
     + Mul<Output = Self>
-    + Div<Output = Self>
     + Sum
     + Eq
     + Ord
@@ -361,6 +360,8 @@ pub trait Number:
     fn sign(&self) -> Option<Sign>;
 
     fn zero() -> Self;
+
+    fn checked_div(self, other: Self) -> Option<Self>;
 
     // Returns the scale of the decimal number, otherwise known as e.
     fn scale(&self) -> u32;
