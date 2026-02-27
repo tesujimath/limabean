@@ -26,7 +26,7 @@
     (alter-var-root #'*registry*
                     (constantly (registry/build directives options)))))
 
-(defn split-args-and-opts
+(defn- split-args-and-opts
   "Return a list of args and hashmap of opts, by splitting on the first keyword."
   [args-and-opts]
   (let [[args opts] (split-with (complement keyword?) args-and-opts)]
@@ -38,6 +38,11 @@
                       {:user-error "expected alternating keyword/options"})))
     [args (apply hash-map opts)]))
 
+(defn- join-args-and-opts
+  "Splice them back together again."
+  [args opts]
+  (concat args (mapcat identity opts)))
+
 (defn load-beanfile
   [path]
   (assign-limabean-globals {})
@@ -47,7 +52,7 @@
     (println "[limabean]" (count *directives*) "directives loaded from" path))
   :ok)
 
-(defn postings
+(defn- postings
   [args]
   (let [[filters opts] (split-args-and-opts args)]
     (eduction (comp (xf/postings) (xf/all-of filters))
@@ -82,9 +87,10 @@
   [& args]
   (let [[filters opts] (split-args-and-opts args)]
     (apply inventory
-      (conj filters
-            (f/sub-acc (:name-assets *options*) (:name-liabilities *options*))
-            opts))))
+      (join-args-and-opts (conj filters
+                                (f/sub-acc (:name-assets *options*)
+                                           (:name-liabilities *options*)))
+                          opts))))
 
 (defn journal
   "Build a journal of postings from `*directives*` with running balance.
