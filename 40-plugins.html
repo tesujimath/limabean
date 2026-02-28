@@ -12,5 +12,40 @@
 <p>As described above, the plugin <code>limabean.balance_rollup</code> modifies the behaviour of the <code>balance</code> directive.</p>
 <h2><a href="#user-provided-code" id="user-provided-code"></a>User-provided code</h2>
 <p>The user may provide their own Clojure code.  The environment variable <code>LIMABEAN_USER_CLJ</code> is a colon-separated list of Clojure source files, which are loaded in order, and made available in the REPL.</p>
-<p>For example, see the <a href="../../examples/clj/user.clj">user-supplied <code>fy</code> function</a> for a customized financial year filter.</p>
+<p>For a very simple example, see the <a href="../../examples/clj/user.clj">user-supplied <code>fy</code> function</a> for a customized financial year filter.</p>
+<p>For an example of inserting additional directives, see the <a href="../../examples/clj/user.clj">user-supplied <code>magic-money-xf</code> function</a>.  This inserts a transaction after every <code>open</code> directive to add some money to the account, from a specified equity account.</p>
+<pre><code>user=&gt; (show (journal))
+2023-05-29  Expenses:Groceries   New World     10.00  NZD  10.00 NZD
+2023-05-29  Assets:Bank:Current  New World    -10.00  NZD
+2023-05-30  Expenses:Groceries   Countdown     17.50  NZD  17.50 NZD
+2023-05-30  Assets:Bank:Current  Countdown    -17.50  NZD
+:ok
+
+user=&gt; (def directives-with-magical (into [] (magic-money-xf) *directives* ))    ;; using default values for magic money
+
+user=&gt; (show (journal :directives directives-with-magical))
+2016-03-01  Equity:Magic                               -100.00  NZD  -100.00 NZD
+2016-03-01  Assets:Bank:Current  magical benefactor     100.00  NZD
+2016-03-01  Equity:Magic                               -100.00  NZD  -100.00 NZD
+2016-03-01  Expenses:Groceries   magical benefactor     100.00  NZD
+2023-05-29  Expenses:Groceries   New World               10.00  NZD    10.00 NZD
+2023-05-29  Assets:Bank:Current  New World              -10.00  NZD
+2023-05-30  Expenses:Groceries   Countdown               17.50  NZD    17.50 NZD
+2023-05-30  Assets:Bank:Current  Countdown              -17.50  NZD
+:ok
+
+user=&gt; (def directives-with-magical-us(into [] (magic-money-xf {:units 1000.00M :cur "USD" :acc "Equity:Rich-American-Uncle"}) *directives*))
+
+user=&gt; (show (journal :directives directives-with-magical-us))
+2016-03-01  Equity:Rich-American-Uncle                        -1000.00  USD  -1000.00 USD
+2016-03-01  Assets:Bank:Current         magical benefactor     1000.00  USD
+2016-03-01  Equity:Rich-American-Uncle                        -1000.00  USD  -1000.00 USD
+2016-03-01  Expenses:Groceries          magical benefactor     1000.00  USD
+2023-05-29  Expenses:Groceries          New World                10.00  NZD     10.00 NZD
+2023-05-29  Assets:Bank:Current         New World               -10.00  NZD
+2023-05-30  Expenses:Groceries          Countdown                17.50  NZD     17.50 NZD
+2023-05-30  Assets:Bank:Current         Countdown               -17.50  NZD
+:ok
+</code></pre>
+<p>Using the Clojure REPL, the pre-defined variable <code>*directives*</code> and the user-defined <code>directives-with-magical</code> may easily be compared.</p>
 </div></div></div></body></html>
