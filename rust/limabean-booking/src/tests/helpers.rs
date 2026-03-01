@@ -414,8 +414,7 @@ pub(crate) fn positions_test(
 
                 init_tracing();
 
-                let mut actual_positions =
-                    Positions::<&parser::Spanned<parser::Posting>>::default();
+                let mut actual_positions = Positions::<LimaParserBookingTypes>::default();
                 for Position {
                     currency,
                     units,
