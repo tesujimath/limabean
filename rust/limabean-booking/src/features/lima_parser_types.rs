@@ -1,17 +1,20 @@
+use std::marker::PhantomData;
+
 use super::{Booking, BookingTypes, CostSpec, PostingSpec, PriceSpec, Tolerance, ToleranceNumber};
 use beancount_parser_lima as parser;
 use rust_decimal::Decimal;
 use time::Date;
 
-impl<'a> BookingTypes for &'a parser::Spanned<parser::Posting<'a>> {
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct LimaParserBookingTypes<'a>(PhantomData<&'a str>);
+
+impl<'a> BookingTypes for LimaParserBookingTypes<'a> {
     type Account = &'a str;
     type Date = time::Date;
     type Currency = parser::Currency<'a>;
     type Number = Decimal;
     type Label = &'a str;
 }
-
-pub type LimaParserBookingTypes<'a> = &'a parser::Spanned<parser::Posting<'a>>;
 
 impl<'a> PostingSpec for &'a parser::Spanned<parser::Posting<'a>> {
     type Types = LimaParserBookingTypes<'a>;
