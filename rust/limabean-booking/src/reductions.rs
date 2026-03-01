@@ -1,7 +1,7 @@
 use hashbrown::{HashMap, HashSet};
 use std::{fmt::Debug, iter::once};
 
-use crate::BookingTypes;
+use crate::{BookingTypes, tolerance_residual};
 
 use super::{
     AnnotatedPosting, BookedOrUnbookedPosting, Booking, BookingError, Cost, CostSpec, Interpolated,
@@ -21,14 +21,14 @@ where
 
 pub(crate) fn book_reductions<'a, B, P, T, I, M>(
     annotateds: Vec<AnnotatedPosting<P, B::Currency>>,
-    tolerance: &T,
+    tolerance: T,
     inventory: I,
     method: M,
 ) -> Result<Reductions<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
-    T: Tolerance<Types = B>,
+    T: Tolerance<Types = B> + Copy,
     I: Fn(B::Account) -> Option<&'a Positions<B>> + Copy,
     M: Fn(B::Account) -> Booking + Copy,
 {
@@ -70,7 +70,7 @@ where
 
 fn reduce<'a, B, P, T>(
     annotated: AnnotatedPosting<P, B::Currency>,
-    tolerance: &T,
+    tolerance: T,
     method: Booking,
     previous_positions: Option<&Positions<B>>,
 ) -> Result<Reduced<B, P>, BookingError>
@@ -258,13 +258,14 @@ fn is_sell_all_at_cost<B, T>(
     posting_currency: &B::Currency,
     positions: &Positions<B>,
     matched: &[usize],
-    tolerance: &T,
+    tolerance: T,
 ) -> bool
 where
     B: BookingTypes,
     T: Tolerance<Types = B>,
 {
-    let tol = tolerance.residual(
+    let tol = tolerance_residual(
+        tolerance,
         matched
             .iter()
             .map(|i| positions[*i].units)

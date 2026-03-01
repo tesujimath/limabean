@@ -324,16 +324,19 @@ where
     pub price: Option<Price<B>>,
 }
 
-/// The interface used by the booking algorithm for querying the tolerance for a given currency.
 pub trait Tolerance: Clone + Debug {
     type Types: BookingTypes;
 
-    /// compute residual, ignoring sums which are tolerably small
-    fn residual(
+    /// The default tolerance for a given currency.
+    fn inferred_tolerance_default(
         &self,
-        values: impl Iterator<Item = ToleranceNumber<Self>>,
         cur: &ToleranceCurrency<Self>,
     ) -> Option<ToleranceNumber<Self>>;
+
+    /// The default tolerance for any other currency not specified above.
+    fn inferred_tolerance_default_fallback(&self) -> Option<ToleranceNumber<Self>>;
+
+    fn inferred_tolerance_multiplier(&self) -> Option<ToleranceNumber<Self>>;
 }
 
 pub type ToleranceNumber<T> = <<T as Tolerance>::Types as BookingTypes>::Number;
@@ -360,6 +363,8 @@ pub trait Number:
     fn sign(&self) -> Option<Sign>;
 
     fn zero() -> Self;
+
+    fn new(m: i64, scale: u32) -> Self;
 
     fn checked_div(self, other: Self) -> Option<Self>;
 

@@ -33,5 +33,8 @@ pub use public_types::{
 mod reductions;
 pub(crate) use reductions::{Reductions, book_reductions};
 
+mod tolerance;
+pub(crate) use tolerance::tolerance_residual;
+
 #[cfg(test)]
 mod tests;

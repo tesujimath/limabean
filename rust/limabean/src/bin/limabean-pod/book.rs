@@ -181,7 +181,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     pub(crate) fn collect<I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
         I: IntoIterator<Item = &'a Spanned<parser::Directive<'a>>>,
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let mut errors = Vec::default();
 
@@ -207,7 +207,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         directive: &'a Spanned<parser::Directive<'a>>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         use parser::DirectiveVariant::*;
 
@@ -237,7 +237,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let description = transaction.payee().map_or_else(
             || {
@@ -288,12 +288,12 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         description: &'a str,
     ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         match limabean_booking::book(
             date,
             postings,
-            &self.tolerance,
+            self.tolerance,
             |accname| self.accounts.get(accname).map(|acc| &acc.positions),
             |accname| {
                 self.accounts

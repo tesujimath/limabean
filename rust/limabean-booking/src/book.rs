@@ -30,14 +30,14 @@ pub fn is_supported_method(method: Booking) -> bool {
 pub fn book<'a, 'b, B, P, T, I, M>(
     date: B::Date,
     postings: &[P],
-    tolerance: &'b T,
+    tolerance: T,
     inventory: I,
     method: M,
 ) -> Result<Bookings<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
-    T: Tolerance<Types = B>,
+    T: Tolerance<Types = B> + Copy,
     I: Fn(B::Account) -> Option<&'b Positions<B>> + Copy,
     M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
@@ -78,14 +78,14 @@ where
 pub(crate) fn book_with_residuals<'a, 'b, B, P, T, I, M>(
     date: B::Date,
     postings: &[P],
-    tolerance: &'b T,
+    tolerance: T,
     inventory: I,
     method: M,
 ) -> Result<BookingsAndResiduals<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
-    T: Tolerance<Types = B>,
+    T: Tolerance<Types = B> + Copy,
     I: Fn(B::Account) -> Option<&'b Positions<B>> + Copy,
     M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,
@@ -157,7 +157,7 @@ fn book_currency_group<'a, 'b, B, P, T, I, M>(
     date: B::Date,
     cur: B::Currency,
     annotated_postings: Vec<AnnotatedPosting<P, B::Currency>>,
-    tolerance: &'b T,
+    tolerance: T,
     inventory: I,
     method: M,
     accumulator: &mut BookingAccumulator<B, P>,
@@ -165,7 +165,7 @@ fn book_currency_group<'a, 'b, B, P, T, I, M>(
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
-    T: Tolerance<Types = B>,
+    T: Tolerance<Types = B> + Copy,
     I: Fn(B::Account) -> Option<&'b Positions<B>> + Copy,
     M: Fn(B::Account) -> Booking + Copy,
     'a: 'b,

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use super::{
     AnnotatedPosting, BookedOrUnbookedPosting, BookingError, BookingTypes, CostSpec, Interpolated,
     Number, PostingBookingError, PostingCost, PostingCosts, PostingSpec, Price, PriceSpec,
-    Tolerance, TransactionBookingError,
+    Tolerance, TransactionBookingError, tolerance_residual,
 };
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ pub(crate) fn interpolate_from_costed<'a, 'b, B, P, T>(
     date: B::Date,
     currency: &B::Currency,
     costeds: Vec<BookedOrUnbookedPosting<B, P>>,
-    tolerance: &T,
+    tolerance: T,
 ) -> Result<Interpolation<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
@@ -32,7 +32,7 @@ where
     T: Tolerance<Types = B>,
 {
     let mut weights = costeds.iter().map(|c| c.weight()).collect::<Vec<_>>();
-    let mut residual = tolerance.residual(weights.iter().filter_map(|w| *w), currency);
+    let mut residual = tolerance_residual(tolerance, weights.iter().filter_map(|w| *w), currency);
 
     let unknown = weights
         .iter()
