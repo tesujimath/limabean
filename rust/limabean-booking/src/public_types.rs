@@ -327,14 +327,12 @@ where
 pub trait Tolerance: Clone + Debug {
     type Types: BookingTypes;
 
-    /// The default tolerance for a given currency.
+    /// The default tolerance for a given currency,
+    /// returning the fallback value if that particular currency was not specified.
     fn inferred_tolerance_default(
         &self,
         cur: &ToleranceCurrency<Self>,
     ) -> Option<ToleranceNumber<Self>>;
-
-    /// The default tolerance for any other currency not specified above.
-    fn inferred_tolerance_default_fallback(&self) -> Option<ToleranceNumber<Self>>;
 
     fn inferred_tolerance_multiplier(&self) -> Option<ToleranceNumber<Self>>;
 }

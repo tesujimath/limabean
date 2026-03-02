@@ -1,7 +1,7 @@
 use hashbrown::{HashMap, hash_map::Entry};
 use std::{fmt::Debug, hash::Hash, ops::Deref};
 
-use super::{BookingTypes, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
+use super::{BookingTypes, CostSpec, Interpolated, PostingSpec, PriceSpec};
 
 #[derive(Debug)]
 pub(crate) struct HashMapOfVec<K, V>(HashMap<K, Vec<V>>);

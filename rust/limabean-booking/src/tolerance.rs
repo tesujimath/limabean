@@ -25,9 +25,7 @@ where
     if let Some(min_nonzero_scale) = s.min_nonzero_scale.as_ref() {
         (abs_residual >= B::Number::new(1, *min_nonzero_scale) * multiplier).then_some(residual)
     } else {
-        let tolerance = tol
-            .inferred_tolerance_default(cur)
-            .or(tol.inferred_tolerance_default_fallback());
+        let tolerance = tol.inferred_tolerance_default(cur);
 
         if let Some(tolerance) = tolerance {
             (abs_residual > tolerance).then_some(residual)

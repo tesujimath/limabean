@@ -140,10 +140,7 @@ impl<'a> Tolerance for &parser::Options<'a> {
         currency: &<Self::Types as BookingTypes>::Currency,
     ) -> Option<<Self::Types as BookingTypes>::Number> {
         parser::Options::inferred_tolerance_default(self, currency)
-    }
-
-    fn inferred_tolerance_default_fallback(&self) -> Option<<Self::Types as BookingTypes>::Number> {
-        parser::Options::inferred_tolerance_default_fallback(self)
+            .or_else(|| parser::Options::inferred_tolerance_default_fallback(self))
     }
 
     fn inferred_tolerance_multiplier(&self) -> Option<<Self::Types as BookingTypes>::Number> {
