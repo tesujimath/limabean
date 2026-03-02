@@ -240,6 +240,7 @@ where
                         date: matched_cost.date,
                         units: posting_units,
                         per_unit: matched_cost.per_unit,
+                        total: matched_cost.total,
                         label: matched_cost.label.as_ref().cloned(),
                         merge: matched_cost.merge,
                     }],
@@ -392,6 +393,7 @@ where
             date: cost_i.date,
             units: consumed,
             per_unit: cost_i.per_unit,
+            total: cost_i.total,
             label: cost_i.label.as_ref().cloned(),
             merge: cost_i.merge,
         });
@@ -494,6 +496,7 @@ where
                 date: matched_cost.date,
                 units: -matched_position.units,
                 per_unit: matched_cost.per_unit,
+                total: matched_cost.total,
                 label: matched_cost.label,
                 merge: matched_cost.merge,
             }

@@ -10,10 +10,10 @@ use strum_macros::Display;
 
 pub trait BookingTypes: Clone + Debug {
     type Account: Eq + Hash + Clone + Display + Debug;
-    type Date: Eq + Ord + Copy + Display + Debug;
+    type Date: Eq + Hash + Ord + Copy + Display + Debug;
     type Currency: Eq + Hash + Ord + Clone + Display + Debug;
     type Number: Number + Display + Debug;
-    type Label: Eq + Ord + Clone + Display + Debug;
+    type Label: Eq + Hash + Ord + Clone + Display + Debug;
 }
 
 /// The interface which must be supported by a posting to be bookable.
@@ -122,6 +122,10 @@ where
 }
 
 /// A cost complete with any fields which were missing from its [CostSpec].
+///
+/// In addition to `per-unit` which is the natural representation, the `total`
+/// is also exposed, since this may be what the user originally specified in the
+/// beanfile, and ought to be preserved at its original precision.
 #[derive(Clone, Debug)]
 pub struct Cost<B>
 where
@@ -129,6 +133,7 @@ where
 {
     pub date: B::Date,
     pub per_unit: B::Number,
+    pub total: B::Number,
     pub currency: B::Currency,
     pub label: Option<B::Label>,
     pub merge: bool,
@@ -167,6 +172,20 @@ where
 }
 
 impl<B> Eq for Cost<B> where B: BookingTypes {}
+
+impl<B> Hash for Cost<B>
+where
+    B: BookingTypes,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.date.hash(state);
+        self.per_unit.hash(state);
+        self.total.hash(state);
+        self.currency.hash(state);
+        self.label.hash(state);
+        self.merge.hash(state);
+    }
+}
 
 impl<B> Ord for Cost<B>
 where
@@ -250,6 +269,7 @@ where
     pub date: B::Date,
     pub units: B::Number,
     pub per_unit: B::Number,
+    pub total: B::Number,
     pub label: Option<B::Label>,
     pub merge: bool,
 }
@@ -264,6 +284,7 @@ where
             PostingCost {
                 date,
                 units: _,
+                total,
                 per_unit,
                 label,
                 merge,
@@ -272,6 +293,7 @@ where
         Self {
             date,
             per_unit,
+            total,
             currency,
             label,
             merge,
@@ -280,12 +302,17 @@ where
 }
 
 /// A price complete with any fields which were missing from its [PriceSpec].
-#[derive(PartialEq, Eq, Clone, Debug)]
+///
+/// In addition to `per-unit` which is the natural representation, the `total`
+/// is also exposed, since this may be what the user originally specified in the
+/// beanfile, and ought to be preserved at its original precision.
+#[derive(Clone, Debug)]
 pub struct Price<B>
 where
     B: BookingTypes,
 {
     pub per_unit: B::Number,
+    pub total: Option<B::Number>,
     pub currency: B::Currency,
 }
 
@@ -295,6 +322,65 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "@ {} {}", &self.per_unit, &self.currency)
+    }
+}
+
+impl<B> PartialEq for Price<B>
+where
+    B: BookingTypes,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.per_unit == other.per_unit
+            && self.total == other.total
+            && self.currency == other.currency
+    }
+}
+
+impl<B> Eq for Price<B> where B: BookingTypes {}
+
+impl<B> Hash for Price<B>
+where
+    B: BookingTypes,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.per_unit.hash(state);
+        self.total.hash(state);
+        self.currency.hash(state);
+    }
+}
+impl<B> Ord for Price<B>
+where
+    B: BookingTypes,
+    B::Date: Ord,
+    B::Currency: Ord,
+    B::Number: Ord,
+    B::Label: Ord,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.currency.cmp(&other.currency) {
+            core::cmp::Ordering::Equal => {}
+            ord => return ord,
+        }
+
+        match self.per_unit.cmp(&other.per_unit) {
+            core::cmp::Ordering::Equal => {}
+            ord => return ord,
+        }
+
+        self.total.cmp(&other.total)
+    }
+}
+
+impl<B> PartialOrd for Price<B>
+where
+    B: BookingTypes,
+    B::Date: Ord,
+    B::Currency: Ord,
+    B::Number: Ord,
+    B::Label: Ord,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -351,6 +437,7 @@ pub trait Number:
     + Mul<Output = Self>
     + Sum
     + Eq
+    + Hash
     + Ord
     + Sized
     + Default

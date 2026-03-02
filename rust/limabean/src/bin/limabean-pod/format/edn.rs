@@ -153,8 +153,8 @@ impl<'a> FmtEdn
         if plugins.implicit_prices && !loaded.prices.is_empty() {
             let mut prices = loaded.prices.iter().collect::<Vec<_>>();
             prices.sort();
-            for (cur, price_cur, price_per_unit) in &prices {
-                fmt_price(f, date, *cur, *price_per_unit, *price_cur, true)?;
+            for (cur, price) in &prices {
+                fmt_price(f, date, *cur, price, true)?;
             }
         }
 
@@ -187,14 +187,12 @@ impl<'a> FmtEdn for (&Pad<'a>, Date, &parser::Pad<'a>) {
 impl<'a> FmtEdn for (Date, &parser::Price<'a>) {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
         let (date, parsed) = self;
-        fmt_price(
-            f,
-            date,
-            *parsed.currency().item(),
-            parsed.amount().number().value(),
-            *parsed.amount().currency().item(),
-            false,
-        )
+        let price = Price {
+            per_unit: parsed.amount().number().value(),
+            total: None,
+            currency: *parsed.amount().currency().item(),
+        };
+        fmt_price(f, date, *parsed.currency().item(), &price, false)
     }
 }
 
@@ -202,22 +200,17 @@ fn fmt_price<'a>(
     f: &mut Formatter<'_>,
     date: Date,
     cur: parser::Currency<'a>,
-    price_per_unit: Decimal,
-    price_cur: parser::Currency<'a>,
+    price: &Price<'a>,
     // TODO: metadata, so we can write implicit: TRUE for implicit prices
     _implicit: bool,
 ) -> fmt::Result {
     use Separator::*;
 
-    let price = Price {
-        per_unit: price_per_unit,
-        currency: price_cur,
-    };
     map_begin(f)?;
     (Keyword::Date, date, Flush).fmt_edn(f)?;
     (Keyword::Directive, Keyword::Price, Spaced).fmt_edn(f)?;
     (Keyword::Currency, cur.as_ref(), Spaced).fmt_edn(f)?;
-    (Keyword::Price, &price, Spaced).fmt_edn(f)?;
+    (Keyword::Price, price, Spaced).fmt_edn(f)?;
     map_end(f)
 }
 
@@ -414,6 +407,7 @@ impl<'a> FmtEdn for &Cost<'a> {
         map_begin(f)?;
         (Keyword::Date, self.date, Flush).fmt_edn(f)?;
         (Keyword::PerUnit, self.per_unit, Spaced).fmt_edn(f)?;
+        (Keyword::Total, self.total, Flush).fmt_edn(f)?;
         (Keyword::Currency, self.currency, Spaced).fmt_edn(f)?;
         if let Some(label) = self.label {
             (Keyword::Label, label, Spaced).fmt_edn(f)?;
@@ -431,6 +425,9 @@ impl<'a> FmtEdn for &Price<'a> {
 
         map_begin(f)?;
         (Keyword::PerUnit, self.per_unit, Flush).fmt_edn(f)?;
+        if let Some(total) = self.total {
+            (Keyword::Total, total, Spaced).fmt_edn(f)?;
+        }
         (Keyword::Currency, self.currency, Spaced).fmt_edn(f)?;
         map_end(f)
     }
@@ -767,6 +764,7 @@ enum Keyword {
     StrictWithSize,
     Title,
     Tolerance,
+    Total,
     #[strum(to_string = "txn")]
     Transaction,
     Transactions,

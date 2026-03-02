@@ -112,9 +112,17 @@ where
                 false,
             ))
         }
-        (Some(UnitsAndPerUnit { units, per_unit }), Some(currency), Some(cost), _) => {
+        (
+            Some(UnitsAndConversion {
+                units,
+                conversion: per_unit,
+            }),
+            Some(currency),
+            Some(cost),
+            _,
+        ) => {
             match (annotated.cost_currency, per_unit) {
-                (Some(cost_currency), Some(per_unit)) => Ok((
+                (Some(cost_currency), Some(conversion)) => Ok((
                     Interpolated {
                         posting: annotated.posting,
                         idx: annotated.idx,
@@ -125,7 +133,8 @@ where
                             adjustments: vec![PostingCost {
                                 date: cost.date().unwrap_or(date),
                                 units,
-                                per_unit,
+                                per_unit: conversion.per_unit,
+                                total: conversion.total,
                                 label: cost.label(),
                                 merge: cost.merge(),
                             }],
@@ -149,10 +158,10 @@ where
             }
         }
 
-        (Some(UnitsAndPerUnit { units, per_unit }), Some(currency), None, Some(_price)) => {
+        (Some(UnitsAndConversion { units, conversion }), Some(currency), None, Some(_price)) => {
             // price without cost
-            match (per_unit, annotated.price_currency) {
-                (Some(per_unit), Some(price_currency)) => Ok((
+            match (conversion, annotated.price_currency) {
+                (Some(conversion), Some(price_currency)) => Ok((
                     Interpolated {
                         posting: annotated.posting,
                         idx: annotated.idx,
@@ -160,7 +169,8 @@ where
                         currency,
                         cost: None,
                         price: Some(Price {
-                            per_unit,
+                            per_unit: conversion.per_unit,
+                            total: Some(conversion.total),
                             currency: price_currency,
                         }),
                     },
@@ -197,9 +207,15 @@ where
 }
 
 #[derive(Clone, Debug)]
-struct UnitsAndPerUnit<N> {
+struct UnitsAndConversion<N> {
     units: N,
-    per_unit: Option<N>,
+    conversion: Option<Conversion<N>>,
+}
+
+#[derive(Clone, Debug)]
+struct Conversion<N> {
+    per_unit: N,
+    total: N,
 }
 
 // infer the units once we know the weight
@@ -209,7 +225,7 @@ fn units<B, P, T>(
     currency: &B::Currency,
     annotated_currency: Option<&B::Currency>,
     tolerance: T,
-) -> Option<UnitsAndPerUnit<B::Number>>
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
     P: PostingSpec<Types = B>,
@@ -227,9 +243,9 @@ where
     } else if let Some(price_spec) = posting.price() {
         units_from_price_spec(posting.units(), weight, &price_spec, tolerance)
     } else {
-        posting.units().map(|units| UnitsAndPerUnit {
+        posting.units().map(|units| UnitsAndConversion {
             units,
-            per_unit: None,
+            conversion: None,
         })
     }
 }
@@ -239,7 +255,7 @@ fn units_from_cost_spec<B, CS, T>(
     weight: B::Number,
     cost_spec: &CS,
     tolerance: T,
-) -> Option<UnitsAndPerUnit<B::Number>>
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
     CS: CostSpec<Types = B> + Debug,
@@ -253,16 +269,20 @@ where
         cost_spec.total()
     );
     match (posting_units, cost_spec.per_unit(), cost_spec.total()) {
-        (Some(units), Some(per_unit), _) => Some(UnitsAndPerUnit {
-            units,
-            per_unit: Some(per_unit),
-        }),
-        (None, Some(per_unit), _) => {
+        (Some(units), Some(per_unit), total) => {
+            let total = total.unwrap_or(units * per_unit);
+            Some(UnitsAndConversion {
+                units,
+                conversion: Some(Conversion { per_unit, total }),
+            })
+        }
+        (None, Some(per_unit), total) => {
             if let Some(units) = weight.checked_div(per_unit) {
                 let units = units.rescaled(weight.scale());
-                Some(UnitsAndPerUnit {
+                let total = total.unwrap_or(units * per_unit);
+                Some(UnitsAndConversion {
                     units,
-                    per_unit: Some(per_unit),
+                    conversion: Some(Conversion { per_unit, total }),
                 })
             } else {
                 None
@@ -281,23 +301,27 @@ fn units_from_price_spec<B, PS, T>(
     weight: B::Number,
     price_spec: &PS,
     tolerance: T,
-) -> Option<UnitsAndPerUnit<B::Number>>
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
     PS: PriceSpec<Types = B> + Debug,
     T: Tolerance<Types = B>,
 {
     match (posting_units, price_spec.per_unit(), price_spec.total()) {
-        (Some(units), Some(per_unit), _) => Some(UnitsAndPerUnit {
-            units,
-            per_unit: Some(per_unit),
-        }),
-        (None, Some(per_unit), _) => {
+        (Some(units), Some(per_unit), total) => {
+            let total = total.unwrap_or(units * per_unit);
+            Some(UnitsAndConversion {
+                units,
+                conversion: Some(Conversion { per_unit, total }),
+            })
+        }
+        (None, Some(per_unit), total) => {
             if let Some(units) = weight.checked_div(per_unit) {
                 let units = units.rescaled(weight.scale());
-                Some(UnitsAndPerUnit {
+                let total = total.unwrap_or(units * per_unit);
+                Some(UnitsAndConversion {
                     units,
-                    per_unit: Some(per_unit),
+                    conversion: Some(Conversion { per_unit, total }),
                 })
             } else {
                 None
@@ -315,12 +339,15 @@ fn infer_per_unit<B, T>(
     total: B::Number,
     units: B::Number,
     tolerance: T,
-) -> Option<UnitsAndPerUnit<B::Number>>
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
     T: Tolerance<Types = B>,
 {
-    let per_unit = total.checked_div(units);
+    let per_unit = total.checked_div(units).map(|per_unit| per_unit.abs());
     // TODO scale according to tolerance
-    Some(UnitsAndPerUnit { units, per_unit })
+    Some(UnitsAndConversion {
+        units,
+        conversion: per_unit.map(|per_unit| Conversion { per_unit, total }),
+    })
 }
