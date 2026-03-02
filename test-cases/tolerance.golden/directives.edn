@@ -7,5 +7,7 @@
   :postings [{:acc "Assets:Cash", :cur "IDR", :units -3000000M}
              {:acc "Expenses:Other-Expense",
               :cur "USD",
-              :price {:cur "IDR", :per-unit 14705.882352941176470588235294M},
+              :price {:cur "IDR",
+                      :per-unit 14705.882352941176470588235294M,
+                      :total 3000000M},
               :units 204M}]}]
