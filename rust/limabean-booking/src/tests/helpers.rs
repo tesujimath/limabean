@@ -392,6 +392,7 @@ pub(crate) fn positions_test(
                             let cost = Cost {
                                 date: cost_date,
                                 per_unit: cost_per_unit,
+                                total: Decimal::ZERO, // doesn't matter for this test
                                 currency: *cost_currency,
                                 label: cost_label,
                                 merge,

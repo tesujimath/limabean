@@ -407,7 +407,7 @@ impl<'a> FmtEdn for &Cost<'a> {
         map_begin(f)?;
         (Keyword::Date, self.date, Flush).fmt_edn(f)?;
         (Keyword::PerUnit, self.per_unit, Spaced).fmt_edn(f)?;
-        (Keyword::Total, self.total, Flush).fmt_edn(f)?;
+        (Keyword::Total, self.total, Spaced).fmt_edn(f)?;
         (Keyword::Currency, self.currency, Spaced).fmt_edn(f)?;
         if let Some(label) = self.label {
             (Keyword::Label, label, Spaced).fmt_edn(f)?;

@@ -338,7 +338,7 @@ where
 fn infer_per_unit<B, T>(
     total: B::Number,
     units: B::Number,
-    tolerance: T,
+    _tolerance: T,
 ) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
