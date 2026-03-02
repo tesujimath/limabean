@@ -1,7 +1,7 @@
 use hashbrown::{HashMap, hash_map::Entry};
 use std::{fmt::Debug, hash::Hash, ops::Deref};
 
-use super::{BookingTypes, CostSpec, Interpolated, PostingSpec, PriceSpec};
+use super::{BookingTypes, CostSpec, Interpolated, Number, PostingSpec, PriceSpec};
 
 #[derive(Debug)]
 pub(crate) struct HashMapOfVec<K, V>(HashMap<K, Vec<V>>);
@@ -113,7 +113,7 @@ where
                     match (cost_spec.total(), cost_spec.per_unit(), p.units()) {
                         (Some(cost_total), _, _) => Some(cost_total),
                         (None, Some(cost_per_unit), Some(units)) => {
-                            let weight = cost_per_unit * units;
+                            let weight = (cost_per_unit * units).rescaled(units.scale());
                             Some(weight)
                         }
                         _ => None,
@@ -122,7 +122,7 @@ where
                     match (price_spec.total(), price_spec.per_unit(), p.units()) {
                         (Some(price_total), _, _) => Some(price_total),
                         (None, Some(price_per_unit), Some(units)) => {
-                            let weight = price_per_unit * units;
+                            let weight = (price_per_unit * units).rescaled(units.scale());
                             Some(weight)
                         }
                         _ => None,
