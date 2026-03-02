@@ -7,10 +7,16 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 - plugin "beancount.plugins.implicit_prices" is now supported #38
+- include totals in costs and prices, to preserve original precision
+
+### Changed
+
+- simplify how tolerance is handled in booking crate
 
 ### Fixed
 
 - inference of cost-per-unit from posting weight is now supported #42
+- inference of price-per-unit from total is always positive #47
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.2.7...HEAD
 

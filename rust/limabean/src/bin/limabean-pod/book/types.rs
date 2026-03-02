@@ -22,7 +22,7 @@ pub(crate) enum DirectiveVariant<'a> {
 #[derive(Clone, Debug)]
 pub(crate) struct Transaction<'a> {
     pub(crate) postings: Vec<Posting<'a>>,
-    pub(crate) prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
+    pub(crate) prices: HashSet<(parser::Currency<'a>, Price<'a>)>,
     pub(crate) auto_accounts: HashSet<&'a str>,
 }
 
@@ -48,6 +48,7 @@ pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
     let Cost {
         date,
         per_unit,
+        total: _total,
         currency,
         label: _label,
         merge: _merge,
@@ -76,6 +77,7 @@ pub(crate) fn cur_posting_cost_to_cost<'a>(
     Cost {
         date: cost.date,
         per_unit: cost.per_unit,
+        total: cost.total,
         currency,
         label: cost.label,
         merge: cost.merge,

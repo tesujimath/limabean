@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use super::{
     AnnotatedPosting, BookedOrUnbookedPosting, BookingError, BookingTypes, CostSpec, Interpolated,
     Number, PostingBookingError, PostingCost, PostingCosts, PostingSpec, Price, PriceSpec,
-    Tolerance, TransactionBookingError,
+    Tolerance, TransactionBookingError, tolerance_residual,
 };
 
 #[derive(Debug)]
@@ -24,15 +24,15 @@ pub(crate) fn interpolate_from_costed<'a, 'b, B, P, T>(
     date: B::Date,
     currency: &B::Currency,
     costeds: Vec<BookedOrUnbookedPosting<B, P>>,
-    tolerance: &T,
+    tolerance: T,
 ) -> Result<Interpolation<B, P>, BookingError>
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
-    T: Tolerance<Types = B>,
+    T: Tolerance<Types = B> + Copy,
 {
     let mut weights = costeds.iter().map(|c| c.weight()).collect::<Vec<_>>();
-    let mut residual = tolerance.residual(weights.iter().filter_map(|w| *w), currency);
+    let mut residual = tolerance_residual(tolerance, weights.iter().filter_map(|w| *w), currency);
 
     let unknown = weights
         .iter()
@@ -55,7 +55,7 @@ where
         .zip(weights)
         .map(|(c, w)| match c {
             BookedOrUnbookedPosting::Unbooked(annotated) => {
-                interpolate_from_annotated(date, currency, w.unwrap(), annotated)
+                interpolate_from_annotated(date, currency, w.unwrap(), annotated, tolerance)
             }
 
             BookedOrUnbookedPosting::Booked(i) => Ok((i, true)),
@@ -68,11 +68,12 @@ where
     })
 }
 
-pub(crate) fn interpolate_from_annotated<'a, 'b, B, P>(
+pub(crate) fn interpolate_from_annotated<'a, 'b, B, P, T>(
     date: B::Date,
     currency: &B::Currency,
     weight: B::Number,
     annotated: AnnotatedPosting<P, B::Currency>,
+    tolerance: T,
 ) -> Result<
     (
         Interpolated<B, P>,
@@ -83,9 +84,16 @@ pub(crate) fn interpolate_from_annotated<'a, 'b, B, P>(
 where
     B: BookingTypes + 'a,
     P: PostingSpec<Types = B> + Debug + 'a,
+    T: Tolerance<Types = B>,
 {
     match (
-        units(&annotated.posting, weight),
+        units(
+            &annotated.posting,
+            weight,
+            currency,
+            annotated.currency.as_ref(),
+            tolerance,
+        ),
         annotated.currency,
         annotated.posting.cost(),
         annotated.posting.price(),
@@ -104,9 +112,17 @@ where
                 false,
             ))
         }
-        (Some(UnitsAndPerUnit { units, per_unit }), Some(currency), Some(cost), _) => {
+        (
+            Some(UnitsAndConversion {
+                units,
+                conversion: per_unit,
+            }),
+            Some(currency),
+            Some(cost),
+            _,
+        ) => {
             match (annotated.cost_currency, per_unit) {
-                (Some(cost_currency), Some(per_unit)) => Ok((
+                (Some(cost_currency), Some(conversion)) => Ok((
                     Interpolated {
                         posting: annotated.posting,
                         idx: annotated.idx,
@@ -117,7 +133,8 @@ where
                             adjustments: vec![PostingCost {
                                 date: cost.date().unwrap_or(date),
                                 units,
-                                per_unit,
+                                per_unit: conversion.per_unit,
+                                total: conversion.total,
                                 label: cost.label(),
                                 merge: cost.merge(),
                             }],
@@ -141,10 +158,10 @@ where
             }
         }
 
-        (Some(UnitsAndPerUnit { units, per_unit }), Some(currency), None, Some(_price)) => {
+        (Some(UnitsAndConversion { units, conversion }), Some(currency), None, Some(_price)) => {
             // price without cost
-            match (per_unit, annotated.price_currency) {
-                (Some(per_unit), Some(price_currency)) => Ok((
+            match (conversion, annotated.price_currency) {
+                (Some(conversion), Some(price_currency)) => Ok((
                     Interpolated {
                         posting: annotated.posting,
                         idx: annotated.idx,
@@ -152,7 +169,8 @@ where
                         currency,
                         cost: None,
                         price: Some(Price {
-                            per_unit,
+                            per_unit: conversion.per_unit,
+                            total: Some(conversion.total),
                             currency: price_currency,
                         }),
                     },
@@ -189,96 +207,147 @@ where
 }
 
 #[derive(Clone, Debug)]
-struct UnitsAndPerUnit<N> {
+struct UnitsAndConversion<N> {
     units: N,
-    per_unit: Option<N>,
+    conversion: Option<Conversion<N>>,
+}
+
+#[derive(Clone, Debug)]
+struct Conversion<N> {
+    per_unit: N,
+    total: N,
 }
 
 // infer the units once we know the weight
-fn units<B, P>(posting: &P, weight: B::Number) -> Option<UnitsAndPerUnit<B::Number>>
+fn units<B, P, T>(
+    posting: &P,
+    weight: B::Number,
+    currency: &B::Currency,
+    annotated_currency: Option<&B::Currency>,
+    tolerance: T,
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
     P: PostingSpec<Types = B>,
+    T: Tolerance<Types = B>,
 {
+    tracing::debug!(
+        "units, currency {}, annotated currency {:?}, weight {}, posting {:?}",
+        currency,
+        annotated_currency,
+        weight,
+        posting
+    );
     if let Some(cost_spec) = posting.cost() {
-        units_from_cost_spec(posting.units(), weight, &cost_spec)
+        units_from_cost_spec(posting.units(), weight, &cost_spec, tolerance)
     } else if let Some(price_spec) = posting.price() {
-        units_from_price_spec(posting.units(), weight, &price_spec)
+        units_from_price_spec(posting.units(), weight, &price_spec, tolerance)
     } else {
-        posting.units().map(|units| UnitsAndPerUnit {
+        posting.units().map(|units| UnitsAndConversion {
             units,
-            per_unit: None,
+            conversion: None,
         })
     }
 }
 
-fn units_from_cost_spec<B, CS>(
+fn units_from_cost_spec<B, CS, T>(
     posting_units: Option<B::Number>,
     weight: B::Number,
     cost_spec: &CS,
-) -> Option<UnitsAndPerUnit<B::Number>>
+    tolerance: T,
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
     CS: CostSpec<Types = B> + Debug,
+    T: Tolerance<Types = B>,
 {
+    tracing::debug!(
+        "units_from_cost_spec weight {}, posting-units {:?}, cost-per-unit {:?}, cost-total {:?}",
+        weight,
+        posting_units,
+        cost_spec.per_unit(),
+        cost_spec.total()
+    );
     match (posting_units, cost_spec.per_unit(), cost_spec.total()) {
-        (Some(units), Some(per_unit), _) => Some(UnitsAndPerUnit {
-            units,
-            per_unit: Some(per_unit),
-        }),
-        (None, Some(per_unit), _) => {
+        (Some(units), Some(per_unit), total) => {
+            let total = total.unwrap_or(units * per_unit);
+            Some(UnitsAndConversion {
+                units,
+                conversion: Some(Conversion { per_unit, total }),
+            })
+        }
+        (None, Some(per_unit), total) => {
             if let Some(units) = weight.checked_div(per_unit) {
                 let units = units.rescaled(weight.scale());
-                Some(UnitsAndPerUnit {
+                let total = total.unwrap_or(units * per_unit);
+                Some(UnitsAndConversion {
                     units,
-                    per_unit: Some(per_unit),
+                    conversion: Some(Conversion { per_unit, total }),
                 })
             } else {
                 None
             }
         }
-        (Some(units), None, Some(cost_total)) => infer_per_unit::<B>(cost_total, units),
-        (Some(units), None, None) => infer_per_unit::<B>(weight, units),
+        (Some(units), None, Some(cost_total)) => {
+            infer_per_unit::<B, T>(cost_total, units, tolerance)
+        }
+        (Some(units), None, None) => infer_per_unit::<B, T>(weight, units, tolerance),
         (None, None, _) => None,
     }
 }
 
-fn units_from_price_spec<B, PS>(
+fn units_from_price_spec<B, PS, T>(
     posting_units: Option<B::Number>,
     weight: B::Number,
     price_spec: &PS,
-) -> Option<UnitsAndPerUnit<B::Number>>
+    tolerance: T,
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
     PS: PriceSpec<Types = B> + Debug,
+    T: Tolerance<Types = B>,
 {
     match (posting_units, price_spec.per_unit(), price_spec.total()) {
-        (Some(units), Some(per_unit), _) => Some(UnitsAndPerUnit {
-            units,
-            per_unit: Some(per_unit),
-        }),
-        (None, Some(per_unit), _) => {
+        (Some(units), Some(per_unit), total) => {
+            let total = total.unwrap_or(units * per_unit);
+            Some(UnitsAndConversion {
+                units,
+                conversion: Some(Conversion { per_unit, total }),
+            })
+        }
+        (None, Some(per_unit), total) => {
             if let Some(units) = weight.checked_div(per_unit) {
                 let units = units.rescaled(weight.scale());
-                Some(UnitsAndPerUnit {
+                let total = total.unwrap_or(units * per_unit);
+                Some(UnitsAndConversion {
                     units,
-                    per_unit: Some(per_unit),
+                    conversion: Some(Conversion { per_unit, total }),
                 })
             } else {
                 None
             }
         }
-        (Some(units), None, Some(price_total)) => infer_per_unit::<B>(price_total, units),
-        (Some(units), None, None) => infer_per_unit::<B>(weight, units),
+        (Some(units), None, Some(price_total)) => {
+            infer_per_unit::<B, T>(price_total, units, tolerance)
+        }
+        (Some(units), None, None) => infer_per_unit::<B, T>(weight, units, tolerance),
         (None, None, _) => None,
     }
 }
 
-fn infer_per_unit<B>(total: B::Number, units: B::Number) -> Option<UnitsAndPerUnit<B::Number>>
+fn infer_per_unit<B, T>(
+    total: B::Number,
+    units: B::Number,
+    _tolerance: T,
+) -> Option<UnitsAndConversion<B::Number>>
 where
     B: BookingTypes,
+    T: Tolerance<Types = B>,
 {
-    let per_unit = total.checked_div(units);
+    let per_unit = total.checked_div(units).map(|per_unit| per_unit.abs());
     // TODO scale according to tolerance
-    Some(UnitsAndPerUnit { units, per_unit })
+    Some(UnitsAndConversion {
+        units,
+        conversion: per_unit.map(|per_unit| Conversion { per_unit, total }),
+    })
 }

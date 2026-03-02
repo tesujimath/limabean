@@ -61,7 +61,7 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                             updated_inventory, ..
                         },
                     ..
-                } = book_with_residuals(date, &ante_postings, &tolerance, |_| None, |_| method)
+                } = book_with_residuals(date, &ante_postings, tolerance, |_| None, |_| method)
                     .unwrap();
 
                 ante_inventory = updated_inventory;
@@ -84,7 +84,7 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                     date,
                     &postings,
                     &mut actual_inventory,
-                    &tolerance,
+                    tolerance,
                     method,
                     expected_err.as_ref(),
                     &location,
@@ -94,7 +94,7 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                         actual_inventory.insert(acc, positions);
                     }
 
-                    check_inventory_as_expected(actual_inventory, &directives, &tolerance, method);
+                    check_inventory_as_expected(actual_inventory, &directives, tolerance, method);
 
                     check_postings_as_expected(interpolated_postings, &directives);
                 }
@@ -118,7 +118,7 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                         date,
                         &postings,
                         &mut actual_inventory,
-                        &tolerance,
+                        tolerance,
                         method,
                         expected_err.as_ref(),
                         &location,
@@ -132,7 +132,7 @@ fn booking_test(source: &str, method: Booking, expected_err: Option<BookingError
                     }
                 }
 
-                check_inventory_as_expected(actual_inventory, &directives, &tolerance, method);
+                check_inventory_as_expected(actual_inventory, &directives, tolerance, method);
 
                 check_postings_as_expected(actual_postings, &directives);
             }
@@ -159,14 +159,14 @@ fn book_and_check_error<'a, 'b, T>(
     date: Date,
     postings: &[&'a parser::Spanned<parser::Posting<'a>>],
     inventory: &mut Inventory<LimaParserBookingTypes<'a>>,
-    tolerance: &'b T,
+    tolerance: T,
     method: Booking,
     expected_err: Option<&BookingError>,
     location_in_case_of_error: &str,
     source_in_case_of_error: &str,
 ) -> Option<Bookings<LimaParserBookingTypes<'a>, &'a parser::Spanned<parser::Posting<'a>>>>
 where
-    T: Tolerance<Types = LimaParserBookingTypes<'a>>,
+    T: Tolerance<Types = LimaParserBookingTypes<'a>> + Copy,
 {
     match (
         book_with_residuals(
@@ -195,10 +195,10 @@ where
 fn check_inventory_as_expected<'a, 'b, T>(
     actual_inventory: Inventory<LimaParserBookingTypes<'a>>,
     directives: &'a [parser::Spanned<parser::Directive<'a>>],
-    tolerance: &'b T,
+    tolerance: T,
     method: Booking,
 ) where
-    T: Tolerance<Types = LimaParserBookingTypes<'a>>,
+    T: Tolerance<Types = LimaParserBookingTypes<'a>> + Copy,
 {
     let (date, postings, _) = get_postings(directives, EX_TAG)
         .next()
@@ -392,6 +392,7 @@ pub(crate) fn positions_test(
                             let cost = Cost {
                                 date: cost_date,
                                 per_unit: cost_per_unit,
+                                total: Decimal::ZERO, // doesn't matter for this test
                                 currency: *cost_currency,
                                 label: cost_label,
                                 merge,

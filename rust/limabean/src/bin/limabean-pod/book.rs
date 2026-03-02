@@ -181,7 +181,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     pub(crate) fn collect<I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
         I: IntoIterator<Item = &'a Spanned<parser::Directive<'a>>>,
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let mut errors = Vec::default();
 
@@ -207,7 +207,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         directive: &'a Spanned<parser::Directive<'a>>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         use parser::DirectiveVariant::*;
 
@@ -237,7 +237,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         element: parser::Spanned<Element>,
     ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let description = transaction.payee().map_or_else(
             || {
@@ -288,12 +288,12 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         description: &'a str,
     ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         match limabean_booking::book(
             date,
             postings,
-            &self.tolerance,
+            self.tolerance,
             |accname| self.accounts.get(accname).map(|acc| &acc.positions),
             |accname| {
                 self.accounts
@@ -306,8 +306,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                 interpolated_postings,
                 updated_inventory,
             }) => {
-                let mut prices: HashSet<(parser::Currency, parser::Currency, Decimal)> =
-                    HashSet::default();
+                let mut prices: HashSet<(parser::Currency, Price)> = HashSet::default();
 
                 // check all postings have valid accounts and currencies
                 // returning the first error
@@ -346,7 +345,14 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                             costs
                                 .into_currency_costs()
                                 .map(|(cost_cur, cost)| {
-                                    prices.insert((currency, cost_cur, cost.per_unit));
+                                    prices.insert((
+                                        currency,
+                                        Price {
+                                            currency: cost_cur,
+                                            per_unit: cost.per_unit,
+                                            total: None,
+                                        },
+                                    ));
 
                                     Posting {
                                         flag,
@@ -360,7 +366,14 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                                 .collect::<Vec<_>>()
                         } else {
                             if let Some(price) = &price {
-                                prices.insert((currency, price.currency, price.per_unit));
+                                prices.insert((
+                                    currency,
+                                    Price {
+                                        currency: price.currency,
+                                        per_unit: price.per_unit,
+                                        total: None,
+                                    },
+                                ));
                             }
 
                             vec![Posting {
@@ -762,7 +775,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
 struct BookedPostingsAndPrices<'a> {
     postings: Vec<Posting<'a>>,
-    prices: HashSet<(parser::Currency<'a>, parser::Currency<'a>, Decimal)>,
+    prices: HashSet<(parser::Currency<'a>, Price<'a>)>,
 }
 
 fn calculate_balance_margin<'a>(

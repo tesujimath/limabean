@@ -11,7 +11,7 @@
   :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -22.00M}
              {:acc "Expenses:Food",
               :cur "GBP",
-              :price {:cur "NZD", :per-unit 2.2M},
+              :price {:cur "NZD", :per-unit 2.2M, :total 22.000M},
               :units 10.00M}]}
  {:cur "GBP",
   :date #time/date "2023-04-10",
@@ -24,11 +24,11 @@
   :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -22.90M}
              {:acc "Expenses:News",
               :cur "EUR",
-              :price {:cur "NZD", :per-unit 1.9M},
+              :price {:cur "NZD", :per-unit 1.9M, :total 5.700M},
               :units 3.00M}
              {:acc "Expenses:Food",
               :cur "GBP",
-              :price {:cur "NZD", :per-unit 2.15M},
+              :price {:cur "NZD", :per-unit 2.15M, :total 17.2000M},
               :units 8.00M}]}
  {:cur "EUR",
   :date #time/date "2023-04-12",
@@ -44,7 +44,10 @@
   :narration "Buy some IBM",
   :postings
     [{:acc "Assets:ETrade:IBM",
-      :cost {:cur "NZD", :date #time/date "2023-05-01", :per-unit 300.00M},
+      :cost {:cur "NZD",
+             :date #time/date "2023-05-01",
+             :per-unit 300.00M,
+             :total 3000.00M},
       :cur "IBM",
       :units 10M} {:acc "Assets:Bank:Current", :cur "NZD", :units -3020.00M}
      {:acc "Expenses:Financial:Commissions", :cur "NZD", :units 20.00M}]}
