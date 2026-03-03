@@ -1,0 +1,13 @@
+plugin "limabean.contrib.plugins.examples.magic-money" "{:units 1000.00M :cur \"USD\" :acc \"Equity:Rich-American-Uncle\"}"
+
+2016-03-01 open Assets:Bank:Current
+
+2016-03-01 open Expenses:Groceries
+
+2023-05-29 * "New World" ""
+  Expenses:Groceries  10.00 NZD
+  Assets:Bank:Current
+
+2023-05-30 * "Countdown" ""
+  Expenses:Groceries  17.50 NZD
+  Assets:Bank:Current
