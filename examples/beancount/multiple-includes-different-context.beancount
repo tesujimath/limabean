@@ -1,0 +1,7 @@
+pushtag #include-1
+include "multiple-includes/included-1.beancount"
+poptag #include-1
+
+pushtag #include-2
+include "multiple-includes/included-2.beancount"
+poptag #include-2

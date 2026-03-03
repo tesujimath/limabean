@@ -1,0 +1,3 @@
+include "multiple-includes/included-1.beancount"
+
+include "multiple-includes/included-2.beancount"

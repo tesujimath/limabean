@@ -1,0 +1,7 @@
+include "common.beancount"
+
+2010-01-01 open Income:Donations
+
+2014-01-27 * "Donations"
+  Income:Donations  -100.00 NZD
+  Assets:Common
