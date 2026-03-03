@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This change
 
 - plugin "beancount.plugins.implicit_prices" is now supported #38
 - include totals in costs and prices, to preserve original precision
+- duplicate includes are allowed if the context is unchanged #49
 
 ### Changed
 
