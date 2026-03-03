@@ -11,3 +11,9 @@ balance assertions.
 Padding is only ever performed on the actual account asserted in the balance directive, never on its subaccounts.
 
 Unless the plugin is enabled, the default behaviour is not to do this.
+
+## Duplicate includes
+
+`limabean` allows the same file to be included multiple times, if and only if the tag and metadata context accumulated from push/pop tag/meta pragmas is identical.
+
+Otherwise an error is output showing the differences in the include contexts.
