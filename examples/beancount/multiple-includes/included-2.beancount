@@ -1,0 +1,7 @@
+include "common.beancount"
+
+2010-01-01 open Income:Work
+
+2014-02-05 * "Work"
+  Income:Work  -750.00 NZD
+  Assets:Common
