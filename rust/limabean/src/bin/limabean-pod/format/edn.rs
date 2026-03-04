@@ -677,7 +677,7 @@ impl<'a, 'b> FmtEdn for Plugin<'a, 'b> {
 impl FmtEdn for &Plugins {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
         // TODO tidy up writing a large map
-        writeln!(f, "{MAP_BEGIN}\n{} {VECTOR_BEGIN}", Edn(Keyword::Resolved))?;
+        writeln!(f, "{MAP_BEGIN}\n{} {VECTOR_BEGIN}", Edn(Keyword::Internal))?;
         let mut internal_plugins = self
             .internal
             .iter()
@@ -688,11 +688,7 @@ impl FmtEdn for &Plugins {
             writeln!(f, "{}", Edn(plugin))?;
         }
 
-        writeln!(
-            f,
-            "{VECTOR_END}\n{} {VECTOR_BEGIN}",
-            Edn(Keyword::Unresolved)
-        )?;
+        writeln!(f, "{VECTOR_END}\n{} {VECTOR_BEGIN}", Edn(Keyword::External))?;
         for (name, config) in &self.external {
             writeln!(
                 f,
@@ -791,6 +787,7 @@ enum Keyword {
     Document,
     Documents,
     Event,
+    External,
     Fifo,
     Flag,
     Header,
@@ -798,6 +795,7 @@ enum Keyword {
     InferToleranceFromCost,
     InferredToleranceDefault,
     InferredToleranceMultiplier,
+    Internal,
     Label,
     Lifo,
     Merge,
@@ -826,7 +824,6 @@ enum Keyword {
     Query,
     Raw,
     RenderCommas,
-    Resolved,
     Source,
     Strict,
     StrictWithSize,
@@ -839,7 +836,6 @@ enum Keyword {
     Txnids,
     Type,
     Units,
-    Unresolved,
     Values,
 }
 

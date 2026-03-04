@@ -9,7 +9,8 @@
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
             [limabean.core.journal :as journal]
-            [limabean.core.rollup :as rollup]))
+            [limabean.core.rollup :as rollup]
+            [limabean.adapter.plugins :as plugins]))
 
 (def ^:dynamic *directives* "Vector of all directives form the beanfile." nil)
 (def ^:dynamic *options* "Map of options from the beanfile." nil)
@@ -50,9 +51,13 @@
   [path]
   (assign-limabean-globals {})
   (logging/initialize)
-  (assign-limabean-globals (beanfile/book path))
+  (assign-limabean-globals
+    (update (beanfile/book path) :plugins plugins/resolve-external-plugins))
   (binding [*out* *err*]
-    (println "[limabean]" (count *directives*) "directives loaded from" path))
+    (println "[limabean]" (count *directives*) "directives loaded from" path)
+    (let [bad-plugins (filter :err (:external *plugins*))]
+      (doseq [plugin bad-plugins]
+        (println "ERROR in plugin" (:name plugin) "-" (:err plugin)))))
   :ok)
 
 (defn- postings
