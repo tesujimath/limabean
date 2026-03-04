@@ -33,7 +33,7 @@ impl Runtime {
 
         if let Ok(local_root) = std::env::var(LIMABEAN_CLJ_LOCAL_ROOT) {
             Runtime::clojure(format!(
-                r###"{{:local/root "{}"{}}}"###,
+                r###"{{:local/root "{}"}}{}"###,
                 &local_root,
                 extra_deps.unwrap_or("".to_string())
             ))

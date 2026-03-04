@@ -5,7 +5,8 @@
   "Resolve a plugin by loading it from its namespace"
   [name]
   (let [ns-sym (symbol name)]
-    (try (let [booked-xf-fn (ns-resolve ns-sym 'booked-xf)
+    (try (require ns-sym)
+         (let [booked-xf-fn (ns-resolve ns-sym 'booked-xf)
                raw-xf-fn (ns-resolve ns-sym 'raw-xf)
                xfs (into {}
                          (keep (fn [[k v]] (when v [k v])))
@@ -55,7 +56,7 @@
   (try
     (into [] (compose-resolved-external-booked-xf resolved-plugins) directives)
     (catch Exception e
-      (do
-        (println
-          "ERROR running plugin pipeline, all plugins ignored\nPlugin diagnostics coming soon")
-        directives))))
+      (do (println "ERROR running plugin pipeline, all plugins ignored:"
+                   (.getMessage e)
+                   "\nPlugin diagnostics coming soon")
+          directives))))

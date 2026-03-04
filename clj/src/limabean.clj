@@ -71,7 +71,10 @@
                                               (:plugins booked-and-resolved))]
         (assign-limabean-globals (assoc booked-and-resolved
                                    :directives directives
-                                   :booked-directives booked-directives))))
+                                   :booked-directives booked-directives))
+        (println "[limabean]"
+                 (count *directives*)
+                 "directives resulting from running plugins")))
     :ok))
 
 (defn- postings

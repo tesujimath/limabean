@@ -1,7 +1,7 @@
 (ns limabean.adapter.beanfile-test
   (:require [limabean.adapter.beanfile :as sut]
             [clojure.java.io :as io]
-            [clojure.test :refer [deftest is testing]]
+            [clojure.test :refer [deftest testing]]
             [limabean.app-test :as app-test]
             [matcho.core :as matcho]))
 
