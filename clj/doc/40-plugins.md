@@ -18,7 +18,7 @@ The existing plugin `beancount.plugins.auto_accounts` is built-in.
 
 ### Balance Rollup
 
-As described above, the plugin `limabean.balance_rollup` modifies the behaviour of the `balance` directive.
+As described in [Differences from OG Beancount](60-differences.md), the plugin `limabean.balance_rollup` modifies the behaviour of the `balance` directive.
 
 ## External Plugins
 
