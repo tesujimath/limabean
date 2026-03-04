@@ -58,8 +58,7 @@
   [path]
   (assign-limabean-globals {})
   (logging/initialize)
-  (let [booked-and-resolved
-          (update (beanfile/book path) :plugins plugins/resolve-external)]
+  (let [booked-and-resolved (plugins/resolve-external (beanfile/book path))]
     (binding [*out* *err*]
       (println "[limabean]" (count (:directives booked-and-resolved))
                "directives loaded from" path)

@@ -16,27 +16,33 @@
          (catch Exception e {:err (.getMessage e)}))))
 
 (defn- resolve-xfs-with-config'
-  "Resolve a plugin and apply its config"
-  [{:keys [name config]}]
+  "Resolve a plugin and apply config and options"
+  [{:keys [name config]} options]
   (let [xfs (resolve-xfs name)]
     (if (:err xfs)
       xfs
       (try (let [config-val (edn/read-string config)]
-             (into {} (map (fn [[k f]] [k (f config-val)]) xfs)))
+             (into
+               {}
+               (map (fn [[k f]] [k (f {:config config-val, :options options})])
+                 xfs)))
            (catch Exception e
              {:err (str "Error resolving config: " (.getMessage e))})))))
 
 (defn- resolve-xfs-with-config
-  "Merge the plugin definition with its resolution"
-  [plugin]
-  (let [resolved (try (resolve-xfs-with-config' plugin)
-                      (catch Exception e {:err (.getMessage e)}))]
-    (merge plugin resolved)))
+  "Return a function which merges the plugin definition with its resolution"
+  [options]
+  (fn [plugin]
+    (let [resolved (try (resolve-xfs-with-config' plugin options)
+                        (catch Exception e {:err (.getMessage e)}))]
+      (merge plugin resolved))))
 
 (defn resolve-external
   "Resolve external plugins, returning as an updated map"
-  [plugins]
-  (update plugins :external #(mapv resolve-xfs-with-config %)))
+  [beans]
+  (update-in beans
+             [:plugins :external]
+             #(mapv (resolve-xfs-with-config (:options beans)) %)))
 
 (defn- compose-resolved-external-booked-xf
   "Compose the transducers in the external plugins"
