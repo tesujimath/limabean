@@ -12,7 +12,12 @@
             [limabean.core.rollup :as rollup]
             [limabean.adapter.plugins :as plugins]))
 
-(def ^:dynamic *directives* "Vector of all directives form the beanfile." nil)
+(def ^:dynamic *directives*
+  "Vector of all directives form the beanfile after running plugins."
+  nil)
+(def ^:dynamic *booked-directives*
+  "Vector of all directives form the beanfile after booking and before plugins."
+  nil)
 (def ^:dynamic *options* "Map of options from the beanfile." nil)
 (def ^:dynamic *plugins* "Map of plugins from the beanfile." nil)
 (def ^:dynamic *registry*
@@ -22,9 +27,11 @@
 (defn- assign-limabean-globals
   [beans]
   (let [directives (get beans :directives [])
+        booked-directives (get beans :booked-directives [])
         options (get beans :options {})
         plugins (get beans :plugins {})]
     (alter-var-root #'*directives* (constantly directives))
+    (alter-var-root #'*booked-directives* (constantly booked-directives))
     (alter-var-root #'*options* (constantly options))
     (alter-var-root #'*plugins* (constantly plugins))
     (alter-var-root #'*registry*
@@ -51,14 +58,22 @@
   [path]
   (assign-limabean-globals {})
   (logging/initialize)
-  (assign-limabean-globals
-    (update (beanfile/book path) :plugins plugins/resolve-external-plugins))
-  (binding [*out* *err*]
-    (println "[limabean]" (count *directives*) "directives loaded from" path)
-    (let [bad-plugins (filter :err (:external *plugins*))]
-      (doseq [plugin bad-plugins]
-        (println "ERROR in plugin" (:name plugin) "-" (:err plugin)))))
-  :ok)
+  (let [booked-and-resolved
+          (update (beanfile/book path) :plugins plugins/resolve-external)]
+    (binding [*out* *err*]
+      (println "[limabean]" (count (:directives booked-and-resolved))
+               "directives loaded from" path)
+      (let [bad-plugins (filter :err
+                          (:external (:plugins booked-and-resolved)))]
+        (doseq [plugin bad-plugins]
+          (println "ERROR in plugin" (:name plugin) "-" (:err plugin))))
+      (let [booked-directives (:directives booked-and-resolved)
+            directives (plugins/run-booked-xf booked-directives
+                                              (:plugins booked-and-resolved))]
+        (assign-limabean-globals (assoc booked-and-resolved
+                                   :directives directives
+                                   :booked-directives booked-directives))))
+    :ok))
 
 (defn- postings
   [args]

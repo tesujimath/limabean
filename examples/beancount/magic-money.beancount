@@ -1,4 +1,6 @@
-plugin "limabean.contrib.plugins.examples.magic-money" "{:units 1000.00M :cur \"USD\" :acc \"Equity:Rich-American-Uncle\"}"
+; TODO move this into contrib
+;plugin "limabean.plugins.examples.magic-money"
+plugin "limabean.plugins.examples.magic-money" "{:units 1000.00M :cur \"USD\" :acc \"Equity:Rich-American-Uncle\"}"
 
 2016-03-01 open Assets:Bank:Current
 
