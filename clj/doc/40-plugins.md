@@ -28,13 +28,13 @@ External plugins are referenced in the Beanfile by their namespace, e.g.
 plugin "limabean.contrib.plugins.examples.magic-money"
 ```
 
-A single argument may be supplied, which must be provided as a Clojure map in a Beancount string, i.e. with escaped quotes, e.g.
+A single argument may be supplied, which is a single Clojure value in a Beancount string, i.e. with escaped quotes, e.g.
 
 ```
 plugin "limabean.contrib.plugins.examples.magic-money" "{:units 1000.00M :cur \"USD\" :acc \"Equity:Rich-American-Uncle\"}"
 ```
 
-(In fact, any Clojure value may be supplied, not necessarily a map.  But it must match what the particular plugin is expecting.)
+In fact, any Clojure value may be supplied, not necessarily a map.  But it must match what the particular plugin is expecting.
 
 The Clojure namespace must define a function `booked-xf`, which is a Clojure transducer on booked directives.
 Soon (but not yet) it will be possible to define a function `raw-xf`, a Clojure transducer on raw directives, which runs before validation.
