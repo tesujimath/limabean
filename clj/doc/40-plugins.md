@@ -100,13 +100,15 @@ user=> (binding [*directives* *booked-directives*] (show (journal)))
 
 ### Running plugins manually
 
-The resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
+The external resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
 
 ```
 user=> *plugins*
-{:internal [], :external [{:name "limabean.contrib.plugins.examples.set-narration", :config "{:narration \"Plugins rule ok!\"}",
- :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
-                    "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]}
+{:internal [],
+ :external [{:name "limabean.contrib.plugins.examples.set-narration",
+             :config "{:narration \"Plugins rule ok!\"}",
+             :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
+                                "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]}
 
 user=> (def set-narration-xf (get-in *plugins* [:external 0 :booked-xf]))
 
@@ -123,7 +125,7 @@ user=> (into [] set-narration-xf *booked-directives*)
 
 ### Magic Money
 
-The [magic-money example](https://github.com/tesujimath/limabean-contrib/src/limabean/contrib/plugins/examples/magic_money.clj) is a more sophisticated plugin which inserts additional directives, namely a transaction after every `open` directive to add some money to the account, from a specified equity account.  It works as a [stateful transducer](https://clojure.org/reference/transducers#_transducers_with_reduction_state).
+The [magic-money example](https://github.com/tesujimath/limabean-contrib/blob/main/src/limabean/contrib/plugins/examples/magic_money.clj) is a more sophisticated plugin which inserts additional directives, namely a transaction after every `open` directive to add some money to the account, from a specified equity account.  It works as a [stateful transducer](https://clojure.org/reference/transducers#_transducers_with_reduction_state).
 
 ```
 kiri> limabean --beanfile ../examples/beancount/magic-money-plugin.beancount
@@ -143,11 +145,9 @@ user=> (show (journal))
 :ok
 ```
 
-Using the Clojure REPL, the pre-defined variable `*directives*` and the user-defined `directives-with-magical` may easily be compared.
-
-
 ## User-provided code
 
 The user may provide their own Clojure code.  The environment variable `LIMABEAN_USER_CLJ` is a colon-separated list of Clojure source files, which are loaded in order, and made available in the REPL.
+This facility is not suitable for plugins, because the functions are loaded too late.  But it is a useful place for defining custom filters.
 
 For a very simple example, see the [user-supplied `fy` function](../../examples/clj/user.clj) for a customized financial year filter.
