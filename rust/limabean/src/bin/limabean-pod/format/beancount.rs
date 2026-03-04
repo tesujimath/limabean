@@ -3,26 +3,26 @@ use std::fmt::{self, Display, Formatter};
 use time::Date;
 
 use super::*;
-use crate::{book::pad_flag, plugins::InternalPlugins};
+use crate::{book::pad_flag, plugins::InternalPlugin};
 
 pub(crate) fn write_booked_as_beancount<'a, W>(
     directives: &[Directive<'a>],
     _options: &parser::Options<'a>,
-    plugins: &InternalPlugins,
+    internal_plugins: &hashbrown::HashMap<InternalPlugin, Option<String>>,
     mut out_w: W,
 ) -> Result<(), crate::Error>
 where
     W: std::io::Write + Copy,
 {
     for d in directives {
-        writeln!(out_w, "{}", DirectiveWithPlugins(d, plugins))?;
+        writeln!(out_w, "{}", DirectiveWithPlugins(d, internal_plugins))?;
     }
     Ok(())
 }
 
 impl<'a> Display for Directive<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let no_plugins = InternalPlugins::default();
+        let no_plugins = hashbrown::HashMap::default();
         write!(f, "{}", DirectiveWithPlugins(self, &no_plugins))
     }
 }
@@ -32,14 +32,14 @@ impl<'a, 'b> Display for DirectiveWithPlugins<'a, 'b> {
         use crate::book::DirectiveVariant as LDV;
         use parser::DirectiveVariant as PDV;
 
-        let DirectiveWithPlugins(dct, plugins) = self;
+        let DirectiveWithPlugins(dct, internal_plugins) = self;
 
         let dct_parsed = dct.parsed.item();
         let date = *dct_parsed.date().item();
 
         match (dct_parsed.variant(), &dct.loaded) {
             (PDV::Transaction(parsed), LDV::Transaction(loaded)) => {
-                loaded.fmt(f, date, parsed, plugins /*, &self.metadata*/)
+                loaded.fmt(f, date, parsed, internal_plugins /*, &self.metadata*/)
             }
             (PDV::Pad(_parsed), LDV::Pad(loaded)) => {
                 loaded.fmt(f, date, dct_parsed /*, &self.metadata*/)
@@ -57,7 +57,7 @@ impl<'a> Transaction<'a> {
         f: &mut Formatter<'_>,
         date: Date,
         parsed: &parser::Transaction,
-        plugins: &InternalPlugins, /*, metadata: &Metadata*/
+        internal_plugins: &hashbrown::HashMap<InternalPlugin, Option<String>>, /*, metadata: &Metadata*/
     ) -> fmt::Result {
         if !self.auto_accounts.is_empty() {
             let mut auto_accounts = self.auto_accounts.iter().collect::<Vec<_>>();
@@ -84,7 +84,8 @@ impl<'a> Transaction<'a> {
         )?;
         f.write_str(NEWLINE)?;
 
-        if plugins.implicit_prices && !self.prices.is_empty() {
+        if internal_plugins.contains_key(&InternalPlugin::ImplicitPrices) && !self.prices.is_empty()
+        {
             let mut prices = self.prices.iter().collect::<Vec<_>>();
             prices.sort();
             for (cur, price) in &prices {

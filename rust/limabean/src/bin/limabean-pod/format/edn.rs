@@ -4,7 +4,7 @@ use time::Date;
 use crate::{
     book::{pad_flag, types::*},
     format::DirectiveWithPlugins,
-    plugins::InternalPlugins,
+    plugins::{InternalPlugin, Plugins},
 };
 use beancount_parser_lima as parser;
 use std::fmt::{self, Display, Formatter, Write};
@@ -15,7 +15,7 @@ use strum_macros::{EnumIter, EnumString, IntoStaticStr};
 pub(crate) fn write_booked_as_edn<'a, W>(
     directives: &[Directive<'a>],
     options: &parser::Options,
-    plugins: &InternalPlugins,
+    plugins: &Plugins,
     out_w: W,
 ) -> io::Result<()>
 where
@@ -33,12 +33,17 @@ where
     )?;
 
     for d in directives {
-        writeln!(buffered_out_w, "{}", Edn(DirectiveWithPlugins(d, plugins)))?;
+        writeln!(
+            buffered_out_w,
+            "{}",
+            Edn(DirectiveWithPlugins(d, &plugins.internal))
+        )?;
     }
 
     writeln!(buffered_out_w, "{VECTOR_END}")?;
 
     writeln!(buffered_out_w, "{} {}", Edn(Keyword::Options), Edn(options))?;
+    writeln!(buffered_out_w, "{} {}", Edn(Keyword::Plugins), Edn(plugins))?;
 
     writeln!(buffered_out_w, "{MAP_END}")?;
 
@@ -120,13 +125,13 @@ impl<'a> FmtEdn
         &Transaction<'a>,
         Date,
         &parser::Transaction<'a>,
-        &InternalPlugins,
+        &hashbrown::HashMap<InternalPlugin, Option<String>>,
     )
 {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
         use Separator::*;
 
-        let (loaded, date, parsed, plugins) = self;
+        let (loaded, date, parsed, internal_plugins) = self;
 
         if !loaded.auto_accounts.is_empty() {
             let mut auto_accounts = loaded.auto_accounts.iter().collect::<Vec<_>>();
@@ -150,7 +155,9 @@ impl<'a> FmtEdn
         (Keyword::Postings, EdnVector(loaded.postings.iter()), Spaced).fmt_edn(f)?;
         map_end(f)?;
 
-        if plugins.implicit_prices && !loaded.prices.is_empty() {
+        if internal_plugins.contains_key(&InternalPlugin::ImplicitPrices)
+            && !loaded.prices.is_empty()
+        {
             let mut prices = loaded.prices.iter().collect::<Vec<_>>();
             prices.sort();
             for (cur, price) in &prices {
@@ -642,6 +649,64 @@ impl<'a> FmtEdn for &parser::Options<'a> {
     }
 }
 
+#[derive(Clone, Debug)]
+struct Plugin<'a, 'b> {
+    name: &'a str,
+    config: Option<&'b str>,
+}
+
+impl<'a, 'b> Plugin<'a, 'b> {
+    fn new(name: &'a str, config: Option<&'b str>) -> Self {
+        Plugin { name, config }
+    }
+}
+
+impl<'a, 'b> FmtEdn for Plugin<'a, 'b> {
+    fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
+        use Separator::*;
+
+        map_begin(f)?;
+        (Keyword::Name, self.name, Flush).fmt_edn(f)?;
+        if let Some(config) = self.config {
+            (Keyword::Config, config, Spaced).fmt_edn(f)?;
+        }
+        map_end(f)
+    }
+}
+
+impl FmtEdn for &Plugins {
+    fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
+        // TODO tidy up writing a large map
+        writeln!(f, "{MAP_BEGIN}\n{} {VECTOR_BEGIN}", Edn(Keyword::Resolved))?;
+        let mut internal_plugins = self
+            .internal
+            .iter()
+            .map(|(k, v)| Plugin::new(k.into(), v.as_ref().map(|v| v.as_str())))
+            .collect::<Vec<_>>();
+        internal_plugins.sort_by_key(|p| p.name);
+        for plugin in internal_plugins {
+            writeln!(f, "{}", Edn(plugin))?;
+        }
+
+        writeln!(
+            f,
+            "{VECTOR_END}\n{} {VECTOR_BEGIN}",
+            Edn(Keyword::Unresolved)
+        )?;
+        for (name, config) in &self.external {
+            writeln!(
+                f,
+                "{}",
+                Edn(Plugin::new(
+                    name.as_str(),
+                    config.as_ref().map(|config| config.as_str())
+                ))
+            )?;
+        }
+        write!(f, "{VECTOR_END}{MAP_END}")
+    }
+}
+
 impl FmtEdn for Date {
     fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, r#"#time/date{SPACE}"{self}""#)
@@ -673,9 +738,9 @@ impl FmtEdn for &str {
             match c {
                 '\t' => f.write_str(r#"\t"#)?,
                 '\r' => f.write_str(r#"\r"#)?,
-                '\n' => f.write_str(r#"\\n"#)?,
-                '\\' => f.write_str(r#"\\"#)?,
-                '\"' => f.write_str(r#"\"\""#)?,
+                '\n' => f.write_str(r#"\n"#)?,
+                '\\' => f.write_str(r#"\"#)?,
+                '\"' => f.write_str(r#"\""#)?,
                 c => f.write_char(c)?,
             }
         }
@@ -709,6 +774,7 @@ enum Keyword {
     Close,
     Comment,
     Commodity,
+    Config,
     Content,
     ConversionCurrency,
     Cost,
@@ -754,11 +820,13 @@ enum Keyword {
     Payees,
     PerUnit,
     PluginProcessingMode,
+    Plugins,
     Postings,
     Price,
     Query,
     Raw,
     RenderCommas,
+    Resolved,
     Source,
     Strict,
     StrictWithSize,
@@ -771,6 +839,7 @@ enum Keyword {
     Txnids,
     Type,
     Units,
+    Unresolved,
     Values,
 }
 

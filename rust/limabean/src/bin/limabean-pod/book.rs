@@ -14,7 +14,7 @@ use time::Date;
 
 use crate::{
     format::{GUTTER_MEDIUM, beancount::write_booked_as_beancount, edn::write_booked_as_edn},
-    plugins::InternalPlugins,
+    plugins::{InternalPlugin, collate_plugins},
 };
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -41,14 +41,9 @@ where
         Ok(ParseSuccess {
             directives,
             options,
-            plugins,
+            plugins: parsed_plugins,
             mut warnings,
         }) => {
-            let internal_plugins = plugins.iter().collect::<InternalPlugins>();
-            for unknown in &internal_plugins.unknown {
-                warnings.push(unknown.warning("unknown plugin"));
-            }
-
             let default_booking = Booking::default();
             let default_booking_option = if let Some(booking_method) = options.booking_method() {
                 let booking = Into::<Booking>::into(*booking_method.item());
@@ -66,7 +61,15 @@ where
 
             sources.write_errors_or_warnings(error_w, warnings)?;
 
-            match Loader::new(default_booking_option, &options, &internal_plugins)
+            let plugins = match collate_plugins(&parsed_plugins) {
+                Ok(plugins) => plugins,
+                Err(errors) => {
+                    sources.write_errors_or_warnings(error_w, errors)?;
+                    return Err(crate::Error::FatalAndAlreadyExplained);
+                }
+            };
+
+            match Loader::new(default_booking_option, &options, &plugins.internal)
                 .collect(&directives)
             {
                 Ok(LoadSuccess {
@@ -81,13 +84,11 @@ where
                         Format::Beancount => write_booked_as_beancount(
                             &directives,
                             &options,
-                            &internal_plugins,
+                            &plugins.internal,
                             out_w,
                         ),
-                        Format::Edn => {
-                            write_booked_as_edn(&directives, &options, &internal_plugins, out_w)
-                                .map_err(Into::<crate::Error>::into)
-                        }
+                        Format::Edn => write_booked_as_edn(&directives, &options, &plugins, out_w)
+                            .map_err(Into::<crate::Error>::into),
                     }
                 }
                 Err(LoadError { errors, .. }) => {
@@ -115,7 +116,7 @@ pub(crate) struct Loader<'a, 'b, T> {
     closed_accounts: hashbrown::HashMap<&'a str, Span>,
     accounts: HashMap<&'a str, AccountBuilder<'a>>,
     currency_usage: hashbrown::HashMap<parser::Currency<'a>, i32>,
-    internal_plugins: &'b InternalPlugins,
+    internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
     default_booking: Booking,
     tolerance: T,
     warnings: Vec<parser::AnnotatedWarning>,
@@ -134,7 +135,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     pub(crate) fn new(
         default_booking: Booking,
         tolerance: T,
-        internal_plugins: &'b InternalPlugins,
+        internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
     ) -> Self {
         Self {
             directives: Vec::default(),
@@ -250,7 +251,10 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
         let postings = transaction.postings().collect::<Vec<_>>();
 
-        let auto_accounts = if self.internal_plugins.auto_accounts {
+        let auto_accounts = if self
+            .internal_plugins
+            .contains_key(&InternalPlugin::AutoAccounts)
+        {
             let mut auto_accounts = HashSet::default();
 
             for account in postings.iter().map(|posting| posting.account()) {
@@ -524,7 +528,10 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         &self,
         base_account_name: &str,
     ) -> hashbrown::HashMap<parser::Currency<'a>, Decimal> {
-        if self.internal_plugins.balance_rollup {
+        if self
+            .internal_plugins
+            .contains_key(&InternalPlugin::BalanceRollup)
+        {
             let mut rollup_units = hashbrown::HashMap::<parser::Currency<'a>, Decimal>::default();
             self.accounts
                 .keys()

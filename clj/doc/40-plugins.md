@@ -39,6 +39,10 @@ See the [Clojure deps reference](https://clojure.org/reference/deps_edn#deps) fo
 
 The Clojure namespace must define a function `booked-directive-xf`, which is a Clojure transducer on booked directives.
 
+### Plugin namespaces
+
+A limabean plugin namespace is simply a [Clojure namespace](https://guide.clojure.style/#naming-ns-naming-schemas).  Please avoid defining your own plugins in the `limabean` namespace, although [limabean.contrib.plugins]((https://github.com/tesujimath/limabean-contrib) is a good choice.  Otherwise, use your own domain.
+
 ### Magic Money example
 
 The [magic-money example](https://github.com/tesujimath/limabean-contrib/src/limabean/contrib/plugins/examples/magic_money.clj) is a plugin which inserts additional directives, namely a transaction after every `open` directive to add some money to the account, from a specified equity account.

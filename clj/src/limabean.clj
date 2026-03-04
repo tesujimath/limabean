@@ -13,6 +13,7 @@
 
 (def ^:dynamic *directives* "Vector of all directives form the beanfile." nil)
 (def ^:dynamic *options* "Map of options from the beanfile." nil)
+(def ^:dynamic *plugins* "Map of plugins from the beanfile." nil)
 (def ^:dynamic *registry*
   "Map of attributes derived from directives and options, e.g. booking method for account."
   nil)
@@ -20,9 +21,11 @@
 (defn- assign-limabean-globals
   [beans]
   (let [directives (get beans :directives [])
-        options (get beans :options {})]
+        options (get beans :options {})
+        plugins (get beans :plugins {})]
     (alter-var-root #'*directives* (constantly directives))
     (alter-var-root #'*options* (constantly options))
+    (alter-var-root #'*plugins* (constantly plugins))
     (alter-var-root #'*registry*
                     (constantly (registry/build directives options)))))
 
