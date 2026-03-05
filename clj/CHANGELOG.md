@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.3.0...HEAD
+
+## [0.3.0] - 2026-03-05
+
 ### Added
 
 - external plugins are loaded and run automatically #50
@@ -18,9 +22,9 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 
 - inference of cost-per-unit from posting weight is now supported #42
-- inference of price-per-unit from total is always positive #47
+- inference of price-per-unit from total must be positive #47
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.2.7...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.2.7...0.3.0
 
 ## [0.2.7] - 2026-02-23
 
