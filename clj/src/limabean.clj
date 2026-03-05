@@ -1,16 +1,16 @@
 (ns limabean
   "Top-level limabean functions for use from the REPL."
   (:require [clojure.java.io :as io]
-            [limabean.adapter.beanfile :as beanfile]
+            [limabean.adapter.loader :as loader]
             [limabean.adapter.logging :as logging]
+            [limabean.adapter.plugins :as plugins]
             [limabean.adapter.show :as show]
             [limabean.core.filters :as f]
             [limabean.core.inventory :as inventory]
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
             [limabean.core.journal :as journal]
-            [limabean.core.rollup :as rollup]
-            [limabean.adapter.plugins :as plugins]))
+            [limabean.core.rollup :as rollup]))
 
 (def ^:dynamic *directives*
   "Vector of all directives form the beanfile after running plugins."
@@ -58,20 +58,16 @@
   [path]
   (assign-limabean-globals {})
   (logging/initialize)
-  (let [booked-and-resolved (plugins/resolve-external (beanfile/book path))]
+  (let [beans (loader/load-beanfile path)]
     (binding [*out* *err*]
-      (println "[limabean]" (count (:directives booked-and-resolved))
+      (println "[limabean]" (count (:booked-directives beans))
                "directives loaded from" path)
-      (let [bad-plugins (filter :err
-                          (:external (:plugins booked-and-resolved)))]
+      (let [bad-plugins (filter :err (:external (:plugins beans)))]
         (doseq [plugin bad-plugins]
           (println "ERROR in plugin" (:name plugin) "-" (:err plugin))))
-      (let [booked-directives (:directives booked-and-resolved)
-            directives (plugins/run-booked-xf booked-directives
-                                              (:plugins booked-and-resolved))]
-        (assign-limabean-globals (assoc booked-and-resolved
-                                   :directives directives
-                                   :booked-directives booked-directives))
+      (assign-limabean-globals beans)
+      (if-let [err (:plugin-errors beans)]
+        (println err)
         (println "[limabean]"
                  (count *directives*)
                  "directives resulting from running plugins")))
