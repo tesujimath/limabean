@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.3.0...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.3.1...HEAD
+
+## [0.3.1] - 2026-03-05
+
+### Fixed
+
+- bump limabean-booking crate version number, which broke Rust release 0.3.0
+
+[commit log]: https://github.com/tesujimath/limabean/compare/0.3.0...0.3.1
 
 ## [0.3.0] - 2026-03-05
 
