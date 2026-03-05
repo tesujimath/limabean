@@ -580,7 +580,7 @@ checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
 
 [[package]]
 name = "limabean"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "beancount-parser-lima",
  "build-deps",
@@ -608,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "limabean-booking"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "beancount-parser-lima",
  "hashbrown 0.15.5",
