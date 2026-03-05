@@ -1,0 +1,16 @@
+[{:acc "Assets:Bank:Current", :date #time/date "2016-03-01", :dct :open}
+ {:acc "Expenses:Groceries", :date #time/date "2016-03-01", :dct :open}
+ {:date #time/date "2023-05-29",
+  :dct :txn,
+  :flag "*",
+  :narration "Plugins rule ok!",
+  :payee "New World",
+  :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 10.00M}
+             {:acc "Assets:Bank:Current", :cur "NZD", :units -10.00M}]}
+ {:date #time/date "2023-05-30",
+  :dct :txn,
+  :flag "*",
+  :narration "Plugins rule ok!",
+  :payee "Countdown",
+  :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 17.50M}
+             {:acc "Assets:Bank:Current", :cur "NZD", :units -17.50M}]}]

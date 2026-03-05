@@ -1,9 +1,12 @@
 (ns limabean.app-test
-  (:require [limabean.app :as sut]
+  (:require [limabean]
+            [limabean.app :as sut]
+            [limabean.adapter.beanfile :as beanfile]
             [clojure.java.io :as io]
             [clojure.java.shell :as shell]
             [clojure.string :as str]
-            [clojure.test :refer [deftest is testing]])
+            [clojure.test :refer [deftest is testing]]
+            [matcho.core :as matcho])
   (:import [java.nio.file Files]))
 
 (def TEST-CASES-DIR "../test-cases")
@@ -71,3 +74,12 @@
             (is (golden (format "%s.%s" name query)
                         actual
                         (.getPath expected)))))))))
+
+(deftest beanfile-tests
+  (doseq [{:keys [name beanfile golden-dir]} (get-tests)]
+    (testing name
+      (let [expected-directives (io/file golden-dir "directives.edn")]
+        (when (.exists expected-directives)
+          (limabean/load-beanfile beanfile)
+          (let [expected (beanfile/read-edn-string (slurp expected-directives))]
+            (matcho/assert limabean/*directives* expected)))))))

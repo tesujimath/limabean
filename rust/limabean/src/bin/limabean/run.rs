@@ -6,6 +6,7 @@ pub(crate) enum Runtime {
 }
 
 const LIMABEAN_CLJ_LOCAL_ROOT: &str = "LIMABEAN_CLJ_LOCAL_ROOT";
+const LIMABEAN_CLJ_DEPS: &str = "LIMABEAN_CLJ_DEPS";
 const LIMABEAN_UBERJAR: &str = "LIMABEAN_UBERJAR";
 const LIMABEAN_UBERJAR_BUILDTIME: Option<&str> = option_env!("LIMABEAN_UBERJAR");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -28,8 +29,14 @@ impl Runtime {
     }
 
     pub(crate) fn from_env() -> Self {
+        let extra_deps = std::env::var(LIMABEAN_CLJ_DEPS).map(|s| format!(" {}", s));
+
         if let Ok(local_root) = std::env::var(LIMABEAN_CLJ_LOCAL_ROOT) {
-            Runtime::clojure(format!(r###"{{:local/root "{}"}}"###, &local_root))
+            Runtime::clojure(format!(
+                r###"{{:local/root "{}"}}{}"###,
+                &local_root,
+                extra_deps.unwrap_or("".to_string())
+            ))
         } else if let Ok(uberjar) = std::env::var(LIMABEAN_UBERJAR) {
             Runtime::java(uberjar)
         } else if let Some(uberjar) = LIMABEAN_UBERJAR_BUILDTIME {

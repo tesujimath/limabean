@@ -1,8 +1,11 @@
-use crate::{book::types::*, plugins::InternalPlugins};
+use crate::{book::types::*, plugins::InternalPlugin};
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Clone, Debug)]
-struct DirectiveWithPlugins<'a, 'b>(&'b Directive<'a>, &'b InternalPlugins);
+struct DirectiveWithPlugins<'a, 'b>(
+    &'b Directive<'a>,
+    &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
+);
 
 // this one is subtly different from the one in beancount-parser-lima
 pub(crate) fn format<C, T, F>(

@@ -102,11 +102,14 @@
             shellHook = ''
               PATH=$PATH:$(pwd)/scripts.dev:$(pwd)/rust/target/debug
 
-              export LIMABEAN_UBERJAR=$(pwd)/clj/target/limabean-${version}-standalone.jar
-              export LIMABEAN_CLJ_LOCAL_ROOT=$(pwd)/clj
-              export LIMABEAN_USER_CLJ=$(pwd)/examples/clj/user.clj
-              export LIMABEAN_BEANFILE=$(pwd)/test-cases/full.beancount
-              export LIMABEAN_LOG=$(pwd)/limabean.log
+              export LIMABEAN_UBERJAR="$(pwd)/clj/target/limabean-${version}-standalone.jar"
+              export LIMABEAN_CLJ_LOCAL_ROOT="$(pwd)/clj"
+              # export LIMABEAN_CLJ_DEPS="io.github.tesujimath/limabean-contrib {:mvn/version \"0.1.0\"}"
+              # export LIMABEAN_CLJ_DEPS="io.github.tesujimath/limabean-contrib {:git/sha \"bc55aa4105ca1b050fffe12301e1829c908a4689\"}"
+              export LIMABEAN_CLJ_DEPS="io.github.tesujimath/limabean-contrib {:local/root \"$(pwd)/../limabean-contrib\"}"
+              export LIMABEAN_USER_CLJ="$(pwd)/examples/clj/user.clj"
+              export LIMABEAN_BEANFILE="$(pwd)/test-cases/full.beancount"
+              export LIMABEAN_LOG="$(pwd)/limabean.log"
             '';
           };
 

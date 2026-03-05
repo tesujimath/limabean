@@ -1,40 +1,69 @@
 use beancount_parser_lima as parser;
+use hashbrown::HashMap;
+use std::str::FromStr;
 
 use crate::book::Element;
 
-#[derive(Clone, Default, Debug)]
-pub(crate) struct InternalPlugins {
-    // OG Beancount
-    pub(crate) auto_accounts: bool,
-    pub(crate) implicit_prices: bool,
-
-    // limabean specific
-    pub(crate) balance_rollup: bool, // whether balance directives apply to the rollup of all subaccounts
-
-    pub(crate) unknown: Vec<parser::Spanned<Element>>,
+#[derive(
+    PartialEq,
+    Eq,
+    Hash,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    strum_macros::IntoStaticStr,
+    Clone,
+    Debug,
+)]
+pub(crate) enum InternalPlugin {
+    #[strum(to_string = "beancount.plugins.auto_accounts")]
+    AutoAccounts,
+    #[strum(to_string = "beancount.plugins.implicit_prices")]
+    ImplicitPrices,
+    #[strum(to_string = "limabean.balance_rollup")]
+    BalanceRollup,
 }
 
-impl<'a> FromIterator<&'a parser::Plugin<'a>> for InternalPlugins {
-    fn from_iter<T: IntoIterator<Item = &'a parser::Plugin<'a>>>(iter: T) -> Self {
-        let mut internal_plugins = Self::default();
-        for plugin in iter {
-            match *plugin.module_name().item() {
-                "beancount.plugins.auto_accounts" => {
-                    internal_plugins.auto_accounts = true;
-                }
+#[derive(Clone, Default, Debug)]
+pub(crate) struct Plugins {
+    pub(crate) internal: HashMap<InternalPlugin, Option<String>>,
+    pub(crate) external: Vec<(String, Option<String>)>,
+}
 
-                "beancount.plugins.implicit_prices" => {
-                    internal_plugins.implicit_prices = true;
-                }
+pub(crate) fn collate_plugins<'a>(
+    parsed_plugins: &[parser::Plugin<'a>],
+) -> Result<Plugins, Vec<parser::Error>> {
+    let mut plugin_spans = HashMap::<&'a str, parser::Span>::default();
+    let mut internal = HashMap::<InternalPlugin, Option<String>>::default();
+    let mut external = Vec::<(String, Option<String>)>::default();
 
-                "limabean.balance_rollup" => {
-                    internal_plugins.balance_rollup = true;
+    let mut errors = Vec::default();
+
+    for plugin in parsed_plugins {
+        let module_name = *plugin.module_name().item();
+        match plugin_spans.entry(module_name) {
+            hashbrown::hash_map::Entry::Occupied(entry) => {
+                let previous_span = *entry.get();
+                let e = Element::new("plugin", *plugin.module_name().span()).error_with_contexts(
+                    "duplicate plugin",
+                    vec![("previous plugin".to_string(), previous_span)],
+                );
+                errors.push(e);
+            }
+            hashbrown::hash_map::Entry::Vacant(entry) => {
+                entry.insert(*plugin.module_name().span());
+                let plugin_config = plugin.config().map(|config| config.item().to_string());
+                if let Ok(internal_plugin) = InternalPlugin::from_str(module_name) {
+                    internal.insert(internal_plugin, plugin_config);
+                } else {
+                    external.push((plugin.module_name().item().to_string(), plugin_config));
                 }
-                _ => internal_plugins
-                    .unknown
-                    .push(Element::new("plugin", *plugin.module_name().span())),
             }
         }
-        internal_plugins
+    }
+
+    if errors.is_empty() {
+        Ok(Plugins { internal, external })
+    } else {
+        Err(errors)
     }
 }
