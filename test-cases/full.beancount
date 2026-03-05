@@ -8,10 +8,6 @@
 
 option "plugin_processing_mode" "RAW"
 
-plugin "a_simple_but_entirely_mythical_plugin"
-
-plugin "a_mythical_plugin_with_config" "the config"
-
 1970-01-01 commodity NZD #downunder ^money.co.nz
   ;   ; New Zealand Dollar
 

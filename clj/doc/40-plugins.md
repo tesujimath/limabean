@@ -75,7 +75,7 @@ A limabean plugin namespace is simply a [Clojure namespace](https://guide.clojur
 
 ### Set narration
 
-[limabean.contrib.plugins.examples.set-narration](https://github.com/tesujimath/limabean-contrib/blob/main/src/limabean/contrib/plugins/examples/set_narration.clj) is the simplest possible plugin example, which overrides the narration field of each transaction according to its configuration, as in [this example beancount file](https://github.com/tesujimath/limabean/blob/main/examples/beancount/set-narration-plugin.beancount).
+The test plugin [set-narration](../test/limabean/test/plugins/set_narration.clj) is the simplest possible plugin example, which overrides the narration field of each transaction according to its configuration, as in [this example beancount file](../../test-cases/set-narration-plugin-with-config.beancount).
 
 ```
 kiri> limabean --beanfile ../examples/beancount/set-narration-plugin.beancount

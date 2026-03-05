@@ -1,4 +1,4 @@
-plugin "limabean.contrib.plugins.examples.set-narration" "{:narration \"Plugins rule ok!\"}"
+plugin "limabean.test.plugins.set-narration" "{:narration \"Plugins rule ok!\"}"
 
 2016-03-01 open Assets:Bank:Current
 
