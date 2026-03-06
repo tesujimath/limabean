@@ -1,7 +1,7 @@
 (ns limabean.app-test
-  (:require [limabean]
-            [limabean.app :as sut]
+  (:require [limabean.app :as sut]
             [limabean.adapter.beanfile :as beanfile]
+            [limabean.adapter.loader :as loader]
             [clojure.java.io :as io]
             [clojure.java.shell :as shell]
             [clojure.string :as str]
@@ -80,6 +80,6 @@
     (testing name
       (let [expected-directives (io/file golden-dir "directives.edn")]
         (when (.exists expected-directives)
-          (limabean/load-beanfile beanfile)
-          (let [expected (beanfile/read-edn-string (slurp expected-directives))]
-            (matcho/assert limabean/*directives* expected)))))))
+          (let [actual (loader/load-beanfile beanfile)
+                expected (beanfile/read-edn-string (slurp expected-directives))]
+            (matcho/assert expected (:directives actual))))))))

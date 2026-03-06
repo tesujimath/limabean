@@ -10,6 +10,11 @@
   [s]
   (edn/read-string {:readers readers} s))
 
+;; make printing LocalDate use the same form
+(defmethod print-method java.time.LocalDate
+  [v w]
+  (.write w (str "#time/date \"" v "\"")))
+
 (defn book
   "Read EDN from limabean-pod book and return or throw"
   [beancount-path]

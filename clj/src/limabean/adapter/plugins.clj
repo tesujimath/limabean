@@ -14,7 +14,7 @@
            (if (seq xfs)
              xfs
              {:err "Failed to find either booked-xf or raw-xf in plugin"}))
-         (catch Exception e {:err (.getMessage e)}))))
+         (catch Exception e {:err "could not load namespace for plugin"}))))
 
 (defn- resolve-xfs-with-config'
   "Resolve a plugin and apply config and options"
@@ -53,10 +53,11 @@
 (defn run-booked-xf
   "Run the non-error external plugins"
   [directives resolved-plugins]
-  (try
-    (into [] (compose-resolved-external-booked-xf resolved-plugins) directives)
-    (catch Exception e
-      (do (println "ERROR running plugin pipeline, all plugins ignored:"
-                   (.getMessage e)
-                   "\nPlugin diagnostics coming soon")
-          directives))))
+  (try {:directives (into []
+                          (compose-resolved-external-booked-xf resolved-plugins)
+                          directives)}
+       (catch Exception e
+         {:directives directives,
+          :err (str "ERROR running plugin pipeline, all plugins ignored: "
+                    (.getMessage e)
+                    "\nPlugin diagnostics coming soon")})))
