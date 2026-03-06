@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Added
+
+- print-method for java.time.LocalDate so that EDN is emitted in the same form as read
+
 [commit log]: https://github.com/tesujimath/limabean/compare/0.3.1...HEAD
 
 ## [0.3.1] - 2026-03-05
