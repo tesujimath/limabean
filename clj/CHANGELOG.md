@@ -4,11 +4,15 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.3.2...HEAD
+
+## [0.3.2] - 2026-03-06
+
 ### Added
 
 - print-method for java.time.LocalDate so that EDN is emitted in the same form as read
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.3.1...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.3.1...0.3.2
 
 ## [0.3.1] - 2026-03-05
 
