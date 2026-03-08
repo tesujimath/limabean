@@ -2,7 +2,7 @@ build: build-rust build-clj
 
 build-release: build-rust-release build-clj
 
-test: rust-test clj-test
+test: test-rust test-clj
 
 [working-directory: 'rust']
 build-rust:
@@ -13,7 +13,7 @@ build-rust-release:
     cargo build --release --all-targets
 
 [working-directory: 'rust']
-rust-test: build-rust
+test-rust: build-rust
     cargo test
 
 [working-directory: 'clj']
@@ -21,5 +21,18 @@ build-clj:
     clojure -T:build uber
 
 [working-directory: 'clj']
-clj-test:
+test-clj:
     clojure -X:test
+
+test-clj-offline: build-clj build-rust
+    #!/usr/bin/env bash
+    VERSION=$(bash ./scripts.dev/get-version.sh)
+    export LIMABEAN_UBERJAR="./clj/target/limabean-${VERSION}-standalone.jar"
+    unset LIMABEAN_CLJ_LOCAL_ROOT
+    export PATH=./rust/target/debug:$PATH
+    for golden in test-cases/*.golden/{inventory,journal,rollup}; do
+        query=${golden##*/}
+        beanfile=${golden%.golden/$query}.beancount
+        echo "Validating $golden"
+        limabean -v --beanfile "$beanfile" --eval "(show ($query))" | diff - $golden
+    done
