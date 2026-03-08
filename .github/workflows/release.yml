@@ -25,7 +25,7 @@ jobs:
       - name: Verify tag and Cargo version match
         shell: bash
         run: |
-          VERSION=$(grep '^version' rust/limabean/Cargo.toml | head -1 | cut -d'"' -f2)
+          VERSION=$(bash ./scripts.dev/get-version.sh)
           TAG=${GITHUB_REF_NAME#v}
           [ "$VERSION" = "$TAG" ]
 
