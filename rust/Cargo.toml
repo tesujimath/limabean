@@ -1,15 +1,63 @@
-[workspace]
-resolver = "3"
-members = ["limabean", "limabean-booking"]
+[package]
+name = "limabean"
+version = "0.3.2"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Beancount frontend using Rust and Clojure and the Lima parser"
+homepage = "https://github.com/tesujimath/limabean"
+repository = "https://github.com/tesujimath/limabean"
+readme = "../../README.md"
 
-[workspace.dependencies]
+[[bin]]
+name = "limabean"
+path = "src/bin/limabean/main.rs"
+
+[[bin]]
+name = "limabean-pod"
+path = "src/bin/limabean-pod/main.rs"
+
+[dependencies]
+limabean-booking = { version = "0.9.1", features = [
+  "lima-parser-types",
+  "rust-decimal",
+] }
+# limabean-booking = { path = "../../limabean-booking", version = "0.9.1", features = [
+#   "lima-parser-types",
+#   "rust-decimal",
+# ] }
 beancount-parser-lima = "0.14.6"
 # beancount-parser-lima = { version = "0.14.6", path = "../../beancount-parser-lima" }
-hashbrown = "0.15.4"
-rstest = "0.26.1"
 rust_decimal = "1.37.2"
-rust_decimal_macros = "1.37.2"
-strum_macros = "0.27.2"
-time = "0.3.41"
+hashbrown = "0.15.4"
+time = { version = "0.3.41", features = ["local-offset", "parsing"] }
+clap = { version = "4.5.42", features = ["derive"] }
+csv = "1.3.1"
+slugify = "0.1.0"
+sgmlish = "0.2.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.145" }
+regex = "1.11.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+strum = "0.27.2"
+strum_macros = "0.27.2"
+joinery = "3.1.0"
+tabulator = { version = "0.5.0", features = [
+  "bin",
+  "num-bigint",
+  "rust_decimal",
+] }
+itertools = "0.14.0"
+# tabulator = { path = "../../../tabulator", features = [
+#   "bin",
+#   "num-bigint",
+#   "rust_decimal",
+# ] }
+
+[dev-dependencies]
+rstest = "0.26.1"
+rust_decimal_macros = "1.37.2"
+time = { version = "0.3.41", features = ["macros"] }
+
+[build-dependencies]
+build-deps = "0.1.4"
