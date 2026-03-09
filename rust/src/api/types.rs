@@ -8,6 +8,7 @@ use time::Date;
 pub struct Directive<'a> {
     #[serde(rename = "src")]
     pub(crate) source: Source,
+    #[serde(with = "iso8601date")]
     pub(crate) date: Date,
     // pub(crate) metadata: Metadata<'a>,
     #[serde(borrow)]
@@ -71,5 +72,7 @@ struct Source {
     start: usize,
     end: usize,
 }
+
+time::serde::format_description!(iso8601date, Date, "[year]-[month]-[day]");
 
 mod from_parser_types;

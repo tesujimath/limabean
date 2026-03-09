@@ -29,9 +29,16 @@ beancount-parser-lima = "0.14.6"
 # beancount-parser-lima = { version = "0.14.6", path = "../../beancount-parser-lima" }
 rust_decimal = "1.37.2"
 hashbrown = "0.15.4"
-time = { version = "0.3.41", features = ["local-offset", "parsing", "serde"] }
+time = { version = "0.3.41", features = [
+  "local-offset",
+  "formatting",
+  "macros",
+  "parsing",
+  "serde",
+] }
 clap = { version = "4.5.42", features = ["derive"] }
 csv = "1.3.1"
+itertools = "0.14.0"
 slugify = "0.1.0"
 sgmlish = "0.2.0"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -47,7 +54,6 @@ tabulator = { version = "0.5.0", features = [
   "num-bigint",
   "rust_decimal",
 ] }
-itertools = "0.14.0"
 # tabulator = { path = "../../../tabulator", features = [
 #   "bin",
 #   "num-bigint",
@@ -57,7 +63,6 @@ itertools = "0.14.0"
 [dev-dependencies]
 rstest = "0.26.1"
 rust_decimal_macros = "1.37.2"
-time = { version = "0.3.41", features = ["macros"] }
 
 [build-dependencies]
 build-deps = "0.1.4"
