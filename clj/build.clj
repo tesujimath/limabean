@@ -12,7 +12,7 @@
   (-> (sh/sh "cargo"
              "metadata" "--no-deps"
              "--format-version" "1"
-             "--manifest-path" "../rust/limabean/Cargo.toml")
+             "--manifest-path" "../rust/Cargo.toml")
       :out
       (cheshire/parse-string true)
       :packages

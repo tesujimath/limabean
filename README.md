@@ -18,7 +18,7 @@ Rust is purely used for parsing and the booking algorithm, with essentially no v
 
 Also, for a new approach to import see [limabean-harvest](https://github.com/tesujimath/limabean-harvest).
 
-Note for developers: the limabean implementation of the **Beancount booking algorithm** is [limabean-booking](rust/limabean-booking/README.md), a [separate crate](https://crates.io/crates/limabean-booking) which is entirely generic, having no dependencies on either the Lima parser types nor limabean itself.
+Note for developers: the limabean implementation of the **Beancount booking algorithm** is [limabean-booking](https://github.com/tesujimath/limabean-booking), a [separate crate](https://crates.io/crates/limabean-booking) which is entirely generic, having no dependencies on either the Lima parser types nor limabean itself.
 
 ## Contributions
 

@@ -53,7 +53,7 @@
             libiconv
           ]);
 
-          version = (builtins.fromTOML (builtins.readFile ./rust/limabean/Cargo.toml)).package.version;
+          version = (builtins.fromTOML (builtins.readFile ./rust/Cargo.toml)).package.version;
           limabean =
             pkgs.rustPlatform.buildRustPackage
               {
