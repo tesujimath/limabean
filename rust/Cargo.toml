@@ -29,13 +29,13 @@ beancount-parser-lima = "0.14.6"
 # beancount-parser-lima = { version = "0.14.6", path = "../../beancount-parser-lima" }
 rust_decimal = "1.37.2"
 hashbrown = "0.15.4"
-time = { version = "0.3.41", features = ["local-offset", "parsing"] }
+time = { version = "0.3.41", features = ["local-offset", "parsing", "serde"] }
 clap = { version = "4.5.42", features = ["derive"] }
 csv = "1.3.1"
 slugify = "0.1.0"
 sgmlish = "0.2.0"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.145" }
+serde_json = "1.0.145"
 regex = "1.11.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }

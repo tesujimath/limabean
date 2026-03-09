@@ -1,3 +1,4 @@
+use clap::{Parser, Subcommand, ValueEnum};
 use std::{
     io::{self, Read},
     path::PathBuf,
@@ -5,7 +6,7 @@ use std::{
 use tabulator::Cell;
 use tracing_subscriber::EnvFilter;
 
-use clap::{Parser, Subcommand, ValueEnum};
+use limabean::api;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -16,6 +17,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Run the JSON-RPC server
+    Serve {
+        /// Beancount file path
+        beanfile: PathBuf,
+    },
+
     /// Calculate all the bookings
     Book {
         /// Beancount file path
@@ -39,8 +46,8 @@ pub(crate) enum Format {
 
 impl From<Format> for book::Format {
     fn from(value: Format) -> Self {
-        use book::Format as B;
         use Format::*;
+        use book::Format as B;
 
         match value {
             Beancount => B::Beancount,
@@ -61,6 +68,11 @@ fn main() {
     let cli = Cli::parse();
 
     if let Err(e) = match &cli.command {
+        Command::Serve { beanfile } => {
+            api::serve(beanfile);
+            Ok(())
+        }
+
         Command::Book { beanfile, format } => book::write_bookings_from(
             beanfile,
             format.unwrap_or(Format::default()).into(),
