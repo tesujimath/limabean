@@ -1,3 +1,4 @@
+mod json_rpc;
 mod server;
 mod types;
 

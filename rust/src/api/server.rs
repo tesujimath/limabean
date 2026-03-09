@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use super::types::*;
+use super::{json_rpc::*, types::*};
 
 pub fn serve(path: &Path) -> io::Result<()> {
     let sources = BeancountSources::try_from(path).unwrap_or_else(|e| {
@@ -70,8 +70,23 @@ impl<'a> Server<'a> {
     where
         W: Write + Copy,
     {
-        eprintln!("dispatching {} as get directives", request);
-        self.parser_directives_get(w)
+        use RequestMethod::*;
+
+        match serde_json::from_str::<Request>(request) {
+            Ok(Request {
+                method: ParserDirectivesGet(_),
+                ..
+            }) => self.parser_directives_get(w),
+            Ok(Request {
+                method: DirectivesPut(_),
+                ..
+            }) => todo!(),
+            Err(e) => {
+                eprintln!("JSON decode error {}", &e);
+                // TODO
+                Ok(())
+            }
+        }
     }
 
     fn parser_directives_get<W>(&self, mut w: W) -> io::Result<()>
