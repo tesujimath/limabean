@@ -1,10 +1,12 @@
 use beancount_parser_lima::{BeancountParser, BeancountSources, ParseError, ParseSuccess};
 use std::{
-    io::{BufRead, BufReader, Read, Write, stdin, stdout},
+    io::{self, BufRead, BufReader, Read, Write, stdin, stdout},
     path::Path,
 };
 
-pub fn serve(path: &Path) {
+use super::types::*;
+
+pub fn serve(path: &Path) -> io::Result<()> {
     let sources = BeancountSources::try_from(path).unwrap_or_else(|e| {
         // TODO return error as JSON-RPC message, wait for status query
         eprintln!("can't open {}: {}", path.to_string_lossy(), &e);
@@ -14,7 +16,7 @@ pub fn serve(path: &Path) {
 
     let server = Server::new(&sources, &parser);
 
-    server.serve(&stdin(), &stdout());
+    server.serve(&stdin(), &stdout())
 }
 
 struct Server<'a> {
@@ -34,7 +36,7 @@ impl<'a> Server<'a> {
         }
     }
 
-    fn serve<R, W>(&self, r: R, w: W)
+    fn serve<R, W>(&self, r: R, w: W) -> io::Result<()>
     where
         R: Read + Copy,
         W: Write + Copy,
@@ -48,7 +50,7 @@ impl<'a> Server<'a> {
             match reader.read_line(&mut buf) {
                 Ok(n) => {
                     if n > 0 {
-                        self.dispatch(&buf, w);
+                        self.dispatch(&buf, w)?;
                     } else {
                         // that's all folks
                         eprintln!("EOF on input, exiting");
@@ -64,22 +66,31 @@ impl<'a> Server<'a> {
         }
     }
 
-    fn dispatch<W>(&self, request: &str, w: W)
+    fn dispatch<W>(&self, request: &str, w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
         eprintln!("dispatching {} as get directives", request);
-        self.parser_directives_get(w);
+        self.parser_directives_get(w)
     }
 
-    fn parser_directives_get<W>(&self, w: W)
+    fn parser_directives_get<W>(&self, mut w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
         if let Ok(ParseSuccess { directives, .. }) = &self.parsed {
-            // directives.iter().map(|d| d.into())
+            let api_directives = directives
+                .iter()
+                .map(Into::<Directive>::into)
+                .collect::<Vec<_>>();
+
+            if let Err(e) = serde_json::to_writer(w, &api_directives) {
+                eprint!("serde_json error {}", &e);
+            }
+            w.write_all(b"\n")
         } else {
             eprintln!("parser error, TODO return as no directives",);
+            Ok(())
         }
     }
 }

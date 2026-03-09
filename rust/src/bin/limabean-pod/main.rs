@@ -69,8 +69,7 @@ fn main() {
 
     if let Err(e) = match &cli.command {
         Command::Serve { beanfile } => {
-            api::serve(beanfile);
-            Ok(())
+            api::serve(beanfile).map_err(|e| Error::Unexpected(Box::new(e)))
         }
 
         Command::Book { beanfile, format } => book::write_bookings_from(
