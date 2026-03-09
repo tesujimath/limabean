@@ -73,7 +73,7 @@ pub enum Booking {
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct Source {
-    file: u32,
+    file: usize,
     start: usize,
     end: usize,
 }

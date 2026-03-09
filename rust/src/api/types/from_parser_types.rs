@@ -5,9 +5,9 @@ use super::*;
 impl<'a> From<&'a parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
     fn from(value: &'a parser::Spanned<parser::Directive<'a>>) -> Self {
         let source = Source {
-            file: 1,
-            start: 2,
-            end: 3,
+            file: value.source_id().into(),
+            start: value.span().start,
+            end: value.span().end,
         };
         Directive {
             source,
