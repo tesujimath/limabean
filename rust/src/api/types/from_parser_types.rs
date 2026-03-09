@@ -23,30 +23,33 @@ impl<'a> From<&'a parser::DirectiveVariant<'a>> for DirectiveVariant<'a> {
         use parser::DirectiveVariant as parser;
 
         match value {
-            parser::Transaction(transaction) => todo!(),
-            parser::Price(price) => todo!(),
-            parser::Balance(balance) => todo!(),
+            parser::Transaction(_transaction) => todo!(),
+            parser::Price(_price) => todo!(),
+            parser::Balance(_balance) => todo!(),
             parser::Open(open) => Open(open.into()),
-            parser::Close(close) => todo!(),
-            parser::Commodity(commodity) => todo!(),
-            parser::Pad(pad) => todo!(),
-            parser::Document(document) => todo!(),
-            parser::Note(note) => todo!(),
-            parser::Event(event) => todo!(),
-            parser::Query(query) => todo!(),
-            parser::Custom(custom) => todo!(),
+            parser::Close(_close) => todo!(),
+            parser::Commodity(_commodity) => todo!(),
+            parser::Pad(_pad) => todo!(),
+            parser::Document(_document) => todo!(),
+            parser::Note(_note) => todo!(),
+            parser::Event(_event) => todo!(),
+            parser::Query(_query) => todo!(),
+            parser::Custom(_custom) => todo!(),
         }
     }
 }
 
 impl<'a> From<&'a parser::Open<'a>> for Open<'a> {
     fn from(value: &'a parser::Open<'a>) -> Self {
-        Open {
-            account: value.account().item().as_ref(),
-            currencies: value
+        let currencies = (value.currencies().count() > 0).then(|| {
+            value
                 .currencies()
                 .map(|cur| cur.item().as_ref())
-                .collect::<HashSet<_>>(),
+                .collect::<HashSet<_>>()
+        });
+        Open {
+            account: value.account().item().as_ref(),
+            currencies,
             booking: value.booking().map(|booking| (*booking.item()).into()),
         }
     }

@@ -21,7 +21,7 @@ pub fn serve(path: &Path) -> io::Result<()> {
 
 struct Server<'a> {
     sources: &'a BeancountSources,
-    parser: &'a BeancountParser<'a>,
+    _parser: &'a BeancountParser<'a>,
     parsed: Result<ParseSuccess<'a>, ParseError>,
 }
 
@@ -31,7 +31,7 @@ impl<'a> Server<'a> {
 
         Self {
             sources,
-            parser,
+            _parser: parser,
             parsed,
         }
     }

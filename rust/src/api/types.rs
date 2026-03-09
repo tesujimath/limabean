@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, ser::SerializeTuple};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use time::Date;
 
@@ -12,12 +12,14 @@ pub struct Directive<'a> {
     pub(crate) date: Date,
     // pub(crate) metadata: Metadata<'a>,
     #[serde(borrow)]
+    #[serde(flatten)]
     pub(crate) variant: DirectiveVariant<'a>,
 }
 
 /// A Beancount directive, without the fields common to all, which belong to [Directive].
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
+#[serde(tag = "dct")]
 pub enum DirectiveVariant<'a> {
     // Transaction(Transaction<'a>),
     // Price(Price<'a>),
@@ -38,8 +40,11 @@ pub enum DirectiveVariant<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Open<'a> {
+    #[serde(rename = "acc")]
     pub(crate) account: &'a str,
-    pub(crate) currencies: HashSet<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) currencies: Option<HashSet<&'a str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) booking: Option<Booking>,
 }
 
@@ -67,7 +72,7 @@ pub enum Booking {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-struct Source {
+pub(crate) struct Source {
     file: u32,
     start: usize,
     end: usize,
