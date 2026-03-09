@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Changed
+
+- now requires at least Clojure 1.12 for JSON-RPC API
+
 [commit log]: https://github.com/tesujimath/limabean/compare/0.3.2...HEAD
 
 ## [0.3.2] - 2026-03-06
