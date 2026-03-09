@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeTuple};
 use std::collections::HashSet;
 use time::Date;
 
@@ -8,7 +8,7 @@ use time::Date;
 pub struct Directive<'a> {
     #[serde(rename = "src")]
     pub(crate) source: Source,
-    #[serde(with = "iso8601date")]
+    #[serde(with = "serializers::iso8601date")]
     pub(crate) date: Date,
     // pub(crate) metadata: Metadata<'a>,
     #[serde(borrow)]
@@ -66,13 +66,12 @@ pub enum Booking {
     Hifo,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 struct Source {
     file: u32,
     start: usize,
     end: usize,
 }
 
-time::serde::format_description!(iso8601date, Date, "[year]-[month]-[day]");
-
 mod from_parser_types;
+mod serializers;
