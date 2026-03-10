@@ -110,6 +110,7 @@
               export LIMABEAN_USER_CLJ="$(pwd)/examples/clj/user.clj"
               export LIMABEAN_BEANFILE="$(pwd)/test-cases/full.beancount"
               export LIMABEAN_LOG="$(pwd)/limabean.log"
+              export LIMABEAN_POD_LOG="$(pwd)/limabean-pod.log"
             '';
           };
 

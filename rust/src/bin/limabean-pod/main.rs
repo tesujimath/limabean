@@ -1,9 +1,10 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use std::{
     io::{self, Read},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use tabulator::Cell;
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
 use limabean::api;
@@ -56,14 +57,32 @@ impl From<Format> for book::Format {
     }
 }
 
+const LIMABEAN_POD_LOG: &str = "LIMABEAN_POD_LOG";
+const LIMABEAN_POD_LOG_LEVEL: &str = "LIMABEAN_POD_LOG_LEVEL";
+
 fn main() {
     let out_w = &std::io::stdout();
     let error_w = &std::io::stderr();
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).unwrap();
+    // enable logging only if environment variable LIMABEAN_POD_LOG defined
+    // log level set via environment variable LIMABEAN_POD_LOG_LEVEL, or default
+    if let Ok(log_path) = std::env::var(LIMABEAN_POD_LOG) {
+        let log_path: PathBuf = log_path.into();
+
+        if let Some(log_file_name) = log_path.file_name() {
+            let log_dir = log_path.parent().unwrap_or(Path::new("."));
+            let appender = tracing_appender::rolling::never(log_dir, log_file_name);
+            let env_filter = EnvFilter::builder()
+                .with_default_directive(LevelFilter::DEBUG.into())
+                .with_env_var(LIMABEAN_POD_LOG_LEVEL)
+                .from_env_lossy();
+            let subscriber = tracing_subscriber::fmt()
+                .with_env_filter(env_filter)
+                .with_writer(appender);
+
+            tracing::subscriber::set_global_default(subscriber.finish()).unwrap();
+        }
+    }
 
     let cli = Cli::parse();
 

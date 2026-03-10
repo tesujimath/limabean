@@ -52,7 +52,7 @@ impl<'a> Server<'a> {
         let mut buf = String::new();
         let mut reader = BufReader::new(r);
 
-        eprintln!("limabean-pod serve starting ...");
+        tracing::debug!("starting");
 
         loop {
             buf.clear();
@@ -60,17 +60,19 @@ impl<'a> Server<'a> {
             match reader.read_line(&mut buf) {
                 Ok(n) => {
                     if n > 0 {
-                        eprintln!("dispatching {}", &buf);
-                        self.dispatch(&buf, w);
+                        let json = buf.trim();
+                        tracing::debug!("<- {}", json);
+                        self.dispatch(json, w);
                     } else {
                         // that's all folks
-                        eprintln!("EOF on input, exiting");
+                        tracing::debug!("<- EOF");
+                        tracing::debug!("exit");
                         std::process::exit(0);
                     }
                 }
 
                 Err(e) => {
-                    eprintln!("Error {} on input, exiting", &e);
+                    tracing::error!("<- {}", &e);
                     std::process::exit(1);
                 }
             }
@@ -127,22 +129,18 @@ impl<'a> Server<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn status<W>(&self, id: Id, mut w: W) -> io::Result<()>
+    fn status<W>(&self, id: Id, w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
         let response = ResultResponse::new(id, ResultData::Ok);
 
-        if let Err(e) = serde_json::to_writer(w, &response) {
-            write_error(id, ERROR_INTERNAL, Cow::Owned(e.to_string()), w)
-        } else {
-            w.write_all(b"\n")
-        }
+        write_response(&response, w)
     }
 }
 
 impl<'a> HealthyServer<'a> {
-    fn parser_directives_get<W>(&self, id: Id, mut w: W) -> io::Result<()>
+    fn parser_directives_get<W>(&self, id: Id, w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
@@ -157,12 +155,9 @@ impl<'a> HealthyServer<'a> {
                 ),
             );
 
-            if let Err(e) = serde_json::to_writer(w, &response) {
-                write_error(id, ERROR_INTERNAL, Cow::Owned(e.to_string()), w)?;
-            }
-            w.write_all(b"\n")
+            write_response(&response, w)
         } else {
-            eprintln!("parser error, TODO return as no directives",);
+            tracing::error!("parse error, no directives to return");
             Ok(())
         }
     }
@@ -172,17 +167,22 @@ fn write_response<W>(response: &ResultResponse, mut w: W) -> io::Result<()>
 where
     W: Write + Copy,
 {
-    if let Err(e) = serde_json::to_writer(w, &response) {
-        if let serde_json::error::Category::Io = e.classify() {
-            Err(io::Error::new(
-                e.io_error_kind().unwrap(),
-                "while writing JSON",
-            ))
-        } else {
-            write_error(response.id, ERROR_INTERNAL, Cow::Owned(e.to_string()), w)
+    match serde_json::to_string(&response) {
+        Ok(json) => {
+            tracing::debug!("-> {}", &json);
+            writeln!(w, "{}", &json)
         }
-    } else {
-        w.write_all(b"\n")
+        Err(e) => {
+            tracing::error!("{}", &e);
+            if let serde_json::error::Category::Io = e.classify() {
+                Err(io::Error::new(
+                    e.io_error_kind().unwrap(),
+                    "while writing JSON",
+                ))
+            } else {
+                write_error(response.id, ERROR_INTERNAL, Cow::Owned(e.to_string()), w)
+            }
+        }
     }
 }
 
@@ -197,7 +197,14 @@ where
 {
     let response = ErrorResponse::new(id, code, message);
     match serde_json::to_string(&response) {
-        Ok(json) => writeln!(w, "{}", &json),
-        Err(e) => panic!("can't even write error {}", &e),
+        Ok(json) => {
+            tracing::debug!("-> {}", &json);
+            writeln!(w, "{}", &json)
+        }
+        Err(e) => {
+            tracing::error!("failed writing error {}", &e);
+
+            panic!("can't even write error {}", &e)
+        }
     }
 }

@@ -57,6 +57,7 @@ tabulator = { version = "0.5.0", features = [
   "num-bigint",
   "rust_decimal",
 ] }
+tracing-appender = "0.2.4"
 # tabulator = { path = "../../../tabulator", features = [
 #   "bin",
 #   "num-bigint",
