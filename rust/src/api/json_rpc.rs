@@ -3,11 +3,11 @@ use std::borrow::Cow;
 
 use super::types::*;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Request<'a> {
     pub(crate) jsonrpc: &'a str,
-    pub(crate) id: &'a str,
+    pub(crate) id: Id<'a>,
     #[serde(borrow)]
     #[serde(flatten)]
     pub(crate) method: RequestMethod<'a>,
@@ -36,16 +36,16 @@ pub struct DirectivesPut<'a> {
     directives: Vec<Directive<'a>>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ResultResponse<'a, 'b> {
     pub(crate) jsonrpc: &'static str,
-    pub(crate) id: &'a str,
+    pub(crate) id: Id<'a>,
     pub(crate) result: ResultData<'b>,
 }
 
 impl<'a, 'b> ResultResponse<'a, 'b> {
-    pub(crate) fn new(id: &'a str, result: ResultData<'b>) -> Self {
+    pub(crate) fn new(id: Id<'a>, result: ResultData<'b>) -> Self {
         ResultResponse {
             jsonrpc: JSONRPC_VERSION,
             id,
@@ -63,16 +63,16 @@ pub(crate) enum ResultData<'a> {
     RawDirectives(Vec<Directive<'a>>),
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ErrorResponse<'a, 'b> {
     pub(crate) jsonrpc: &'static str,
-    pub(crate) id: &'a str,
+    pub(crate) id: Id<'a>,
     pub(crate) error: ErrorData<'b>,
 }
 
 impl<'a, 'b> ErrorResponse<'a, 'b> {
-    pub(crate) fn new(id: &'a str, code: ErrorCode, message: Cow<'b, str>) -> Self {
+    pub(crate) fn new(id: Id<'a>, code: ErrorCode, message: Cow<'b, str>) -> Self {
         ErrorResponse {
             jsonrpc: JSONRPC_VERSION,
             id,
@@ -85,6 +85,14 @@ impl<'a, 'b> ErrorResponse<'a, 'b> {
 pub(crate) struct ErrorData<'a> {
     code: i32,
     message: Cow<'a, str>,
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+#[serde(untagged)]
+pub(crate) enum Id<'a> {
+    String(&'a str),
+    Int(i32),
+    Float(f64),
 }
 
 const JSONRPC_VERSION: &str = "2.0";

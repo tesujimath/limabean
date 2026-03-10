@@ -25,11 +25,7 @@
   [pod msg]
   (let [id (next-id! pod)
         jsonrpc-msg (cheshire/generate-string (assoc msg
-                                                :id (str id) ;; TODO string
-                                                             ;; until
-                                                             ;; limabean-pod
-                                                             ;; accepts
-                                                             ;; number
+                                                :id id
                                                 :jsonrpc "2.0"))]
     (write-line pod jsonrpc-msg)))
 
@@ -51,6 +47,16 @@
          (:result response) (assoc :ok (:result response))
          (:error response) (assoc :err (:error response)))))))
 
+(defn stop
+  "Stop the limabean-pod"
+  [pod]
+  (.close (:in pod))
+  (when-not (.waitFor (:process pod) 10 TimeUnit/SECONDS)
+    (binding [*out* *err*]
+      (println "WARNING: limabean-pod failed to stop, killing with prejudice"))
+    (.destroyForcibly (:process pod)))
+  (.close (:out pod)))
+
 (defn start
   "Run limabean-pod serve and remain attached"
   [beancount-path]
@@ -65,16 +71,7 @@
              :next-id (atom 0)}
         status (invoke pod "status")]
     (when (:err status)
+      (stop pod)
       (throw (ex-info "pod/start failed"
                       {:user-error (get-in status [:err :message])})))
     pod))
-
-(defn stop
-  "Stop the limabean-pod"
-  [pod]
-  (.close (:in pod))
-  (when-not (.waitFor (:process pod) 10 TimeUnit/SECONDS)
-    (binding [*out* *err*]
-      (println "WARNING: limabean-pod failed to stop, killing with prejudice"))
-    (.destroyForcibly (:process pod)))
-  (.close (:out pod)))

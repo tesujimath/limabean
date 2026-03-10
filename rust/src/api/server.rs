@@ -115,19 +115,23 @@ impl<'a> Server<'a> {
                 w,
             )
             .unwrap(),
-            (_, Err(e)) => {
-                write_error("unknown", ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap()
-            }
+            (_, Err(e)) => write_error(
+                Id::String("unknown"),
+                ERROR_PARSE,
+                Cow::Owned(e.to_string()),
+                w,
+            )
+            .unwrap(),
         }
     }
 }
 
 impl<'a> HealthyServer<'a> {
-    fn status<W>(&self, id: &str, mut w: W) -> io::Result<()>
+    fn status<W>(&self, id: Id, mut w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
-        let response = ResultResponse::new("id", ResultData::Ok);
+        let response = ResultResponse::new(id, ResultData::Ok);
 
         if let Err(e) = serde_json::to_writer(w, &response) {
             write_error(id, ERROR_INTERNAL, Cow::Owned(e.to_string()), w)
@@ -138,13 +142,13 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn parser_directives_get<W>(&self, id: &str, mut w: W) -> io::Result<()>
+    fn parser_directives_get<W>(&self, id: Id, mut w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
         if let Ok(ParseSuccess { directives, .. }) = &self.parsed {
             let response = ResultResponse::new(
-                "id",
+                id,
                 ResultData::RawDirectives(
                     directives
                         .iter()
@@ -182,7 +186,12 @@ where
     }
 }
 
-fn write_error<'a, W>(id: &str, code: ErrorCode, message: Cow<'a, str>, mut w: W) -> io::Result<()>
+fn write_error<'a, 'b, W>(
+    id: Id<'a>,
+    code: ErrorCode,
+    message: Cow<'b, str>,
+    mut w: W,
+) -> io::Result<()>
 where
     W: Write + Copy,
 {
