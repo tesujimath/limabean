@@ -23,7 +23,7 @@ impl<'a> From<&'a parser::DirectiveVariant<'a>> for DirectiveVariant<'a> {
             parser::Balance(balance) => Balance(balance.into()),
             parser::Open(open) => Open(open.into()),
             parser::Close(close) => Close(close.into()),
-            parser::Commodity(_commodity) => todo!(),
+            parser::Commodity(commodity) => Commodity(commodity.into()),
             parser::Pad(_pad) => todo!(),
             parser::Document(_document) => todo!(),
             parser::Note(_note) => todo!(),
@@ -89,6 +89,14 @@ impl<'a> From<&'a parser::Close<'a>> for Close<'a> {
     fn from(value: &'a parser::Close<'a>) -> Self {
         Close {
             acc: value.account().item().as_ref(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Commodity<'a>> for Commodity<'a> {
+    fn from(value: &'a parser::Commodity<'a>) -> Self {
+        Commodity {
+            cur: value.currency().item().as_ref(),
         }
     }
 }

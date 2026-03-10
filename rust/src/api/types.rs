@@ -28,7 +28,7 @@ pub enum DirectiveVariant<'a> {
     #[serde(borrow)]
     Open(Open<'a>),
     Close(Close<'a>),
-    // Commodity(Commodity<'a>),
+    Commodity(Commodity<'a>),
     // Pad(Pad<'a>),
     // Document(Document<'a>),
     // Note(Note<'a>),
@@ -84,6 +84,13 @@ pub struct Open<'a> {
 #[serde(rename_all = "kebab-case")]
 pub struct Close<'a> {
     pub(crate) acc: &'a str,
+}
+
+/// A Beancount commodity directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Commodity<'a> {
+    pub(crate) cur: &'a str,
 }
 
 /// A Beancount event directive, without the common [Directive] fields.
