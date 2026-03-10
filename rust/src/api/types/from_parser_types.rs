@@ -24,7 +24,7 @@ impl<'a> From<&'a parser::DirectiveVariant<'a>> for DirectiveVariant<'a> {
             parser::Open(open) => Open(open.into()),
             parser::Close(close) => Close(close.into()),
             parser::Commodity(commodity) => Commodity(commodity.into()),
-            parser::Pad(_pad) => todo!(),
+            parser::Pad(pad) => Pad(pad.into()),
             parser::Document(_document) => todo!(),
             parser::Note(_note) => todo!(),
             parser::Event(_event) => todo!(),
@@ -97,6 +97,15 @@ impl<'a> From<&'a parser::Commodity<'a>> for Commodity<'a> {
     fn from(value: &'a parser::Commodity<'a>) -> Self {
         Commodity {
             cur: value.currency().item().as_ref(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Pad<'a>> for Pad<'a> {
+    fn from(value: &'a parser::Pad<'a>) -> Self {
+        Pad {
+            acc: value.account().item().as_ref(),
+            source: value.source().item().as_ref(),
         }
     }
 }
