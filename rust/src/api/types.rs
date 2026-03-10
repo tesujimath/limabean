@@ -27,7 +27,7 @@ pub enum DirectiveVariant<'a> {
     Balance(Balance<'a>),
     #[serde(borrow)]
     Open(Open<'a>),
-    // Close(Close<'a>),
+    Close(Close<'a>),
     // Commodity(Commodity<'a>),
     // Pad(Pad<'a>),
     // Document(Document<'a>),
@@ -77,6 +77,13 @@ pub struct Open<'a> {
     pub(crate) currencies: Option<HashSet<&'a str>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) booking: Option<Booking>,
+}
+
+/// A Beancount close directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Close<'a> {
+    pub(crate) acc: &'a str,
 }
 
 /// A Beancount event directive, without the common [Directive] fields.
