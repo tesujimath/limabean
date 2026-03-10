@@ -27,7 +27,10 @@ limabean-booking = { path = "../../limabean-booking", version = "0.9.1", feature
 ] }
 # beancount-parser-lima = "0.14.6"
 beancount-parser-lima = { version = "0.14.6", path = "../../beancount-parser-lima" }
-rust_decimal = "1.37.2"
+rust_decimal = { version = "1.37.2", features = [
+  "serde-float",
+  "serde-arbitrary-precision",
+] }
 hashbrown = "0.15.4"
 time = { version = "0.3.41", features = [
   "local-offset",

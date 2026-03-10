@@ -1,5 +1,6 @@
 (ns limabean.adapter.pod
   (:require [cheshire.core :as cheshire]
+            [cheshire.parse]
             [clojure.java.io :as io]
             [clojure.java.process :as process]
             [clojure.string :as str])
@@ -30,11 +31,12 @@
     (write-line pod jsonrpc-msg)))
 
 (defn read-msg
-  "Read and decode a response"
+  "Read and decode a response, using BigDecimal for all numbers"
   [pod]
-  (-> pod
-      (read-line)
-      (cheshire/parse-string true)))
+  (binding [cheshire.parse/*use-bigdecimals?* true]
+    (-> pod
+        (read-line)
+        (cheshire/parse-string true))))
 
 (defn invoke
   "Invoke a remote procedure call, with the method and params"
