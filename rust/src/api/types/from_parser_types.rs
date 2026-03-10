@@ -19,7 +19,7 @@ impl<'a> From<&'a parser::DirectiveVariant<'a>> for DirectiveVariant<'a> {
 
         match value {
             parser::Transaction(transaction) => Transaction(transaction.into()),
-            parser::Price(_price) => todo!(),
+            parser::Price(price) => Price(price.into()),
             parser::Balance(_balance) => todo!(),
             parser::Open(open) => Open(open.into()),
             parser::Close(_close) => todo!(),
@@ -41,6 +41,19 @@ impl<'a> From<&'a parser::Transaction<'a>> for Transaction<'a> {
             payee: value.payee().map(|x| x.item().as_ref()),
             narration: value.narration().map(|x| x.item().as_ref()),
             postings: value.postings().map(|x| x.into()).collect::<Vec<_>>(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Price<'a>> for PriceDct<'a> {
+    fn from(value: &'a parser::Price<'a>) -> Self {
+        PriceDct {
+            cur: value.currency().item().as_ref(),
+            price: Price {
+                per_unit: value.amount().number().value(),
+                total: None,
+                cur: value.amount().currency().item().as_ref(),
+            },
         }
     }
 }

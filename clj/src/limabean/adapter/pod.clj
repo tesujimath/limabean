@@ -31,22 +31,23 @@
                                                 :jsonrpc "2.0"))]
     (write-line pod jsonrpc-msg)))
 
-(defn parse-dates
+(defn convert-values
   [data]
   (walk/postwalk (fn [x]
-                   (if (and (map? x) (contains? x :date))
-                     (update x :date #(jt/local-date %))
-                     x))
+                   (cond-> x
+                     (and (map? x) (contains? x :date)) (update :date
+                                                                jt/local-date)
+                     (and (map? x) (contains? x :dct)) (update :dct keyword)))
                  data))
 
 (defn read-msg
-  "Read and decode a response, using BigDecimal for all numbers, and converting :date values in maps into jt/local-date"
+  "Read and decode a response, using BigDecimal for all numbers, and converting values as appropriate"
   [pod]
   (binding [cheshire.parse/*use-bigdecimals?* true]
     (-> pod
         (read-line)
         (cheshire/parse-string true)
-        (parse-dates))))
+        (convert-values))))
 
 (defn invoke
   "Invoke a remote procedure call, with the method and params"

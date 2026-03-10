@@ -23,7 +23,7 @@ pub struct Directive<'a> {
 pub enum DirectiveVariant<'a> {
     #[serde(rename = "txn")]
     Transaction(Transaction<'a>),
-    // Price(Price<'a>),
+    Price(PriceDct<'a>),
     // Balance(Balance<'a>),
     #[serde(borrow)]
     Open(Open<'a>),
@@ -47,6 +47,14 @@ pub struct Transaction<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) narration: Option<&'a str>,
     pub(crate) postings: Vec<PostingSpec<'a>>,
+}
+
+/// A Beancount open directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct PriceDct<'a> {
+    pub(crate) cur: &'a str,
+    pub(crate) price: Price<'a>,
 }
 
 /// A Beancount open directive, without the common [Directive] fields.
@@ -114,6 +122,16 @@ pub struct PriceSpec<'a> {
     pub(crate) total: Option<Decimal>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) cur: Option<&'a str>,
+}
+
+/// A Beancount open directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Price<'a> {
+    pub(crate) per_unit: Decimal,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) total: Option<Decimal>,
+    pub(crate) cur: &'a str,
 }
 
 /// The booking method for an account.
