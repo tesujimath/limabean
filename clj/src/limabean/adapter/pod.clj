@@ -6,19 +6,6 @@
   (:import [java.io OutputStreamWriter PrintWriter]
            [java.util.concurrent TimeUnit]))
 
-(defn start
-  "Run limabean-pod serve and remain attached"
-  [beancount-path]
-  (let [pod-process
-          (process/start {:err :inherit} "limabean-pod" "serve" beancount-path)]
-    {:process pod-process,
-     :in (-> (process/stdin pod-process)
-             OutputStreamWriter.
-             PrintWriter.),
-     :out (-> (process/stdout pod-process)
-              io/reader),
-     :next-id (atom 0)}))
-
 (defn- next-id! [pod] (swap! (:next-id pod) inc))
 
 (defn write-line
@@ -44,7 +31,6 @@
                                                              ;; accepts
                                                              ;; number
                                                 :jsonrpc "2.0"))]
-    (binding [*out* *err*] (println "write-msg" jsonrpc-msg))
     (write-line pod jsonrpc-msg)))
 
 (defn read-msg
@@ -53,6 +39,35 @@
   (-> pod
       (read-line)
       (cheshire/parse-string true)))
+
+(defn invoke
+  "Invoke a remote procedure call, with the method and params"
+  ([pod method] (invoke pod method nil))
+  ([pod method params]
+   (let [msg (cond-> {:method method} params (assoc :params params))]
+     (write-msg pod msg)
+     (let [response (read-msg pod)]
+       (cond-> {}
+         (:result response) (assoc :ok (:result response))
+         (:error response) (assoc :err (:error response)))))))
+
+(defn start
+  "Run limabean-pod serve and remain attached"
+  [beancount-path]
+  (let [pod-process
+          (process/start {:err :inherit} "limabean-pod" "serve" beancount-path)
+        pod {:process pod-process,
+             :in (-> (process/stdin pod-process)
+                     OutputStreamWriter.
+                     PrintWriter.),
+             :out (-> (process/stdout pod-process)
+                      io/reader),
+             :next-id (atom 0)}
+        status (invoke pod "status")]
+    (when (:err status)
+      (throw (ex-info "pod/start failed"
+                      {:user-error (get-in status [:err :message])})))
+    pod))
 
 (defn stop
   "Stop the limabean-pod"

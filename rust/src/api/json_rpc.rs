@@ -16,6 +16,8 @@ pub(crate) struct Request<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(tag = "method")]
 pub(crate) enum RequestMethod<'a> {
+    #[serde(rename = "status")]
+    Status,
     #[serde(rename = "parser.directives.get")]
     ParserDirectivesGet(ParserDirectivesGet),
     #[serde(rename = "directives.put")]
@@ -54,9 +56,11 @@ impl<'a, 'b> ResultResponse<'a, 'b> {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 pub(crate) enum ResultData<'a> {
-    #[serde(rename = "parser.directives.get")]
+    #[serde(rename = "ok")]
+    Ok,
+    #[serde(rename = "raw.directives")]
     #[serde(borrow)]
-    ParserDirectives(Vec<Directive<'a>>),
+    RawDirectives(Vec<Directive<'a>>),
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]

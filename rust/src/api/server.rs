@@ -1,5 +1,4 @@
 use beancount_parser_lima::{BeancountParser, BeancountSources, ParseError, ParseSuccess};
-use serde::Serialize;
 use std::{
     borrow::Cow,
     io::{self, BufRead, BufReader, Read, Write, stdin, stdout},
@@ -15,11 +14,16 @@ pub fn serve(path: &Path) {
 
             Server(Ok(HealthyServer::new(&sources, &parser))).serve(&stdin(), &stdout());
         }
-        Err(e) => Server(Err(e)).serve(&stdin(), &stdout()),
+        Err(e) => Server(Err(format!(
+            "Can't read {}: {}",
+            path.to_string_lossy(),
+            &e
+        )))
+        .serve(&stdin(), &stdout()),
     };
 }
 
-struct Server<'a>(io::Result<HealthyServer<'a>>);
+struct Server<'a>(Result<HealthyServer<'a>, String>);
 
 struct HealthyServer<'a> {
     sources: &'a BeancountSources,
@@ -48,12 +52,15 @@ impl<'a> Server<'a> {
         let mut buf = String::new();
         let mut reader = BufReader::new(r);
 
+        eprintln!("limabean-pod serve starting ...");
+
         loop {
             buf.clear();
 
             match reader.read_line(&mut buf) {
                 Ok(n) => {
                     if n > 0 {
+                        eprintln!("dispatching {}", &buf);
                         self.dispatch(&buf, w);
                     } else {
                         // that's all folks
@@ -80,6 +87,13 @@ impl<'a> Server<'a> {
             (
                 Ok(healthy),
                 Ok(Request {
+                    id, method: Status, ..
+                }),
+            ) => healthy.status(id, w).unwrap(),
+
+            (
+                Ok(healthy),
+                Ok(Request {
                     id,
                     method: ParserDirectivesGet(_),
                     ..
@@ -97,13 +111,28 @@ impl<'a> Server<'a> {
             (Err(unhealthy), Ok(Request { id, .. })) => write_error(
                 id,
                 ERROR_BEANFILE_IO_ERROR,
-                Cow::Owned(unhealthy.to_string()),
+                Cow::Borrowed(unhealthy.as_str()),
                 w,
             )
             .unwrap(),
             (_, Err(e)) => {
                 write_error("unknown", ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap()
             }
+        }
+    }
+}
+
+impl<'a> HealthyServer<'a> {
+    fn status<W>(&self, id: &str, mut w: W) -> io::Result<()>
+    where
+        W: Write + Copy,
+    {
+        let response = ResultResponse::new("id", ResultData::Ok);
+
+        if let Err(e) = serde_json::to_writer(w, &response) {
+            write_error(id, ERROR_INTERNAL, Cow::Owned(e.to_string()), w)
+        } else {
+            w.write_all(b"\n")
         }
     }
 }
@@ -116,7 +145,7 @@ impl<'a> HealthyServer<'a> {
         if let Ok(ParseSuccess { directives, .. }) = &self.parsed {
             let response = ResultResponse::new(
                 "id",
-                ResultData::ParserDirectives(
+                ResultData::RawDirectives(
                     directives
                         .iter()
                         .map(Into::<Directive>::into)
