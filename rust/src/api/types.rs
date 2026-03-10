@@ -30,11 +30,11 @@ pub enum DirectiveVariant<'a> {
     Close(Close<'a>),
     Commodity(Commodity<'a>),
     Pad(Pad<'a>),
-    // Document(Document<'a>),
-    // Note(Note<'a>),
+    Document(Document<'a>),
+    Note(Note<'a>),
     Event(Event<'a>),
-    // Query(Query<'a>),
-    // Custom(Custom<'a>),
+    Query(Query<'a>),
+    Custom(Custom<'a>),
 }
 
 /// A Beancount transaction directive, without the common [Directive] fields.
@@ -101,13 +101,45 @@ pub struct Pad<'a> {
     pub(crate) source: &'a str,
 }
 
+/// A Beancount document directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Document<'a> {
+    pub(crate) acc: &'a str,
+    pub(crate) path: &'a str,
+}
+
+/// A Beancount note directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Note<'a> {
+    pub(crate) acc: &'a str,
+    pub(crate) comment: &'a str,
+}
+
 /// A Beancount event directive, without the common [Directive] fields.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Event<'a> {
     #[serde(rename = "type")]
-    pub(crate) _type: &'a str,
+    pub(crate) type_: &'a str,
     pub(crate) description: &'a str,
+}
+
+/// A Beancount query directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Query<'a> {
+    pub(crate) name: &'a str,
+    pub(crate) content: &'a str,
+}
+
+/// A Beancount custom directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Custom<'a> {
+    pub(crate) type_: &'a str,
+    // TODO custom meta values
 }
 
 /// A potentially incomplete posting-specification.

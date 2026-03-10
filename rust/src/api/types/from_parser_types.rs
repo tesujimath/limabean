@@ -25,11 +25,11 @@ impl<'a> From<&'a parser::DirectiveVariant<'a>> for DirectiveVariant<'a> {
             parser::Close(close) => Close(close.into()),
             parser::Commodity(commodity) => Commodity(commodity.into()),
             parser::Pad(pad) => Pad(pad.into()),
-            parser::Document(_document) => todo!(),
-            parser::Note(_note) => todo!(),
-            parser::Event(_event) => todo!(),
-            parser::Query(_query) => todo!(),
-            parser::Custom(_custom) => todo!(),
+            parser::Document(document) => Document(document.into()),
+            parser::Note(note) => Note(note.into()),
+            parser::Event(event) => Event(event.into()),
+            parser::Query(query) => Query(query.into()),
+            parser::Custom(custom) => Custom(custom.into()),
         }
     }
 }
@@ -106,6 +106,51 @@ impl<'a> From<&'a parser::Pad<'a>> for Pad<'a> {
         Pad {
             acc: value.account().item().as_ref(),
             source: value.source().item().as_ref(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Document<'a>> for Document<'a> {
+    fn from(value: &'a parser::Document<'a>) -> Self {
+        Document {
+            acc: value.account().item().as_ref(),
+            path: value.path().item(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Note<'a>> for Note<'a> {
+    fn from(value: &'a parser::Note<'a>) -> Self {
+        Note {
+            acc: value.account().item().as_ref(),
+            comment: value.comment().item(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Event<'a>> for Event<'a> {
+    fn from(value: &'a parser::Event<'a>) -> Self {
+        Event {
+            type_: value.event_type().item(),
+            description: value.description().item(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Query<'a>> for Query<'a> {
+    fn from(value: &'a parser::Query<'a>) -> Self {
+        Query {
+            name: value.name().item(),
+            content: value.content().item(),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Custom<'a>> for Custom<'a> {
+    fn from(value: &'a parser::Custom<'a>) -> Self {
+        Custom {
+            type_: value.type_().item(),
+            // TODO custom meta values
         }
     }
 }
