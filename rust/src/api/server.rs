@@ -85,39 +85,42 @@ impl<'a> Server<'a> {
     {
         use RequestMethod::*;
 
-        match (&self.0, serde_json::from_str::<Request>(request)) {
-            (
-                Ok(healthy),
-                Ok(Request {
-                    id, method: Status, ..
-                }),
-            ) => healthy.status(id, w).unwrap(),
+        match serde_json::from_str::<Request>(request) {
+            Err(e) => write_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap(),
 
-            (
-                Ok(healthy),
-                Ok(Request {
-                    id,
-                    method: ParserDirectivesGet(_),
-                    ..
-                }),
-            ) => healthy.parser_directives_get(id, w).unwrap(),
-
-            (
-                Ok(healthy),
-                Ok(Request {
-                    id,
-                    method: DirectivesPut(_),
-                    ..
-                }),
-            ) => todo!(),
-            (Err(unhealthy), Ok(Request { id, .. })) => write_error(
+            Ok(Request {
                 id,
-                ERROR_BEANFILE_IO_ERROR,
-                Cow::Borrowed(unhealthy.as_str()),
-                w,
-            )
-            .unwrap(),
-            (_, Err(e)) => write_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap(),
+                jsonrpc,
+                method,
+            }) => {
+                if jsonrpc != JSONRPC_VERSION {
+                    write_error(
+                        id,
+                        ERROR_INVALID_REQUEST,
+                        Cow::Owned(format!("JSON-RPC protocol must be 2.0, found {}", jsonrpc)),
+                        w,
+                    )
+                    .unwrap()
+                } else {
+                    match (&self.0, method) {
+                        (Ok(healthy), Status) => healthy.status(id, w).unwrap(),
+
+                        (Ok(healthy), ParserDirectivesGet(_)) => {
+                            healthy.parser_directives_get(id, w).unwrap()
+                        }
+
+                        (Ok(_healthy), DirectivesPut(_)) => todo!(),
+
+                        (Err(unhealthy), _) => write_error(
+                            id,
+                            ERROR_BEANFILE_IO_ERROR,
+                            Cow::Borrowed(unhealthy.as_str()),
+                            w,
+                        )
+                        .unwrap(),
+                    }
+                }
+            }
         }
     }
 }
