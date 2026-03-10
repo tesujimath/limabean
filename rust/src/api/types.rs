@@ -24,7 +24,7 @@ pub enum DirectiveVariant<'a> {
     #[serde(rename = "txn")]
     Transaction(Transaction<'a>),
     Price(PriceDct<'a>),
-    // Balance(Balance<'a>),
+    Balance(Balance<'a>),
     #[serde(borrow)]
     Open(Open<'a>),
     // Close(Close<'a>),
@@ -37,7 +37,7 @@ pub enum DirectiveVariant<'a> {
     // Custom(Custom<'a>),
 }
 
-/// A Beancount open directive, without the common [Directive] fields.
+/// A Beancount transaction directive, without the common [Directive] fields.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Transaction<'a> {
@@ -49,12 +49,23 @@ pub struct Transaction<'a> {
     pub(crate) postings: Vec<PostingSpec<'a>>,
 }
 
-/// A Beancount open directive, without the common [Directive] fields.
+/// A Beancount price directive, without the common [Directive] fields.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct PriceDct<'a> {
     pub(crate) cur: &'a str,
     pub(crate) price: Price<'a>,
+}
+
+/// A Beancount balance directive, without the common [Directive] fields.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Balance<'a> {
+    pub(crate) acc: &'a str,
+    pub(crate) units: Decimal,
+    pub(crate) cur: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tolerance: Option<Decimal>,
 }
 
 /// A Beancount open directive, without the common [Directive] fields.
