@@ -3,7 +3,8 @@
             [cheshire.parse]
             [clojure.java.io :as io]
             [clojure.java.process :as process]
-            [clojure.string :as str])
+            [clojure.walk :as walk]
+            [java-time.api :as jt])
   (:import [java.io OutputStreamWriter PrintWriter]
            [java.util.concurrent TimeUnit]))
 
@@ -30,13 +31,22 @@
                                                 :jsonrpc "2.0"))]
     (write-line pod jsonrpc-msg)))
 
+(defn parse-dates
+  [data]
+  (walk/postwalk (fn [x]
+                   (if (and (map? x) (contains? x :date))
+                     (update x :date #(jt/local-date %))
+                     x))
+                 data))
+
 (defn read-msg
-  "Read and decode a response, using BigDecimal for all numbers"
+  "Read and decode a response, using BigDecimal for all numbers, and converting :date values in maps into jt/local-date"
   [pod]
   (binding [cheshire.parse/*use-bigdecimals?* true]
     (-> pod
         (read-line)
-        (cheshire/parse-string true))))
+        (cheshire/parse-string true)
+        (parse-dates))))
 
 (defn invoke
   "Invoke a remote procedure call, with the method and params"
