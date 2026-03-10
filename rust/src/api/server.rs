@@ -117,19 +117,13 @@ impl<'a> Server<'a> {
                 w,
             )
             .unwrap(),
-            (_, Err(e)) => write_error(
-                Id::String("unknown"),
-                ERROR_PARSE,
-                Cow::Owned(e.to_string()),
-                w,
-            )
-            .unwrap(),
+            (_, Err(e)) => write_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap(),
         }
     }
 }
 
 impl<'a> HealthyServer<'a> {
-    fn status<W>(&self, id: Id, w: W) -> io::Result<()>
+    fn status<W>(&self, id: Option<Id>, w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
@@ -140,7 +134,7 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn parser_directives_get<W>(&self, id: Id, w: W) -> io::Result<()>
+    fn parser_directives_get<W>(&self, id: Option<Id>, w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
@@ -187,7 +181,7 @@ where
 }
 
 fn write_error<'a, 'b, W>(
-    id: Id<'a>,
+    id: Option<Id<'a>>,
     code: ErrorCode,
     message: Cow<'b, str>,
     mut w: W,

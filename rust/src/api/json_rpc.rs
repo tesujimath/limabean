@@ -7,7 +7,7 @@ use super::types::*;
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Request<'a> {
     pub(crate) jsonrpc: &'a str,
-    pub(crate) id: Id<'a>,
+    pub(crate) id: Option<Id<'a>>,
     #[serde(borrow)]
     #[serde(flatten)]
     pub(crate) method: RequestMethod<'a>,
@@ -40,12 +40,12 @@ pub struct DirectivesPut<'a> {
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ResultResponse<'a, 'b> {
     pub(crate) jsonrpc: &'static str,
-    pub(crate) id: Id<'a>,
+    pub(crate) id: Option<Id<'a>>,
     pub(crate) result: ResultData<'b>,
 }
 
 impl<'a, 'b> ResultResponse<'a, 'b> {
-    pub(crate) fn new(id: Id<'a>, result: ResultData<'b>) -> Self {
+    pub(crate) fn new(id: Option<Id<'a>>, result: ResultData<'b>) -> Self {
         ResultResponse {
             jsonrpc: JSONRPC_VERSION,
             id,
@@ -67,12 +67,12 @@ pub(crate) enum ResultData<'a> {
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ErrorResponse<'a, 'b> {
     pub(crate) jsonrpc: &'static str,
-    pub(crate) id: Id<'a>,
+    pub(crate) id: Option<Id<'a>>,
     pub(crate) error: ErrorData<'b>,
 }
 
 impl<'a, 'b> ErrorResponse<'a, 'b> {
-    pub(crate) fn new(id: Id<'a>, code: ErrorCode, message: Cow<'b, str>) -> Self {
+    pub(crate) fn new(id: Option<Id<'a>>, code: ErrorCode, message: Cow<'b, str>) -> Self {
         ErrorResponse {
             jsonrpc: JSONRPC_VERSION,
             id,
