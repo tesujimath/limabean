@@ -106,10 +106,10 @@ impl<'a> Server<'a> {
                         (Ok(healthy), Status) => healthy.status(id, w).unwrap(),
 
                         (Ok(healthy), ParserDirectives) => {
-                            healthy.parser_directives_get(id, w).unwrap()
+                            healthy.parser_directives(id, w).unwrap()
                         }
 
-                        (Ok(_healthy), Book(_)) => todo!(),
+                        (Ok(_healthy), Book(directives)) => todo!(),
 
                         (Err(unhealthy), _) => write_error(
                             id,
@@ -137,7 +137,7 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn parser_directives_get<W>(&self, id: Option<Id>, w: W) -> io::Result<()>
+    fn parser_directives<W>(&self, id: Option<Id>, w: W) -> io::Result<()>
     where
         W: Write + Copy,
     {
@@ -155,6 +155,23 @@ impl<'a> HealthyServer<'a> {
             write_response(&response, w)
         } else {
             tracing::error!("parse error, no directives to return");
+            Ok(())
+        }
+    }
+
+    fn book<W>(&self, id: Option<Id>, directives: Option<&Vec<Directive>>, w: W) -> io::Result<()>
+    where
+        W: Write + Copy,
+    {
+        if let Some(_directives) = directives {
+            // TODO
+            write_error(
+                id,
+                ERROR_INTERNAL,
+                Cow::Borrowed("Booking directives other than as-parsed is not yet supported"),
+                w,
+            )
+        } else {
             Ok(())
         }
     }
