@@ -13,25 +13,29 @@ impl<'a> Serialize for MetaValue<'a> {
     {
         use MetaValue::*;
 
-        let map_len = if matches!(self, Amount(_, _)) { 2 } else { 1 };
-        let mut map = serializer.serialize_map(Some(map_len))?;
+        if let Null = self {
+            serializer.serialize_none()
+        } else {
+            let map_len = if matches!(self, Amount(_, _)) { 2 } else { 1 };
+            let mut map = serializer.serialize_map(Some(map_len))?;
 
-        match self {
-            Amount(units, cur) => {
-                map.serialize_entry(&MetaKey::Units, units)?;
-                map.serialize_entry(&MetaKey::Currency, cur)?;
+            match self {
+                Amount(units, cur) => {
+                    map.serialize_entry(&MetaKey::Units, units)?;
+                    map.serialize_entry(&MetaKey::Currency, cur)?;
+                }
+                String(x) => map.serialize_entry(&MetaKey::String, x)?,
+                Currency(x) => map.serialize_entry(&MetaKey::Currency, x)?,
+                Account(x) => map.serialize_entry(&MetaKey::Account, x)?,
+                Tag(x) => map.serialize_entry(&MetaKey::Tag, x)?,
+                Link(x) => map.serialize_entry(&MetaKey::Link, x)?,
+                Date(x) => map.serialize_entry(&MetaKey::Date, &fmt_iso8601date(*x))?,
+                Bool(x) => map.serialize_entry(&MetaKey::Bool, x)?,
+                Number(x) => map.serialize_entry(&MetaKey::Number, x)?,
+                Null => panic!("impossible, handled above"),
             }
-            String(x) => map.serialize_entry(&MetaKey::String, x)?,
-            Currency(x) => map.serialize_entry(&MetaKey::Currency, x)?,
-            Account(x) => map.serialize_entry(&MetaKey::Account, x)?,
-            Tag(x) => map.serialize_entry(&MetaKey::Tag, x)?,
-            Link(x) => map.serialize_entry(&MetaKey::Link, x)?,
-            Date(x) => map.serialize_entry(&MetaKey::Date, &fmt_iso8601date(*x))?,
-            Bool(x) => map.serialize_entry(&MetaKey::Bool, x)?,
-            Number(x) => map.serialize_entry(&MetaKey::Number, x)?,
-            Null => map.serialize_entry(&MetaKey::Null, &true)?,
+            map.end()
         }
-        map.end()
     }
 }
 
@@ -99,13 +103,19 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
                     ),
                     MetaKey::Bool => MetaValue::Bool(map.next_value()?),
                     MetaKey::Number => MetaValue::Number(map.next_value()?),
-                    MetaKey::Null => {
-                        let _: bool = map.next_value()?;
-                        MetaValue::Null
-                    }
+                    MetaKey::Null => Err(serde::de::Error::custom(
+                        "can't have metavalue map with null key",
+                    ))?,
                 };
 
                 Ok(value)
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(MetaValue::Null)
             }
         }
 
