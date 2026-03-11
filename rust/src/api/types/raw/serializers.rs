@@ -4,6 +4,8 @@ use serde::{
     ser::{SerializeMap, SerializeTuple},
 };
 
+use crate::api::types::{fmt_iso8601date, parse_iso8601date};
+
 use super::*;
 
 impl<'a> Serialize for MetaValue<'a> {
@@ -189,17 +191,3 @@ enum MetaKey {
     Tag,
     Units,
 }
-
-/// Format a date as ISO8601
-fn fmt_iso8601date(date: Date) -> String {
-    let fmt = time::macros::format_description!("[year]-[month]-[day]");
-    date.format(&fmt).unwrap()
-}
-
-/// Parse a date as ISO8601
-fn parse_iso8601date(s: &str) -> Result<Date, time::error::Parse> {
-    let fmt = time::macros::format_description!("[year]-[month]-[day]");
-    Date::parse(s, &fmt)
-}
-
-time::serde::format_description!(pub(crate) iso8601date, Date, "[year]-[month]-[day]");

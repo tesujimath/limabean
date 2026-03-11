@@ -6,12 +6,14 @@ use std::{
 };
 use time::Date;
 
+use super::iso8601date;
+
 /// A Beancount directive of a particular [DirectiveVariant].
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Directive<'a> {
     pub(crate) src: Source,
-    #[serde(with = "serializers::iso8601date")]
+    #[serde(with = "iso8601date")]
     pub(crate) date: Date,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) tags: Option<HashSet<&'a str>>,
@@ -185,7 +187,7 @@ pub struct CostSpec<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) cur: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(with = "serializers::iso8601date::option")]
+    #[serde(with = "iso8601date::option")]
     pub(crate) date: Option<Date>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) label: Option<&'a str>,
