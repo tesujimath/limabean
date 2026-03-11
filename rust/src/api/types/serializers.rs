@@ -26,7 +26,7 @@ impl<'a> Serialize for MetaValue<'a> {
             Account(x) => map.serialize_entry(&MetaKey::Account, x)?,
             Tag(x) => map.serialize_entry(&MetaKey::Tag, x)?,
             Link(x) => map.serialize_entry(&MetaKey::Link, x)?,
-            Date(x) => map.serialize_entry(&MetaKey::Date, x)?,
+            Date(x) => map.serialize_entry(&MetaKey::Date, &fmt_iso8601date(*x))?,
             Bool(x) => map.serialize_entry(&MetaKey::Bool, x)?,
             Number(x) => map.serialize_entry(&MetaKey::Number, x)?,
             Null => map.serialize_entry(&MetaKey::Null, &true)?,
@@ -93,7 +93,10 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
                     MetaKey::Account => MetaValue::Account(map.next_value()?),
                     MetaKey::Tag => MetaValue::Tag(map.next_value()?),
                     MetaKey::Link => MetaValue::Link(map.next_value()?),
-                    MetaKey::Date => MetaValue::Date(map.next_value()?),
+                    MetaKey::Date => MetaValue::Date(
+                        parse_iso8601date(map.next_value()?)
+                            .map_err(|e| serde::de::Error::custom(format!("bad date: {}", &e)))?,
+                    ),
                     MetaKey::Bool => MetaValue::Bool(map.next_value()?),
                     MetaKey::Number => MetaValue::Number(map.next_value()?),
                     MetaKey::Null => {
@@ -159,8 +162,6 @@ impl<'de> Deserialize<'de> for Source {
     }
 }
 
-time::serde::format_description!(pub(crate) iso8601date, Date, "[year]-[month]-[day]");
-
 // metadata keywords when encoded into HashMap
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -178,3 +179,17 @@ enum MetaKey {
     Tag,
     Units,
 }
+
+/// Format a date as ISO8601
+fn fmt_iso8601date(date: Date) -> String {
+    let fmt = time::macros::format_description!("[year]-[month]-[day]");
+    date.format(&fmt).unwrap()
+}
+
+/// Parse a date as ISO8601
+fn parse_iso8601date(s: &str) -> Result<Date, time::error::Parse> {
+    let fmt = time::macros::format_description!("[year]-[month]-[day]");
+    Date::parse(s, &fmt)
+}
+
+time::serde::format_description!(pub(crate) iso8601date, Date, "[year]-[month]-[day]");

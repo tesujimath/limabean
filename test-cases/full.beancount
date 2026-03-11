@@ -100,6 +100,15 @@ pushmeta drink: "alcoholic"
 
 2023-05-28 event "planning" "Plan beers" #exciting
   state: "anticipation"
+  budget: 127.50 NZD
+  foreigners: CAD
+  accounted-in: Expenses:Groceries
+  tagged-with: #mytag
+  linked-to: ^mylink
+  pre-dated: 2023-06-01
+  exciting: TRUE
+  guests-expected: 150
+  wahoo:
 
 popmeta drink:
 

@@ -14,7 +14,11 @@ pub struct Directive<'a> {
     #[serde(with = "serializers::iso8601date")]
     pub(crate) date: Date,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) metadata: Option<Metadata<'a>>,
+    pub(crate) tags: Option<HashSet<&'a str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) links: Option<HashSet<&'a str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) metadata: Option<HashMap<&'a str, MetaValue<'a>>>,
     #[serde(borrow)]
     #[serde(flatten)]
     pub(crate) variant: DirectiveVariant<'a>,
@@ -162,8 +166,12 @@ pub struct PostingSpec<'a> {
     pub(crate) cost_spec: Option<CostSpec<'a>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) price_spec: Option<PriceSpec<'a>>,
-    // TODO posting spec metadata
-    // pub(crate) metadata: Spanned<Metadata<'a>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tags: Option<HashSet<&'a str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) links: Option<HashSet<&'a str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) metadata: Option<HashMap<&'a str, MetaValue<'a>>>,
 }
 
 /// A potentially incomplete cost-specification.
@@ -204,19 +212,6 @@ pub struct Price<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) total: Option<Decimal>,
     pub(crate) cur: &'a str,
-}
-
-/// Metadata including tags and links
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
-#[serde(rename_all = "kebab-case")]
-pub struct Metadata<'a> {
-    #[serde(borrow)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) key_values: Option<HashMap<&'a str, MetaValue<'a>>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) tags: Option<HashSet<&'a str>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) links: Option<HashSet<&'a str>>,
 }
 
 /// A metadata value

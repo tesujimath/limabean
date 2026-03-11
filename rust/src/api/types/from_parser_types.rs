@@ -8,7 +8,9 @@ impl<'a> From<&'a parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
             src: value.into(),
             date: *value.date().item(),
             variant: value.variant().into(),
-            metadata: (!value.metadata().is_empty()).then_some(value.metadata().into()),
+            tags: from_tags(value.metadata().tags()),
+            links: from_links(value.metadata().links()),
+            metadata: from_key_values(value.metadata().key_values()),
         }
     }
 }
@@ -180,8 +182,9 @@ impl<'a> From<&'a parser::Spanned<parser::Posting<'a>>> for PostingSpec<'a> {
             cur: value.currency().map(|x| x.item().as_ref()),
             cost_spec: value.cost_spec().map(|x| x.item().into()),
             price_spec: value.price_annotation().map(|x| x.item().into()),
-            // TODO posting spec metadata
-            // pub(crate) metadata: Spanned<Metadata<'a>>>,
+            tags: from_tags(value.metadata().tags()),
+            links: from_links(value.metadata().links()),
+            metadata: from_key_values(value.metadata().key_values()),
         }
     }
 }
@@ -239,45 +242,65 @@ impl<'a> From<&'a parser::PriceSpec<'a>> for PriceSpec<'a> {
     }
 }
 
-impl<'a> From<&'a parser::Metadata<'a>> for Metadata<'a> {
-    fn from(value: &'a parser::Metadata<'a>) -> Self {
-        let key_values = value
-            .key_values()
-            .map(|(k, v)| (k.item().as_ref(), v.item().into()))
-            .collect::<HashMap<_, _>>();
-        let tags = value
-            .tags()
-            .map(|tag| tag.item().as_ref())
-            .collect::<HashSet<_>>();
-        let links = value
-            .links()
-            .map(|link| link.item().as_ref())
-            .collect::<HashSet<_>>();
-        Metadata {
-            key_values: (!key_values.is_empty()).then_some(key_values),
-            tags: (!tags.is_empty()).then_some(tags),
-            links: (!links.is_empty()).then_some(links),
-        }
-    }
+fn from_tags<'a>(
+    tags: impl ExactSizeIterator<Item = &'a parser::Spanned<parser::Tag<'a>>>,
+) -> Option<HashSet<&'a str>> {
+    let tags = tags
+        .map(|tag: &'a parser::Spanned<parser::Tag<'a>>| tag.item().as_ref())
+        .collect::<HashSet<_>>();
+
+    (!tags.is_empty()).then_some(tags)
+}
+
+fn from_links<'a>(
+    links: impl ExactSizeIterator<Item = &'a parser::Spanned<parser::Link<'a>>>,
+) -> Option<HashSet<&'a str>> {
+    let links = links
+        .map(|link: &'a parser::Spanned<parser::Link<'a>>| link.item().as_ref())
+        .collect::<HashSet<_>>();
+
+    (!links.is_empty()).then_some(links)
+}
+
+fn from_key_values<'a>(
+    key_values: impl ExactSizeIterator<
+        Item = (
+            &'a parser::Spanned<parser::Key<'a>>,
+            &'a parser::Spanned<parser::MetaValue<'a>>,
+        ),
+    >,
+) -> Option<HashMap<&'a str, MetaValue<'a>>> {
+    let key_values = key_values
+        .map(
+            |(k, v): (
+                &'a parser::Spanned<parser::Key<'a>>,
+                &'a parser::Spanned<parser::MetaValue<'a>>,
+            )| (k.item().as_ref(), v.item().into()),
+        )
+        .collect::<HashMap<_, _>>();
+
+    (!key_values.is_empty()).then_some(key_values)
 }
 
 impl<'a> From<&'a parser::MetaValue<'a>> for MetaValue<'a> {
     fn from(value: &'a parser::MetaValue<'a>) -> Self {
         use MetaValue::*;
-        use parser::MetaValue as p;
+        use parser::MetaValue as pmv;
         use parser::SimpleValue;
 
         match value {
-            p::Simple(SimpleValue::String(x)) => String(x),
-            p::Simple(SimpleValue::Currency(x)) => Currency(x.as_ref()),
-            p::Simple(SimpleValue::Account(x)) => Account(x.as_ref()),
-            p::Simple(SimpleValue::Tag(x)) => Tag(x.as_ref()),
-            p::Simple(SimpleValue::Link(x)) => Link(x.as_ref()),
-            p::Simple(SimpleValue::Date(x)) => Date(*x),
-            p::Simple(SimpleValue::Bool(x)) => Bool(*x),
-            p::Simple(SimpleValue::Expr(x)) => Number(x.value()),
-            p::Simple(SimpleValue::Null) => Null,
-            p::Amount(amount) => Amount(amount.number().value(), amount.currency().item().as_ref()),
+            pmv::Simple(SimpleValue::String(x)) => String(x),
+            pmv::Simple(SimpleValue::Currency(x)) => Currency(x.as_ref()),
+            pmv::Simple(SimpleValue::Account(x)) => Account(x.as_ref()),
+            pmv::Simple(SimpleValue::Tag(x)) => Tag(x.as_ref()),
+            pmv::Simple(SimpleValue::Link(x)) => Link(x.as_ref()),
+            pmv::Simple(SimpleValue::Date(x)) => Date(*x),
+            pmv::Simple(SimpleValue::Bool(x)) => Bool(*x),
+            pmv::Simple(SimpleValue::Expr(x)) => Number(x.value()),
+            pmv::Simple(SimpleValue::Null) => Null,
+            pmv::Amount(amount) => {
+                Amount(amount.number().value(), amount.currency().item().as_ref())
+            }
         }
     }
 }
