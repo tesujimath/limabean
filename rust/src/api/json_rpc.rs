@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-use super::types::*;
+use super::types::raw::*;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -15,25 +15,21 @@ pub(crate) struct Request<'a> {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(tag = "method")]
+#[serde(rename_all = "kebab-case")]
 pub(crate) enum RequestMethod<'a> {
-    #[serde(rename = "status")]
     Status,
-    #[serde(rename = "parser.directives.get")]
-    ParserDirectivesGet(ParserDirectivesGet),
-    #[serde(rename = "directives.put")]
+    #[serde(rename = "parser.directives")]
+    ParserDirectives,
     #[serde(borrow)]
-    DirectivesPut(DirectivesPut<'a>),
+    Book(Book<'a>),
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-pub struct ParserDirectivesGet {}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
-#[serde(rename_all = "kebab-case")]
-pub struct DirectivesPut<'a> {
+pub struct Book<'a> {
     #[serde(borrow)]
-    directives: Vec<Directive<'a>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    directives: Option<Vec<Directive<'a>>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -55,10 +51,9 @@ impl<'a, 'b> ResultResponse<'a, 'b> {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub(crate) enum ResultData<'a> {
-    #[serde(rename = "ok")]
     Ok,
-    #[serde(rename = "raw.directives")]
     #[serde(borrow)]
     RawDirectives(Vec<Directive<'a>>),
 }

@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-use super::{json_rpc::*, types::*};
+use super::{json_rpc::*, types::raw::*};
 
 pub fn serve(path: &Path) {
     match BeancountSources::try_from(path) {
@@ -105,11 +105,11 @@ impl<'a> Server<'a> {
                     match (&self.0, method) {
                         (Ok(healthy), Status) => healthy.status(id, w).unwrap(),
 
-                        (Ok(healthy), ParserDirectivesGet(_)) => {
+                        (Ok(healthy), ParserDirectives) => {
                             healthy.parser_directives_get(id, w).unwrap()
                         }
 
-                        (Ok(_healthy), DirectivesPut(_)) => todo!(),
+                        (Ok(_healthy), Book(_)) => todo!(),
 
                         (Err(unhealthy), _) => write_error(
                             id,
