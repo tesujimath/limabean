@@ -46,7 +46,7 @@
   (binding [cheshire.parse/*use-bigdecimals?* true]
     (-> pod
         (read-line)
-        (cheshire/parse-string true)
+        (cheshire/parse-string true (fn [k] (if (= k "currencies") #{} [])))
         (convert-values))))
 
 (defn invoke
