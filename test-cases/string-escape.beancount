@@ -1,0 +1,10 @@
+2020-01-01 open Expenses:Entertainment:Drinks-and-snacks
+
+;; this breaks the existing EDN encoding, which is lame
+;; but that will be retired in favour of JSON very soon
+2023-05-31 note Expenses:Entertainment:Drinks-and-snacks "met with Mickey and Minnie
+  *  Pluto couldn't come,
+  ;  which made me sad.
+  But Mickey says \"hi!\"
+  and R2D2 says \\boobee\ndoop\\ with backslashes and embedded newline
+  "
