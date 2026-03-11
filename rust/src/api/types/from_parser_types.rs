@@ -8,6 +8,7 @@ impl<'a> From<&'a parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
             src: value.into(),
             date: *value.date().item(),
             variant: value.variant().into(),
+            metadata: (!value.metadata().is_empty()).then_some(value.metadata().into()),
         }
     }
 }
@@ -234,6 +235,49 @@ impl<'a> From<&'a parser::PriceSpec<'a>> for PriceSpec<'a> {
                 total: Some(expr.value()),
                 cur: Some(cur.as_ref()),
             },
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Metadata<'a>> for Metadata<'a> {
+    fn from(value: &'a parser::Metadata<'a>) -> Self {
+        let key_values = value
+            .key_values()
+            .map(|(k, v)| (k.item().as_ref(), v.item().into()))
+            .collect::<HashMap<_, _>>();
+        let tags = value
+            .tags()
+            .map(|tag| tag.item().as_ref())
+            .collect::<HashSet<_>>();
+        let links = value
+            .links()
+            .map(|link| link.item().as_ref())
+            .collect::<HashSet<_>>();
+        Metadata {
+            key_values: (!key_values.is_empty()).then_some(key_values),
+            tags: (!tags.is_empty()).then_some(tags),
+            links: (!links.is_empty()).then_some(links),
+        }
+    }
+}
+
+impl<'a> From<&'a parser::MetaValue<'a>> for MetaValue<'a> {
+    fn from(value: &'a parser::MetaValue<'a>) -> Self {
+        use MetaValue::*;
+        use parser::MetaValue as p;
+        use parser::SimpleValue;
+
+        match value {
+            p::Simple(SimpleValue::String(x)) => String(x),
+            p::Simple(SimpleValue::Currency(x)) => Currency(x.as_ref()),
+            p::Simple(SimpleValue::Account(x)) => Account(x.as_ref()),
+            p::Simple(SimpleValue::Tag(x)) => Tag(x.as_ref()),
+            p::Simple(SimpleValue::Link(x)) => Link(x.as_ref()),
+            p::Simple(SimpleValue::Date(x)) => Date(*x),
+            p::Simple(SimpleValue::Bool(x)) => Bool(*x),
+            p::Simple(SimpleValue::Expr(x)) => Number(x.value()),
+            p::Simple(SimpleValue::Null) => Null,
+            p::Amount(amount) => Amount(amount.number().value(), amount.currency().item().as_ref()),
         }
     }
 }

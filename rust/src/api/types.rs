@@ -1,6 +1,9 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, collections::HashSet};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 use time::Date;
 
 /// A Beancount directive of a particular [DirectiveVariant].
@@ -10,7 +13,8 @@ pub struct Directive<'a> {
     pub(crate) src: Source,
     #[serde(with = "serializers::iso8601date")]
     pub(crate) date: Date,
-    // pub(crate) metadata: Metadata<'a>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) metadata: Option<Metadata<'a>>,
     #[serde(borrow)]
     #[serde(flatten)]
     pub(crate) variant: DirectiveVariant<'a>,
@@ -144,6 +148,7 @@ pub struct Custom<'a> {
 
 /// A potentially incomplete posting-specification.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct PostingSpec<'a> {
     pub(crate) src: Source,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -163,6 +168,7 @@ pub struct PostingSpec<'a> {
 
 /// A potentially incomplete cost-specification.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Default, Clone, Copy, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct CostSpec<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) per_unit: Option<Decimal>,
@@ -180,6 +186,7 @@ pub struct CostSpec<'a> {
 
 /// A potentially incomplete price-specification.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Default, Clone, Copy, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct PriceSpec<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) per_unit: Option<Decimal>,
@@ -189,7 +196,7 @@ pub struct PriceSpec<'a> {
     pub(crate) cur: Option<&'a str>,
 }
 
-/// A Beancount open directive, without the common [Directive] fields.
+/// A complete price, with total iff it belongs to a posting.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Price<'a> {
@@ -197,6 +204,34 @@ pub struct Price<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) total: Option<Decimal>,
     pub(crate) cur: &'a str,
+}
+
+/// Metadata including tags and links
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Metadata<'a> {
+    #[serde(borrow)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) key_values: Option<HashMap<&'a str, MetaValue<'a>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) tags: Option<HashSet<&'a str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) links: Option<HashSet<&'a str>>,
+}
+
+/// A metadata value
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum MetaValue<'a> {
+    Amount(Decimal, &'a str), // units, currency
+    String(&'a str),
+    Currency(&'a str),
+    Account(&'a str),
+    Tag(&'a str),
+    Link(&'a str),
+    Date(Date),
+    Bool(bool),
+    Number(Decimal),
+    Null,
 }
 
 /// The booking method for an account.

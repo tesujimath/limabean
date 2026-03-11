@@ -41,13 +41,18 @@
         (and (map? x) (contains? x :booking)) (update :booking keyword)))
     data))
 
+(defn coerce-arrays
+  "Map JSON array to Clojure set or vector according to map key"
+  [k]
+  (if (contains? #{"currencies" "tags" "links"} k) #{} []))
+
 (defn read-msg
   "Read and decode a response, using BigDecimal for all numbers, and converting values as appropriate"
   [pod]
   (binding [cheshire.parse/*use-bigdecimals?* true]
     (-> pod
         (read-line)
-        (cheshire/parse-string true (fn [k] (if (= k "currencies") #{} [])))
+        (cheshire/parse-string true coerce-arrays)
         (convert-values))))
 
 (defn invoke
