@@ -95,7 +95,7 @@ pub(crate) struct Cost<'a> {
     pub(crate) date: Date,
     pub(crate) per_unit: Decimal,
     pub(crate) total: Decimal,
-    pub(crate) currency: &'a str,
+    pub(crate) cur: &'a str,
     pub(crate) label: Option<&'a str>,
     pub(crate) merge: bool,
 }
@@ -106,7 +106,7 @@ impl<'a> From<&'a limabean_booking::Cost<LimabeanApiBookingTypes<'a>>> for Cost<
             date: value.date,
             per_unit: value.per_unit,
             total: value.total,
-            currency: value.currency,
+            cur: value.currency,
             label: value.label,
             merge: value.merge,
         }
@@ -118,10 +118,10 @@ impl<'a> From<&'a limabean_booking::Cost<LimabeanApiBookingTypes<'a>>> for Cost<
 /// In addition to `per-unit` which is the natural representation, the `total`
 /// is also exposed, since this may be what the user originally specified in the
 /// beanfile, and ought to be preserved at its original precision.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Price<'a> {
     pub(crate) per_unit: Decimal,
     pub(crate) total: Option<Decimal>,
-    pub(crate) currency: &'a str,
+    pub(crate) cur: &'a str,
 }

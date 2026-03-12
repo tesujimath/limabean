@@ -162,7 +162,7 @@ impl<'a> From<&'a parser::Custom<'a>> for Custom<'a> {
     }
 }
 
-fn from_flag(flag: parser::Flag) -> Cow<'static, str> {
+pub(crate) fn from_flag(flag: parser::Flag) -> Cow<'static, str> {
     use beancount_parser_lima::Flag::*;
 
     match flag {
@@ -246,7 +246,7 @@ impl<'a> From<&'a parser::PriceSpec<'a>> for PriceSpec<'a> {
     }
 }
 
-fn from_tags<'a>(
+pub(crate) fn from_tags<'a>(
     tags: impl ExactSizeIterator<Item = &'a parser::Spanned<parser::Tag<'a>>>,
 ) -> Option<HashSet<&'a str>> {
     let tags = tags
@@ -256,7 +256,7 @@ fn from_tags<'a>(
     (!tags.is_empty()).then_some(tags)
 }
 
-fn from_links<'a>(
+pub(crate) fn from_links<'a>(
     links: impl ExactSizeIterator<Item = &'a parser::Spanned<parser::Link<'a>>>,
 ) -> Option<HashSet<&'a str>> {
     let links = links
@@ -266,7 +266,7 @@ fn from_links<'a>(
     (!links.is_empty()).then_some(links)
 }
 
-fn from_key_values<'a>(
+pub(crate) fn from_key_values<'a>(
     key_values: impl ExactSizeIterator<
         Item = (
             &'a parser::Spanned<parser::Key<'a>>,

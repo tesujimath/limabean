@@ -36,5 +36,6 @@ fn parse_iso8601date(s: &str) -> Result<Date, time::error::Parse> {
 time::serde::format_description!(pub(crate) iso8601date, Date, "[year]-[month]-[day]");
 
 pub(crate) mod booked;
+pub(crate) mod booking_type_conversions;
 pub(crate) mod parser_type_conversions;
 pub(crate) mod raw;
