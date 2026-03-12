@@ -4,7 +4,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use super::*;
+use super::{ReportKind, raw::*};
 
 impl<'a> From<&'a parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
     fn from(value: &'a parser::Spanned<parser::Directive<'a>>) -> Self {
@@ -326,6 +326,17 @@ impl From<parser::Booking> for Booking {
     }
 }
 
+impl From<ReportKind> for parser::ReportKind {
+    fn from(value: ReportKind) -> Self {
+        use ReportKind::*;
+        use parser::ReportKind as parser;
+        match value {
+            Error => parser::Error,
+            Warning => parser::Warning,
+        }
+    }
+}
+
 impl<'a, T> From<&'a parser::Spanned<T>> for Span {
     fn from(value: &'a parser::Spanned<T>) -> Self {
         let span = value.span();
@@ -333,6 +344,16 @@ impl<'a, T> From<&'a parser::Spanned<T>> for Span {
             source: span.source,
             start: span.start,
             end: span.end,
+        }
+    }
+}
+
+impl From<&Span> for parser::Span {
+    fn from(value: &Span) -> Self {
+        parser::Span {
+            source: value.source,
+            start: value.start,
+            end: value.end,
         }
     }
 }

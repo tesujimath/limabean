@@ -5,7 +5,10 @@ use std::{
     path::Path,
 };
 
-use super::{json_rpc::*, types::raw::*};
+use super::{
+    json_rpc::*,
+    types::{Report, raw::*},
+};
 
 pub fn serve(path: &Path) {
     match BeancountSources::try_from(path) {
@@ -83,7 +86,7 @@ impl<'a> Server<'a> {
     where
         W: Write + Copy,
     {
-        use RequestMethod::*;
+        use RequestMethod as Method;
 
         match serde_json::from_str::<Request>(request) {
             Err(e) => write_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap(),
@@ -103,13 +106,18 @@ impl<'a> Server<'a> {
                     .unwrap()
                 } else {
                     match (&self.0, method) {
-                        (Ok(healthy), Status) => healthy.status(id, w).unwrap(),
+                        (Ok(healthy), Method::Status) => healthy.status(id, w).unwrap(),
 
-                        (Ok(healthy), ParserDirectives) => {
+                        (Ok(healthy), Method::ParserDirectives) => {
                             healthy.parser_directives(id, w).unwrap()
                         }
 
-                        (Ok(_healthy), Book(directives)) => todo!(),
+                        (
+                            Ok(healthy),
+                            Method::ParserFormatReport(ParserFormatReport { params }),
+                        ) => healthy.parser_format_report(id, &params, w).unwrap(),
+
+                        (Ok(_healthy), Method::Book(directives)) => todo!(),
 
                         (Err(unhealthy), _) => write_error(
                             id,
@@ -157,6 +165,37 @@ impl<'a> HealthyServer<'a> {
             tracing::error!("parse error, no directives to return");
             Ok(())
         }
+    }
+
+    fn parser_format_report<W>(
+        &self,
+        id: Option<Id>,
+        reports: &[Report<'a>],
+        w: W,
+    ) -> io::Result<()>
+    where
+        W: Write + Copy,
+    {
+        let mut buf = Vec::new();
+        let mut sep = false;
+        for report in reports {
+            if sep {
+                buf.write_all(b"\n")?;
+            }
+
+            self.sources.write_report(
+                &mut buf,
+                report.kind.into(),
+                report.message,
+                report.label,
+                &((&report.span).into()),
+            )?;
+
+            sep = true;
+        }
+
+        let response = ResultResponse::new(id, ResultData::Report(String::from_utf8_lossy(&buf)));
+        write_response(&response, w)
     }
 
     fn book<W>(&self, id: Option<Id>, directives: Option<&Vec<Directive>>, w: W) -> io::Result<()>

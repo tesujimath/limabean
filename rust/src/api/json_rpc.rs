@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-use super::types::raw::*;
+use super::types::{Report, raw::*};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -20,8 +20,17 @@ pub(crate) enum RequestMethod<'a> {
     Status,
     #[serde(rename = "parser.directives")]
     ParserDirectives,
+    #[serde(rename = "parser.format-report")]
+    ParserFormatReport(ParserFormatReport<'a>),
     #[serde(borrow)]
     Book(Book<'a>),
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct ParserFormatReport<'a> {
+    #[serde(borrow)]
+    pub(crate) params: Vec<Report<'a>>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
@@ -34,14 +43,14 @@ pub struct Book<'a> {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-pub(crate) struct ResultResponse<'a, 'b> {
+pub(crate) struct ResultResponse<'i, 'a, 'b> {
     pub(crate) jsonrpc: &'static str,
-    pub(crate) id: Option<Id<'a>>,
-    pub(crate) result: ResultData<'b>,
+    pub(crate) id: Option<Id<'i>>,
+    pub(crate) result: ResultData<'a, 'b>,
 }
 
-impl<'a, 'b> ResultResponse<'a, 'b> {
-    pub(crate) fn new(id: Option<Id<'a>>, result: ResultData<'b>) -> Self {
+impl<'i, 'a, 'b> ResultResponse<'i, 'a, 'b> {
+    pub(crate) fn new(id: Option<Id<'i>>, result: ResultData<'a, 'b>) -> Self {
         ResultResponse {
             jsonrpc: JSONRPC_VERSION,
             id,
@@ -52,10 +61,11 @@ impl<'a, 'b> ResultResponse<'a, 'b> {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-pub(crate) enum ResultData<'a> {
+pub(crate) enum ResultData<'a, 'b> {
     Ok,
     #[serde(borrow)]
     RawDirectives(Vec<Directive<'a>>),
+    Report(Cow<'b, str>),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

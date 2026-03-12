@@ -232,10 +232,9 @@ pub enum MetaValue<'a> {
 }
 
 /// The booking method for an account.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub enum Booking {
-    #[default]
     Strict,
     StrictWithSize,
     None,
@@ -245,12 +244,12 @@ pub enum Booking {
     Hifo,
 }
 
+/// A span which identifies a source file location
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct Span {
-    source: usize,
-    start: usize,
-    end: usize,
+    pub(crate) source: usize,
+    pub(crate) start: usize,
+    pub(crate) end: usize,
 }
 
-mod from_parser_types;
 mod serializers;
