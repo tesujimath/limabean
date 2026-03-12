@@ -1,8 +1,7 @@
-use beancount_parser_lima::{
-    self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
+use beancount_parser_lima::{self as parser, Span, Spanned};
+use limabean_booking::{
+    Booking, Bookings, Interpolated, LimaParserBookingTypes, is_supported_method,
 };
-use limabean_booking::{Booking, Bookings, Interpolated, is_supported_method};
-use std::{io::Write, iter::empty, path::Path};
 
 use rust_decimal::Decimal;
 use std::{
@@ -246,7 +245,7 @@ impl<'a, T> Loader<'a, T> {
                     .filter_map(|(interpolated, posting)| {
                         self.validate_account_and_currency(
                             &into_spanned_loader_element(posting),
-                            posting.account().item().as_ref(),
+                            posting.account().item().into(),
                             interpolated.currency,
                         )
                         .map_or_else(Some, |_| None)
@@ -262,7 +261,7 @@ impl<'a, T> Loader<'a, T> {
                     .into_iter()
                     .zip(postings)
                     .flat_map(|(interpolated, posting)| {
-                        let account = posting.account().item().as_ref();
+                        let account = posting.account().item().into();
                         let flag = posting.flag().map(|flag| *flag.item());
                         let Interpolated {
                             units,
@@ -279,9 +278,9 @@ impl<'a, T> Loader<'a, T> {
                                 .into_currency_costs()
                                 .map(|(cost_cur, cost)| {
                                     prices.insert((
-                                        currency.as_ref(),
+                                        currency.into(),
                                         booked::Price {
-                                            cur: cost_cur.as_ref(),
+                                            cur: cost_cur.into(),
                                             per_unit: cost.per_unit,
                                             total: None,
                                         },
@@ -292,8 +291,8 @@ impl<'a, T> Loader<'a, T> {
                                         flag: posting.flag().map(|flag| from_flag(*flag.item())),
                                         acc: account,
                                         units: cost.units,
-                                        cur: currency.as_ref(),
-                                        cost: Some((&cost_cur, &cost).into()),
+                                        cur: currency.into(),
+                                        cost: Some(loader_cur_posting_cost_to_cost(cost_cur, cost)),
                                         price: None,
                                         tags: from_tags(posting.metadata().tags()),
                                         links: from_links(posting.metadata().links()),
@@ -304,9 +303,9 @@ impl<'a, T> Loader<'a, T> {
                         } else {
                             if let Some(price) = &price {
                                 prices.insert((
-                                    currency.as_ref(),
+                                    currency.into(),
                                     booked::Price {
-                                        cur: price.currency.as_ref(),
+                                        cur: price.currency.into(),
                                         per_unit: price.per_unit,
                                         total: None,
                                     },
@@ -318,7 +317,7 @@ impl<'a, T> Loader<'a, T> {
                                 flag: posting.flag().map(|flag| from_flag(*flag.item())),
                                 acc: account,
                                 units,
-                                cur: currency.as_ref(),
+                                cur: currency.into(),
                                 cost: None,
                                 price: price.map(|price| (&price).into()),
                                 tags: from_tags(posting.metadata().tags()),
@@ -516,7 +515,7 @@ impl<'a, T> Loader<'a, T> {
     where
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
     {
-        let account_name = balance.account().item().as_ref();
+        let account_name = balance.account().item().into();
         let balance_currency = *balance.atol().amount().currency().item();
         let balance_units = balance.atol().amount().number().value();
         let balance_tolerance = balance
@@ -579,10 +578,10 @@ impl<'a, T> Loader<'a, T> {
         //     );
         // };
 
-        // let pad_source = pad.source().item().as_ref();
+        // let pad_source = pad.source().item().into();
 
         // let pad_postings =
-        //     calculate_balance_pad_postings(&margin, balance.account().item().as_ref(), pad_source);
+        //     calculate_balance_pad_postings(&margin, balance.account().item().into(), pad_source);
 
         // if let DirectiveVariant::Pad(pad) = &mut pad_directive.loaded {
         //     pad.postings = pad_postings;
@@ -601,7 +600,8 @@ impl<'a, T> Loader<'a, T> {
         element: parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
         use hashbrown::hash_map::Entry::*;
-        match self.open_accounts.entry(open.account().item().as_ref()) {
+        let account_name = open.account().item().into();
+        match self.open_accounts.entry(account_name) {
             Occupied(open_entry) => {
                 return Err(element
                     .error_with_contexts(
@@ -615,7 +615,7 @@ impl<'a, T> Loader<'a, T> {
                 open_entry.insert(*span);
 
                 // cannot reopen a closed account
-                if let Some(closed) = self.closed_accounts.get(&open.account().item().as_ref()) {
+                if let Some(closed) = self.closed_accounts.get(account_name) {
                     return Err(element
                         .error_with_contexts(
                             "account was closed",
@@ -637,7 +637,7 @@ impl<'a, T> Loader<'a, T> {
                     }
 
                     self.accounts.insert(
-                        open.account().item().as_ref(),
+                        open.account().item().into(),
                         AccountBuilder::new(open.currencies().map(|c| *c.item()), booking, *span),
                     );
                 }
@@ -666,9 +666,9 @@ impl<'a, T> Loader<'a, T> {
         element: parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
         use hashbrown::hash_map::Entry::*;
-        match self.open_accounts.entry(close.account().item().as_ref()) {
+        match self.open_accounts.entry(close.account().item().into()) {
             Occupied(open_entry) => {
-                match self.closed_accounts.entry(close.account().item().as_ref()) {
+                match self.closed_accounts.entry(close.account().item().into()) {
                     Occupied(closed_entry) => {
                         // cannot reclose a closed account
                         return Err(element
@@ -699,7 +699,7 @@ impl<'a, T> Loader<'a, T> {
         element: parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
         let n_directives = self.directives.len();
-        let account_name = pad.account().item().as_ref();
+        let account_name = pad.account().item().into();
         let account = self.get_mut_valid_account(&element, account_name)?;
 
         let unused_pad_idx = account.pad_idx.replace(n_directives);
@@ -968,7 +968,7 @@ impl<'a> From<&'a parser::Amount<'a>> for LoaderAmount<'a> {
     fn from(value: &'a parser::Amount<'a>) -> Self {
         LoaderAmount {
             number: value.number().value(),
-            currency: value.currency().item().as_ref(),
+            currency: value.currency().item().into(),
         }
     }
 }
@@ -1047,6 +1047,20 @@ fn loader_cost_into_cell<'a>(cost: LoaderCost<'a>) -> Cell<'a, 'static> {
         cells.push(("*", Align::Left).into())
     }
     Cell::Row(cells, GUTTER_MINOR)
+}
+
+fn loader_cur_posting_cost_to_cost<'a>(
+    currency: parser::Currency<'a>,
+    cost: limabean_booking::PostingCost<LimaParserBookingTypes<'a>>,
+) -> booked::Cost<'a> {
+    booked::Cost {
+        date: cost.date,
+        per_unit: cost.per_unit,
+        total: cost.total,
+        cur: currency.into(),
+        label: cost.label,
+        merge: cost.merge,
+    }
 }
 
 // TODO find where this should go

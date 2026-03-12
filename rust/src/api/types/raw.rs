@@ -245,7 +245,7 @@ pub enum Booking {
 }
 
 /// A span which identifies a source file location
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub(crate) struct Span {
     pub(crate) source: usize,
     pub(crate) start: usize,
