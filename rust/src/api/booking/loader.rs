@@ -987,7 +987,7 @@ impl<'a> From<LoaderAmount<'a>> for Cell<'static, 'static> {
 
 impl<'a, 'b> From<&'b LoaderAmount<'a>> for Cell<'a, 'static>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b LoaderAmount<'a>) -> Self {
         Cell::Row(

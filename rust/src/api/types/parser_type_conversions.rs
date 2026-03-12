@@ -8,7 +8,7 @@ use super::{ReportKind, raw::*};
 
 impl<'a, 'b> From<&'b parser::Spanned<parser::Directive<'a>>> for Directive<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Spanned<parser::Directive<'a>>) -> Self {
         Directive {
@@ -24,7 +24,7 @@ where
 
 impl<'a, 'b> From<&'b parser::DirectiveVariant<'a>> for DirectiveVariant<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::DirectiveVariant<'a>) -> Self {
         use DirectiveVariant::*;
@@ -49,7 +49,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Transaction<'a>> for Transaction<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Transaction<'a>) -> Self {
         Transaction {
@@ -63,7 +63,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Price<'a>> for PriceDct<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Price<'a>) -> Self {
         PriceDct {
@@ -79,7 +79,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Balance<'a>> for Balance<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Balance<'a>) -> Self {
         Balance {
@@ -93,7 +93,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Open<'a>> for Open<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Open<'a>) -> Self {
         let currencies = (value.currencies().count() > 0).then(|| {
@@ -112,7 +112,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Close<'a>> for Close<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Close<'a>) -> Self {
         Close {
@@ -123,7 +123,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Commodity<'a>> for Commodity<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Commodity<'a>) -> Self {
         Commodity {
@@ -134,7 +134,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Pad<'a>> for Pad<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Pad<'a>) -> Self {
         Pad {
@@ -146,19 +146,20 @@ where
 
 impl<'a, 'b> From<&'b parser::Document<'a>> for Document<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Document<'a>) -> Self {
+        let path: &'a str = *value.path().item();
         Document {
             acc: value.account().item().into(),
-            path: value.path().item(),
+            path,
         }
     }
 }
 
 impl<'a, 'b> From<&'b parser::Note<'a>> for Note<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Note<'a>) -> Self {
         Note {
@@ -170,7 +171,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Event<'a>> for Event<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Event<'a>) -> Self {
         Event {
@@ -182,7 +183,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Query<'a>> for Query<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Query<'a>) -> Self {
         Query {
@@ -194,7 +195,7 @@ where
 
 impl<'a, 'b> From<&'b parser::Custom<'a>> for Custom<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Custom<'a>) -> Self {
         Custom {
@@ -220,7 +221,7 @@ pub(crate) fn from_flag(flag: parser::Flag) -> Cow<'static, str> {
 
 impl<'a, 'b> From<&'b parser::Spanned<parser::Posting<'a>>> for PostingSpec<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::Spanned<parser::Posting<'a>>) -> Self {
         PostingSpec {
@@ -240,7 +241,7 @@ where
 
 impl<'a, 'b> From<&'b parser::CostSpec<'a>> for CostSpec<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::CostSpec<'a>) -> Self {
         CostSpec {
@@ -256,7 +257,7 @@ where
 
 impl<'a, 'b> From<&'b parser::PriceSpec<'a>> for PriceSpec<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::PriceSpec<'a>) -> Self {
         use beancount_parser_lima::PriceSpec::*;
@@ -301,7 +302,7 @@ pub(crate) fn from_tags<'a, 'b>(
     tags: impl ExactSizeIterator<Item = &'b parser::Spanned<parser::Tag<'a>>>,
 ) -> Option<HashSet<&'a str>>
 where
-    'b: 'a,
+    'a: 'b,
 {
     let tags = tags
         .map(|tag: &'b parser::Spanned<parser::Tag<'a>>| tag.item().into())
@@ -314,7 +315,7 @@ pub(crate) fn from_links<'a, 'b>(
     links: impl ExactSizeIterator<Item = &'b parser::Spanned<parser::Link<'a>>>,
 ) -> Option<HashSet<&'a str>>
 where
-    'b: 'a,
+    'a: 'b,
 {
     let links = links
         .map(|link: &'b parser::Spanned<parser::Link<'a>>| link.item().into())
@@ -332,7 +333,7 @@ pub(crate) fn from_key_values<'a, 'b>(
     >,
 ) -> Option<HashMap<&'a str, MetaValue<'a>>>
 where
-    'b: 'a,
+    'a: 'b,
 {
     let key_values = key_values
         .map(
@@ -348,7 +349,7 @@ where
 
 impl<'a, 'b> From<&'b parser::MetaValue<'a>> for MetaValue<'a>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b parser::MetaValue<'a>) -> Self {
         use MetaValue::*;

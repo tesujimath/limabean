@@ -124,14 +124,12 @@ impl<'a> From<Amount<'a>> for Cell<'static, 'static> {
 
 impl<'a, 'b> From<&'b Amount<'a>> for Cell<'a, 'static>
 where
-    'b: 'a,
+    'a: 'b,
 {
     fn from(value: &'b Amount<'a>) -> Self {
+        let cur: &str = value.currency.into();
         Cell::Row(
-            vec![
-                value.number.into(),
-                (value.currency.as_ref(), Align::Left).into(),
-            ],
+            vec![value.number.into(), (cur, Align::Left).into()],
             GUTTER_MINOR,
         )
     }
