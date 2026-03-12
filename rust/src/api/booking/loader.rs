@@ -15,10 +15,11 @@ use time::Date;
 use crate::api::types::{
     booked,
     parser_type_conversions::{from_flag, from_key_values, from_links, from_tags},
+    raw,
 };
 
 #[derive(Debug)]
-pub(crate) struct Loader<'a, 'b, T> {
+pub(crate) struct Loader<'a, T> {
     directives: Vec<booked::Directive<'a>>,
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
     open_accounts: hashbrown::HashMap<&'a str, Span>,
@@ -41,7 +42,7 @@ pub(crate) struct LoadError {
     pub(crate) errors: Vec<parser::AnnotatedError>,
 }
 
-impl<'a, 'b, T> Loader<'a, 'b, T> {
+impl<'a, T> Loader<'a, T> {
     pub(crate) fn new(
         default_booking: Booking,
         tolerance: T,
@@ -130,7 +131,9 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         let date = *directive.date().item();
 
         match directive.variant() {
-            PDV::Transaction(transaction) => self.transaction(transaction, date, directive.span()),
+            PDV::Transaction(transaction) => {
+                self.transaction(&into_spanned_loader_element(directive), transaction, date)
+            }
             _ => todo!("all other directives"),
             // PDV::Price(_price) => Ok(DirectiveVariant::NA),
             // PDV::Balance(balance) => self.balance(balance, date, element),
@@ -148,9 +151,9 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
     fn transaction(
         &mut self,
+        element: &parser::Spanned<LoaderElement>,
         transaction: &'a parser::Transaction<'a>,
         date: Date,
-        span: &parser::Span,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
@@ -191,7 +194,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         // };
 
         let BookedPostingsAndPrices { postings, prices } =
-            self.book(date, &postings, description, span)?;
+            self.book(element, date, &postings, description)?;
 
         Ok(booked::DirectiveVariant::Transaction(booked::Transaction {
             flag: from_flag(*transaction.flag().item()),
@@ -268,6 +271,9 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                             price,
                             ..
                         } = interpolated;
+
+                        let posting_span: raw::Span = (*posting).into();
+
                         if let Some(costs) = cost {
                             costs
                                 .into_currency_costs()
@@ -282,7 +288,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                                     ));
 
                                     booked::Posting {
-                                        span: *(posting.into()),
+                                        span: posting_span,
                                         flag: posting.flag().map(|flag| from_flag(*flag.item())),
                                         acc: account,
                                         units: cost.units,
@@ -308,7 +314,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                             }
 
                             vec![booked::Posting {
-                                span: *(posting.into()),
+                                span: posting_span,
                                 flag: posting.flag().map(|flag| from_flag(*flag.item())),
                                 acc: account,
                                 units,
@@ -325,7 +331,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
                 // group postings by account and currency for balance diagnostics
                 let mut account_posting_amounts =
-                    hashbrown::HashMap::<&str, VecDeque<Amount<'_>>>::new();
+                    hashbrown::HashMap::<&str, VecDeque<LoaderAmount<'_>>>::new();
                 for booked in &booked_postings {
                     use hashbrown::hash_map::Entry::*;
 
@@ -555,7 +561,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         account.balance_diagnostics.clear();
 
         // initialize balance diagnostics according to balance assertion
-        let mut positions = Positions::default();
+        let mut positions = LoaderPositions::default();
         positions.accumulate(balance_units, balance_currency, None, Booking::default());
         account.balance_diagnostics.push(BalanceDiagnostic {
             date,
@@ -582,8 +588,8 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         //     pad.postings = pad_postings;
         // }
 
-        let pad_account = self.accounts.get_mut(pad_source).unwrap();
-        adjust_account_to_match_balance(pad_account, &margin, Adjustment::Subtract);
+        // let pad_account = self.accounts.get_mut(pad_source).unwrap();
+        // adjust_account_to_match_balance(pad_account, &margin, Adjustment::Subtract);
 
         Ok(booked::DirectiveVariant::Balance(balance.into()))
     }
@@ -753,35 +759,36 @@ fn calculate_balance_margin<'a>(
     margin
 }
 
-fn calculate_balance_pad_postings<'a>(
-    margin: &HashMap<parser::Currency<'a>, Decimal>,
-    balance_account: &'a str,
-    pad_source: &'a str,
-) -> Vec<Posting<'a>> {
-    margin
-        .iter()
-        .flat_map(|(cur, number)| {
-            vec![
-                Posting {
-                    flag: Some(pad_flag()),
-                    account: balance_account,
-                    units: *number,
-                    currency: *cur,
-                    cost: None,
-                    price: None,
-                },
-                Posting {
-                    flag: Some(pad_flag()),
-                    account: pad_source,
-                    units: -*number,
-                    currency: *cur,
-                    cost: None,
-                    price: None,
-                },
-            ]
-        })
-        .collect::<Vec<_>>()
-}
+// TODO calculate_balance_pad_postings
+// fn calculate_balance_pad_postings<'a>(
+//     margin: &HashMap<parser::Currency<'a>, Decimal>,
+//     balance_account: &'a str,
+//     pad_source: &'a str,
+// ) -> Vec<Posting<'a>> {
+//     margin
+//         .iter()
+//         .flat_map(|(cur, number)| {
+//             vec![
+//                 Posting {
+//                     flag: Some(pad_flag()),
+//                     account: balance_account,
+//                     units: *number,
+//                     currency: *cur,
+//                     cost: None,
+//                     price: None,
+//                 },
+//                 Posting {
+//                     flag: Some(pad_flag()),
+//                     account: pad_source,
+//                     units: -*number,
+//                     currency: *cur,
+//                     cost: None,
+//                     price: None,
+//                 },
+//             ]
+//         })
+//         .collect::<Vec<_>>()
+// }
 
 fn construct_balance_error_and_clear_diagnostics<'a>(
     account: &mut AccountBuilder<'a>,
@@ -812,7 +819,9 @@ fn construct_balance_error_and_clear_diagnostics<'a>(
                     vec![
                         (bd.date.to_string(), Align::Left).into(),
                         bd.amount.map(|amt| amt.into()).unwrap_or(Cell::Empty),
-                        bd.positions.map(positions_into_cell).unwrap_or(Cell::Empty),
+                        bd.positions
+                            .map(loader_positions_into_cell)
+                            .unwrap_or(Cell::Empty),
                         bd.description
                             .map(|d| (d, Align::Left).into())
                             .unwrap_or(Cell::Empty),
@@ -856,7 +865,7 @@ fn adjust_account_to_match_balance<'a>(
 #[derive(Debug)]
 struct AccountBuilder<'a> {
     allowed_currencies: HashSet<parser::Currency<'a>>,
-    positions: Positions<'a>,
+    positions: LoaderPositions<'a>,
     opened: Span,
     pad_idx: Option<usize>, // index in directives in Loader
     balance_diagnostics: Vec<BalanceDiagnostic<'a>>,
@@ -870,7 +879,7 @@ impl<'a> AccountBuilder<'a> {
     {
         AccountBuilder {
             allowed_currencies: allowed_currencies.collect(),
-            positions: Positions::default(),
+            positions: LoaderPositions::default(),
             opened,
             pad_idx: None,
             balance_diagnostics: Vec::default(),
@@ -905,8 +914,8 @@ impl<'a> AccountBuilder<'a> {
 struct BalanceDiagnostic<'a> {
     date: Date,
     description: Option<&'a str>,
-    amount: Option<Amount<'a>>,
-    positions: Option<Positions<'a>>,
+    amount: Option<LoaderAmount<'a>>,
+    positions: Option<LoaderPositions<'a>>,
 }
 
 pub(crate) fn pad_flag() -> parser::Flag {
@@ -919,7 +928,7 @@ pub(crate) struct LoaderElement {
     element_type: &'static str,
 }
 
-impl parser::ElementType for Element {
+impl parser::ElementType for LoaderElement {
     fn element_type(&self) -> &'static str {
         self.element_type
     }
@@ -938,3 +947,111 @@ where
         *value.span(),
     )
 }
+
+// TODO find a better home for LoaderAmount and change its name back when Amount is deleted from book
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub(crate) struct LoaderAmount<'a> {
+    pub(crate) number: Decimal,
+    pub(crate) currency: &'a str,
+}
+
+impl<'a> From<(Decimal, &'a str)> for LoaderAmount<'a> {
+    fn from(value: (Decimal, &'a str)) -> Self {
+        Self {
+            number: value.0,
+            currency: value.1,
+        }
+    }
+}
+
+impl<'a> From<&'a parser::Amount<'a>> for LoaderAmount<'a> {
+    fn from(value: &'a parser::Amount<'a>) -> Self {
+        LoaderAmount {
+            number: value.number().value(),
+            currency: value.currency().item().as_ref(),
+        }
+    }
+}
+
+impl<'a> From<LoaderAmount<'a>> for Cell<'static, 'static> {
+    fn from(value: LoaderAmount) -> Self {
+        Cell::Row(
+            vec![
+                value.number.into(),
+                (value.currency.to_string(), Align::Left).into(),
+            ],
+            GUTTER_MINOR,
+        )
+    }
+}
+
+impl<'a, 'b> From<&'b LoaderAmount<'a>> for Cell<'a, 'static>
+where
+    'b: 'a,
+{
+    fn from(value: &'b LoaderAmount<'a>) -> Self {
+        Cell::Row(
+            vec![value.number.into(), (value.currency, Align::Left).into()],
+            GUTTER_MINOR,
+        )
+    }
+}
+
+// TODO rename once Positions is deleted from book types
+type LoaderPositions<'a> =
+    limabean_booking::Positions<limabean_booking::LimaParserBookingTypes<'a>>;
+// should be From, but both types are third-party
+fn loader_positions_into_cell<'a>(positions: LoaderPositions<'a>) -> Cell<'a, 'static> {
+    Cell::Stack(
+        positions
+            .into_iter()
+            .map(loader_position_into_cell)
+            .collect::<Vec<_>>(),
+    )
+}
+
+type LoaderPosition<'a> = limabean_booking::Position<limabean_booking::LimaParserBookingTypes<'a>>;
+
+fn loader_position_into_cell<'a>(position: LoaderPosition<'a>) -> Cell<'a, 'static> {
+    let LoaderPosition {
+        units,
+        currency,
+        cost,
+    } = position;
+    let mut cells = vec![
+        units.into(),
+        (Into::<&str>::into(currency), Align::Left).into(),
+    ];
+    if let Some(cost) = cost {
+        cells.push(loader_cost_into_cell(cost))
+    }
+    Cell::Row(cells, GUTTER_MINOR)
+}
+
+type LoaderCost<'a> = limabean_booking::Cost<limabean_booking::LimaParserBookingTypes<'a>>;
+fn loader_cost_into_cell<'a>(cost: LoaderCost<'a>) -> Cell<'a, 'static> {
+    let LoaderCost {
+        date,
+        per_unit,
+        total: _total,
+        currency,
+        label: _label,
+        merge: _merge,
+    } = cost;
+    let mut cells = vec![
+        (date.to_string(), Align::Left).into(),
+        per_unit.into(),
+        (Into::<&str>::into(currency), Align::Left).into(),
+    ];
+    if let Some(label) = &cost.label {
+        cells.push((*label, Align::Left).into())
+    }
+    if cost.merge {
+        cells.push(("*", Align::Left).into())
+    }
+    Cell::Row(cells, GUTTER_MINOR)
+}
+
+// TODO find where this should go
+const GUTTER_MINOR: &str = " ";
+const GUTTER_MEDIUM: &str = "  ";
