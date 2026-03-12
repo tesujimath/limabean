@@ -112,10 +112,9 @@ impl<'a> Server<'a> {
                             healthy.parser_directives(id, w).unwrap()
                         }
 
-                        (
-                            Ok(healthy),
-                            Method::ParserFormatReport(ParserFormatReport { params }),
-                        ) => healthy.parser_format_report(id, &params, w).unwrap(),
+                        (Ok(healthy), Method::ParserFormatReport(Params { params })) => {
+                            healthy.parser_format_report(id, &params, w).unwrap()
+                        }
 
                         (Ok(_healthy), Method::Book(directives)) => todo!(),
 

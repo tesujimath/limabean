@@ -13,6 +13,8 @@ pub(crate) struct Request<'a> {
     pub(crate) method: RequestMethod<'a>,
 }
 
+// TODO RequestMethod should be generic and the actual methods moved out of this module,
+// but the deserialize lifetimes are a bit tricksy
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(tag = "method")]
 #[serde(rename_all = "kebab-case")]
@@ -21,24 +23,22 @@ pub(crate) enum RequestMethod<'a> {
     #[serde(rename = "parser.directives")]
     ParserDirectives,
     #[serde(rename = "parser.format-report")]
-    ParserFormatReport(ParserFormatReport<'a>),
+    ParserFormatReport(Params<Vec<Report<'a>>>),
     #[serde(borrow)]
-    Book(Book<'a>),
+    Book(OptionalParams<Vec<Directive<'a>>>),
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-pub struct ParserFormatReport<'a> {
-    #[serde(borrow)]
-    pub(crate) params: Vec<Report<'a>>,
+pub struct Params<T> {
+    pub(crate) params: T,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-pub struct Book<'a> {
-    #[serde(borrow)]
+pub struct OptionalParams<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
-    directives: Option<Vec<Directive<'a>>>,
+    pub(crate) params: Option<T>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
