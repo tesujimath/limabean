@@ -985,11 +985,8 @@ impl<'a> From<LoaderAmount<'a>> for Cell<'static, 'static> {
     }
 }
 
-impl<'a, 'b> From<&'b LoaderAmount<'a>> for Cell<'a, 'static>
-where
-    'a: 'b,
-{
-    fn from(value: &'b LoaderAmount<'a>) -> Self {
+impl<'a> From<&'_ LoaderAmount<'a>> for Cell<'a, 'static> {
+    fn from(value: &'_ LoaderAmount<'a>) -> Self {
         Cell::Row(
             vec![value.number.into(), (value.currency, Align::Left).into()],
             GUTTER_MINOR,

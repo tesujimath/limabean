@@ -6,11 +6,8 @@ use std::{
 
 use super::{ReportKind, raw::*};
 
-impl<'a, 'b> From<&'b parser::Spanned<parser::Directive<'a>>> for Directive<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Spanned<parser::Directive<'a>>) -> Self {
+impl<'a> From<&'_ parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
+    fn from(value: &'_ parser::Spanned<parser::Directive<'a>>) -> Self {
         Directive {
             span: value.into(),
             date: *value.date().item(),
@@ -22,11 +19,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::DirectiveVariant<'a>> for DirectiveVariant<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::DirectiveVariant<'a>) -> Self {
+impl<'a> From<&'_ parser::DirectiveVariant<'a>> for DirectiveVariant<'a> {
+    fn from(value: &'_ parser::DirectiveVariant<'a>) -> Self {
         use DirectiveVariant::*;
         use parser::DirectiveVariant as parser;
 
@@ -47,11 +41,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Transaction<'a>> for Transaction<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Transaction<'a>) -> Self {
+impl<'a> From<&'_ parser::Transaction<'a>> for Transaction<'a> {
+    fn from(value: &'_ parser::Transaction<'a>) -> Self {
         Transaction {
             flag: from_flag(*value.flag().item()),
             payee: value.payee().map(|x| *x.item()),
@@ -61,11 +52,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Price<'a>> for PriceDct<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Price<'a>) -> Self {
+impl<'a> From<&'_ parser::Price<'a>> for PriceDct<'a> {
+    fn from(value: &'_ parser::Price<'a>) -> Self {
         PriceDct {
             cur: value.currency().item().into(),
             price: Price {
@@ -77,11 +65,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Balance<'a>> for Balance<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Balance<'a>) -> Self {
+impl<'a> From<&'_ parser::Balance<'a>> for Balance<'a> {
+    fn from(value: &'_ parser::Balance<'a>) -> Self {
         Balance {
             acc: value.account().item().into(),
             units: value.atol().amount().number().value(),
@@ -91,11 +76,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Open<'a>> for Open<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Open<'a>) -> Self {
+impl<'a> From<&'_ parser::Open<'a>> for Open<'a> {
+    fn from(value: &'_ parser::Open<'a>) -> Self {
         let currencies = (value.currencies().count() > 0).then(|| {
             value
                 .currencies()
@@ -110,33 +92,24 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Close<'a>> for Close<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Close<'a>) -> Self {
+impl<'a> From<&'_ parser::Close<'a>> for Close<'a> {
+    fn from(value: &'_ parser::Close<'a>) -> Self {
         Close {
             acc: (value.account().item()).into(),
         }
     }
 }
 
-impl<'a, 'b> From<&'b parser::Commodity<'a>> for Commodity<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Commodity<'a>) -> Self {
+impl<'a> From<&'_ parser::Commodity<'a>> for Commodity<'a> {
+    fn from(value: &'_ parser::Commodity<'a>) -> Self {
         Commodity {
             cur: value.currency().item().into(),
         }
     }
 }
 
-impl<'a, 'b> From<&'b parser::Pad<'a>> for Pad<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Pad<'a>) -> Self {
+impl<'a> From<&'_ parser::Pad<'a>> for Pad<'a> {
+    fn from(value: &'_ parser::Pad<'a>) -> Self {
         Pad {
             acc: value.account().item().into(),
             source: value.source().item().into(),
@@ -144,24 +117,17 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Document<'a>> for Document<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Document<'a>) -> Self {
-        let path: &'a str = *value.path().item();
+impl<'a> From<&'_ parser::Document<'a>> for Document<'a> {
+    fn from(value: &'_ parser::Document<'a>) -> Self {
         Document {
             acc: value.account().item().into(),
-            path,
+            path: value.path().item(),
         }
     }
 }
 
-impl<'a, 'b> From<&'b parser::Note<'a>> for Note<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Note<'a>) -> Self {
+impl<'a> From<&'_ parser::Note<'a>> for Note<'a> {
+    fn from(value: &'_ parser::Note<'a>) -> Self {
         Note {
             acc: value.account().item().into(),
             comment: value.comment().item(),
@@ -169,11 +135,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Event<'a>> for Event<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Event<'a>) -> Self {
+impl<'a> From<&'_ parser::Event<'a>> for Event<'a> {
+    fn from(value: &'_ parser::Event<'a>) -> Self {
         Event {
             type_: value.event_type().item(),
             description: value.description().item(),
@@ -181,11 +144,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Query<'a>> for Query<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Query<'a>) -> Self {
+impl<'a> From<&'_ parser::Query<'a>> for Query<'a> {
+    fn from(value: &'_ parser::Query<'a>) -> Self {
         Query {
             name: value.name().item(),
             content: value.content().item(),
@@ -193,11 +153,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::Custom<'a>> for Custom<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Custom<'a>) -> Self {
+impl<'a> From<&'_ parser::Custom<'a>> for Custom<'a> {
+    fn from(value: &'_ parser::Custom<'a>) -> Self {
         Custom {
             type_: value.type_().item(),
             // TODO custom meta values
@@ -219,11 +176,8 @@ pub(crate) fn from_flag(flag: parser::Flag) -> Cow<'static, str> {
     }
 }
 
-impl<'a, 'b> From<&'b parser::Spanned<parser::Posting<'a>>> for PostingSpec<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::Spanned<parser::Posting<'a>>) -> Self {
+impl<'a> From<&'_ parser::Spanned<parser::Posting<'a>>> for PostingSpec<'a> {
+    fn from(value: &'_ parser::Spanned<parser::Posting<'a>>) -> Self {
         PostingSpec {
             span: value.into(),
             flag: value.flag().map(|x| from_flag(*x.item())),
@@ -239,11 +193,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::CostSpec<'a>> for CostSpec<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::CostSpec<'a>) -> Self {
+impl<'a> From<&'_ parser::CostSpec<'a>> for CostSpec<'a> {
+    fn from(value: &'_ parser::CostSpec<'a>) -> Self {
         CostSpec {
             per_unit: value.per_unit().map(|x| x.item().value()),
             total: value.total().map(|x| x.item().value()),
@@ -255,11 +206,8 @@ where
     }
 }
 
-impl<'a, 'b> From<&'b parser::PriceSpec<'a>> for PriceSpec<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::PriceSpec<'a>) -> Self {
+impl<'a> From<&'_ parser::PriceSpec<'a>> for PriceSpec<'a> {
+    fn from(value: &'_ parser::PriceSpec<'a>) -> Self {
         use beancount_parser_lima::PriceSpec::*;
         use beancount_parser_lima::ScopedExprValue::*;
 
@@ -347,11 +295,8 @@ where
     (!key_values.is_empty()).then_some(key_values)
 }
 
-impl<'a, 'b> From<&'b parser::MetaValue<'a>> for MetaValue<'a>
-where
-    'a: 'b,
-{
-    fn from(value: &'b parser::MetaValue<'a>) -> Self {
+impl<'a> From<&'_ parser::MetaValue<'a>> for MetaValue<'a> {
+    fn from(value: &'_ parser::MetaValue<'a>) -> Self {
         use MetaValue::*;
         use parser::MetaValue as pmv;
         use parser::SimpleValue;
@@ -405,8 +350,8 @@ impl From<ReportKind> for parser::ReportKind {
     }
 }
 
-impl<'a, 'b, T> From<&'b parser::Spanned<T>> for Span {
-    fn from(value: &'b parser::Spanned<T>) -> Self {
+impl<T> From<&parser::Spanned<T>> for Span {
+    fn from(value: &parser::Spanned<T>) -> Self {
         let span = value.span();
         Span {
             source: span.source,
