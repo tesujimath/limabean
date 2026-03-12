@@ -12,7 +12,7 @@ use super::iso8601date;
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Directive<'a> {
-    pub(crate) src: Source,
+    pub(crate) span: Span,
     #[serde(with = "iso8601date")]
     pub(crate) date: Date,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -156,7 +156,7 @@ pub struct Custom<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct PostingSpec<'a> {
-    pub(crate) src: Source,
+    pub(crate) span: Span,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) flag: Option<Cow<'static, str>>,
     pub(crate) acc: &'a str,
@@ -246,8 +246,8 @@ pub enum Booking {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub(crate) struct Source {
-    file: usize,
+pub(crate) struct Span {
+    source: usize,
     start: usize,
     end: usize,
 }

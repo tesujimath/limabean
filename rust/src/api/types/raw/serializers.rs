@@ -125,20 +125,20 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
     }
 }
 
-impl Serialize for Source {
+impl Serialize for Span {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         let mut seq = serializer.serialize_tuple(3)?;
-        seq.serialize_element(&self.file)?;
+        seq.serialize_element(&self.source)?;
         seq.serialize_element(&self.start)?;
         seq.serialize_element(&self.end)?;
         seq.end()
     }
 }
 
-impl<'de> Deserialize<'de> for Source {
+impl<'de> Deserialize<'de> for Span {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -146,7 +146,7 @@ impl<'de> Deserialize<'de> for Source {
         struct SourceVisitor;
 
         impl<'de> Visitor<'de> for SourceVisitor {
-            type Value = Source;
+            type Value = Span;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("a tuple of 3 elements: (u32, usize, usize)")
@@ -166,7 +166,11 @@ impl<'de> Deserialize<'de> for Source {
                     .next_element()?
                     .ok_or_else(|| serde::de::Error::invalid_length(2, &self))?;
 
-                Ok(Source { file, start, end })
+                Ok(Span {
+                    source: file,
+                    start,
+                    end,
+                })
             }
         }
 

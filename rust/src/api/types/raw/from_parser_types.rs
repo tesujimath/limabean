@@ -9,7 +9,7 @@ use super::*;
 impl<'a> From<&'a parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
     fn from(value: &'a parser::Spanned<parser::Directive<'a>>) -> Self {
         Directive {
-            src: value.into(),
+            span: value.into(),
             date: *value.date().item(),
             variant: value.variant().into(),
             tags: from_tags(value.metadata().tags()),
@@ -179,7 +179,7 @@ fn from_flag(flag: parser::Flag) -> Cow<'static, str> {
 impl<'a> From<&'a parser::Spanned<parser::Posting<'a>>> for PostingSpec<'a> {
     fn from(value: &'a parser::Spanned<parser::Posting<'a>>) -> Self {
         PostingSpec {
-            src: value.into(),
+            span: value.into(),
             flag: value.flag().map(|x| from_flag(*x.item())),
             acc: value.account().item().as_ref(),
             units: value.amount().map(|x| x.item().value()),
@@ -326,12 +326,13 @@ impl From<parser::Booking> for Booking {
     }
 }
 
-impl<'a, T> From<&'a parser::Spanned<T>> for Source {
+impl<'a, T> From<&'a parser::Spanned<T>> for Span {
     fn from(value: &'a parser::Spanned<T>) -> Self {
-        Source {
-            file: value.source_id().into(),
-            start: value.span().start,
-            end: value.span().end,
+        let span = value.span();
+        Span {
+            source: span.source,
+            start: span.start,
+            end: span.end,
         }
     }
 }
