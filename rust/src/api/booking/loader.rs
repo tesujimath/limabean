@@ -127,6 +127,7 @@ impl<'a, T> Loader<'a, T> {
         'a: 'p,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
+        use booked::DirectiveVariant as BDV;
         use parser::DirectiveVariant as PDV;
 
         let date = *directive.date().item();
@@ -134,18 +135,17 @@ impl<'a, T> Loader<'a, T> {
 
         match directive.variant() {
             PDV::Transaction(transaction) => self.transaction(transaction, date, &element),
-            // PDV::Price(_price) => Ok(DirectiveVariant::NA),
-            // PDV::Balance(balance) => self.balance(balance, date, element),
+            PDV::Price(price) => Ok(BDV::Price(price.into())),
+            PDV::Balance(balance) => self.balance(balance, date, &element),
             PDV::Open(open) => self.open(open, date, &element),
-            // PDV::Close(close) => self.close(close, date, element),
-            // PDV::Commodity(_commodity) => Ok(DirectiveVariant::NA),
-            // PDV::Pad(pad) => self.pad(pad, date, element),
-            // PDV::Document(_document) => Ok(DirectiveVariant::NA),
-            // PDV::Note(_note) => Ok(DirectiveVariant::NA),
-            // PDV::Event(_event) => Ok(DirectiveVariant::NA),
-            // PDV::Query(_query) => Ok(DirectiveVariant::NA),
-            // PDV::Custom(_custom) => Ok(DirectiveVariant::NA),
-            _ => todo!("all other directives"),
+            PDV::Close(close) => self.close(close, date, &element),
+            PDV::Commodity(commodity) => Ok(BDV::Commodity(commodity.into())),
+            PDV::Pad(pad) => self.pad(pad, date, &element),
+            PDV::Document(document) => Ok(BDV::Document(document.into())),
+            PDV::Note(note) => Ok(BDV::Note(note.into())),
+            PDV::Event(event) => Ok(BDV::Event(event.into())),
+            PDV::Query(query) => Ok(BDV::Query(query.into())),
+            PDV::Custom(custom) => Ok(BDV::Custom(custom.into())),
         }
     }
 
@@ -507,14 +507,15 @@ impl<'a, T> Loader<'a, T> {
         // }
     }
 
-    fn balance(
+    fn balance<'p>(
         &mut self,
-        balance: &'a parser::Balance,
+        balance: &'p parser::Balance<'a>,
         date: Date,
         element: &parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
+        'a: 'p,
     {
         let account_name = balance.account().item().into();
         let balance_currency = *balance.atol().amount().currency().item();
@@ -663,12 +664,15 @@ impl<'a, T> Loader<'a, T> {
         Ok(booked::DirectiveVariant::Open(open.into()))
     }
 
-    fn close(
+    fn close<'p>(
         &mut self,
-        close: &'a parser::Close,
+        close: &'p parser::Close<'a>,
         _date: Date,
         element: &parser::Spanned<LoaderElement>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
+    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    where
+        'a: 'p,
+    {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(close.account().item().into()) {
             Occupied(open_entry) => {
@@ -696,12 +700,15 @@ impl<'a, T> Loader<'a, T> {
         Ok(booked::DirectiveVariant::Close(close.into()))
     }
 
-    fn pad(
+    fn pad<'p>(
         &mut self,
-        pad: &'a parser::Pad<'a>,
+        pad: &'p parser::Pad<'a>,
         _date: Date,
         element: &parser::Spanned<LoaderElement>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
+    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    where
+        'a: 'p,
+    {
         let n_directives = self.directives.len();
         let account_name = pad.account().item().into();
         let account = self.get_mut_valid_account(&element, account_name)?;
