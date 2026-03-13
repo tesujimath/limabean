@@ -3,7 +3,7 @@ use beancount_parser_lima as parser;
 pub(crate) fn book<'a>(
     directives: &[parser::Spanned<parser::Directive<'a>>],
     options: &parser::Options<'a>,
-    plugins: &[parser::Plugin<'a>],
+    // plugins: &[parser::Plugin<'a>],
 ) -> Result<LoadSuccess<'a>, LoadError> {
     let default_booking = limabean_booking::Booking::default();
     let default_booking_option = if let Some(booking_method) = options.booking_method() {
@@ -21,12 +21,12 @@ pub(crate) fn book<'a>(
         default_booking
     };
 
-    let plugins = match collate_plugins(plugins) {
-        Ok(plugins) => plugins,
-        Err(errors) => {
-            todo!("errors from plugins")
-        }
-    };
+    // let plugins = match collate_plugins(plugins) {
+    //     Ok(plugins) => plugins,
+    //     Err(errors) => {
+    //         todo!("errors from plugins")
+    //     }
+    // };
 
     Loader::new(
         default_booking_option,
@@ -42,7 +42,7 @@ pub(crate) use loader::LoaderElement;
 mod types;
 pub(crate) use types::LimabeanApiBookingTypes;
 
-use crate::api::{
+pub(crate) use crate::api::{
     booking::loader::{LoadError, LoadSuccess, Loader},
     plugins::collate_plugins,
     types::booked,

@@ -5,6 +5,8 @@ use std::{
     path::Path,
 };
 
+use crate::api::{booking, types::raw};
+
 use super::{
     json_rpc::*,
     types::{Report, raw::*},
@@ -116,7 +118,9 @@ impl<'a> Server<'a> {
                             healthy.parser_format_report(id, &params, w).unwrap()
                         }
 
-                        (Ok(_healthy), Method::Book(directives)) => todo!(),
+                        (Ok(healthy), Method::Book(optional)) => {
+                            healthy.book(id, optional.params.as_ref(), w).unwrap()
+                        }
 
                         (Err(unhealthy), _) => write_error(
                             id,
@@ -209,8 +213,32 @@ impl<'a> HealthyServer<'a> {
                 Cow::Borrowed("Booking directives other than as-parsed is not yet supported"),
                 w,
             )
+        } else if let Ok(ParseSuccess {
+            directives,
+            options,
+            ..
+        }) = &self.parsed
+        {
+            match booking::book(directives, options) {
+                Ok(booking::LoadSuccess {
+                    directives,
+                    warnings,
+                }) => {
+                    // TODO warnings
+                    let response = ResultResponse::new(id, ResultData::Booked(directives));
+                    write_response(&response, w)
+                }
+
+                Err(_) => todo!(),
+            }
         } else {
-            Ok(())
+            // TODO format parse errors and return
+            write_error(
+                id,
+                ERROR_PARSE,
+                Cow::Borrowed("parse errors, cannot book"),
+                w,
+            )
         }
     }
 }

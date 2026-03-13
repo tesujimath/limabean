@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
+use crate::api::types::booked;
+
 use super::types::{Report, raw::*};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -66,6 +68,8 @@ pub(crate) enum ResultData<'a, 'b> {
     #[serde(borrow)]
     RawDirectives(Vec<Directive<'a>>),
     Report(Cow<'b, str>),
+    // TODO also return warnings with booked
+    Booked(Vec<booked::Directive<'a>>),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
