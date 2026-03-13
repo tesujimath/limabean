@@ -1,6 +1,6 @@
 use beancount_parser_lima::{self as parser, Span, Spanned};
 use limabean_booking::{
-    Booking, Bookings, Interpolated, LimaParserBookingTypes, is_supported_method,
+    Booking, Bookings, Interpolated, LimaParserBookingTypes, LimaTolerance, is_supported_method,
 };
 
 use rust_decimal::Decimal;
@@ -18,7 +18,7 @@ use crate::api::types::{
 };
 
 #[derive(Debug)]
-pub(crate) struct Loader<'a, T> {
+pub(crate) struct Loader<'a, 't> {
     directives: Vec<booked::Directive<'a>>,
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
     open_accounts: hashbrown::HashMap<&'a str, Span>,
@@ -28,7 +28,7 @@ pub(crate) struct Loader<'a, T> {
     // TODO internal_plugins, just as a struct of bool
     // internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
     default_booking: Booking,
-    tolerance: T,
+    tolerance: &'t LimaTolerance<'a>,
     warnings: Vec<parser::AnnotatedWarning>,
 }
 
@@ -41,10 +41,10 @@ pub(crate) struct LoadError {
     pub(crate) errors: Vec<parser::AnnotatedError>,
 }
 
-impl<'a, T> Loader<'a, T> {
+impl<'a, 't> Loader<'a, 't> {
     pub(crate) fn new(
         default_booking: Booking,
-        tolerance: T,
+        tolerance: &'t LimaTolerance<'a>,
         // internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
     ) -> Self {
         Self {
@@ -94,7 +94,6 @@ impl<'a, T> Loader<'a, T> {
         'a: 'p,
         // TODO these should be raw directives not parser directives
         I: IntoIterator<Item = &'p Spanned<parser::Directive<'a>>>,
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let mut errors = Vec::default();
 
@@ -125,7 +124,6 @@ impl<'a, T> Loader<'a, T> {
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
         'a: 'p,
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         use booked::DirectiveVariant as BDV;
         use parser::DirectiveVariant as PDV;
@@ -157,7 +155,6 @@ impl<'a, T> Loader<'a, T> {
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
         'a: 'p,
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let description = transaction.payee().map_or_else(
             || {
@@ -218,7 +215,6 @@ impl<'a, T> Loader<'a, T> {
     ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
         'a: 'p,
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         match limabean_booking::book(
             date,
@@ -279,9 +275,9 @@ impl<'a, T> Loader<'a, T> {
                                 .into_currency_costs()
                                 .map(|(cost_cur, cost)| {
                                     prices.insert((
-                                        currency.into(),
+                                        currency,
                                         booked::Price {
-                                            cur: cost_cur.into(),
+                                            cur: cost_cur,
                                             per_unit: cost.per_unit,
                                             total: None,
                                         },
@@ -292,7 +288,7 @@ impl<'a, T> Loader<'a, T> {
                                         flag: posting.flag().map(|flag| from_flag(*flag.item())),
                                         acc: account,
                                         units: cost.units,
-                                        cur: currency.into(),
+                                        cur: currency,
                                         cost: Some(loader_cur_posting_cost_to_cost(cost_cur, cost)),
                                         price: None,
                                         tags: from_tags(posting.metadata().tags()),
@@ -304,9 +300,9 @@ impl<'a, T> Loader<'a, T> {
                         } else {
                             if let Some(price) = &price {
                                 prices.insert((
-                                    currency.into(),
+                                    currency,
                                     booked::Price {
-                                        cur: price.currency.into(),
+                                        cur: price.currency,
                                         per_unit: price.per_unit,
                                         total: None,
                                     },
@@ -318,7 +314,7 @@ impl<'a, T> Loader<'a, T> {
                                 flag: posting.flag().map(|flag| from_flag(*flag.item())),
                                 acc: account,
                                 units,
-                                cur: currency.into(),
+                                cur: currency,
                                 cost: None,
                                 price: price.map(|price| (&price).into()),
                                 tags: from_tags(posting.metadata().tags()),
@@ -440,7 +436,7 @@ impl<'a, T> Loader<'a, T> {
         &self,
         element: &parser::Spanned<LoaderElement>,
         account_name: &'a str,
-        currency: parser::Currency<'a>,
+        currency: &'a str,
     ) -> Result<(), parser::AnnotatedError> {
         let account = self.get_valid_account(element, account_name)?;
         account.validate_currency(element, currency)
@@ -461,16 +457,13 @@ impl<'a, T> Loader<'a, T> {
     }
 
     // base account is known
-    fn rollup_units(
-        &self,
-        base_account_name: &str,
-    ) -> hashbrown::HashMap<parser::Currency<'a>, Decimal> {
+    fn rollup_units(&self, base_account_name: &str) -> hashbrown::HashMap<&'a str, Decimal> {
         // TODO internal plugin balance rollup
         // if self
         //     .internal_plugins
         //     .contains_key(&InternalPlugin::BalanceRollup)
         // {
-        //     let mut rollup_units = hashbrown::HashMap::<parser::Currency<'a>, Decimal>::default();
+        //     let mut rollup_units = hashbrown::HashMap::<&'a str, Decimal>::default();
         //     self.accounts
         //         .keys()
         //         .filter_map(|s| {
@@ -514,11 +507,10 @@ impl<'a, T> Loader<'a, T> {
         element: &parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
         'a: 'p,
     {
         let account_name = balance.account().item().into();
-        let balance_currency = *balance.atol().amount().currency().item();
+        let balance_currency = balance.atol().amount().currency().item().into();
         let balance_units = balance.atol().amount().number().value();
         let balance_tolerance = balance
             .atol()
@@ -532,8 +524,8 @@ impl<'a, T> Loader<'a, T> {
             self.rollup_units(account_name),
         );
 
-        let account = self.get_mut_valid_account(&element, account_name)?;
-        account.validate_currency(&element, balance_currency)?;
+        let account = self.get_mut_valid_account(element, account_name)?;
+        account.validate_currency(element, balance_currency)?;
         // pad can't last beyond balance
         let pad_idx = account.pad_idx.take();
 
@@ -548,7 +540,7 @@ impl<'a, T> Loader<'a, T> {
             // balance assertion is incorrect and we have no pad to take up the slack, so:
 
             let err = Err(construct_balance_error_and_clear_diagnostics(
-                account, &margin, &element,
+                account, &margin, element,
             ));
 
             // even though we have a balance error, we adjust the account to match, in order to localise balance failures
@@ -643,7 +635,11 @@ impl<'a, T> Loader<'a, T> {
 
                     self.accounts.insert(
                         open.account().item().into(),
-                        AccountBuilder::new(open.currencies().map(|c| *c.item()), booking, *span),
+                        AccountBuilder::new(
+                            open.currencies().map(|c| c.item().into()),
+                            booking,
+                            *span,
+                        ),
                     );
                 }
             }
@@ -711,7 +707,7 @@ impl<'a, T> Loader<'a, T> {
     {
         let n_directives = self.directives.len();
         let account_name = pad.account().item().into();
-        let account = self.get_mut_valid_account(&element, account_name)?;
+        let account = self.get_mut_valid_account(element, account_name)?;
 
         let unused_pad_idx = account.pad_idx.replace(n_directives);
 
@@ -740,10 +736,10 @@ struct BookedPostingsAndPrices<'a> {
 
 fn calculate_balance_margin<'a>(
     balance_units: Decimal,
-    balance_currency: parser::Currency<'a>,
+    balance_currency: &'a str,
     balance_tolerance: Decimal,
-    account_rollup: hashbrown::HashMap<parser::Currency<'a>, Decimal>,
-) -> HashMap<parser::Currency<'a>, Decimal> {
+    account_rollup: hashbrown::HashMap<&'a str, Decimal>,
+) -> HashMap<&'a str, Decimal> {
     // what's the gap between what we have and what the balance says we should have?
     let mut inventory_has_balance_currency = false;
     let mut margin = account_rollup
@@ -772,7 +768,7 @@ fn calculate_balance_margin<'a>(
 
 // TODO calculate_balance_pad_postings
 // fn calculate_balance_pad_postings<'a>(
-//     margin: &HashMap<parser::Currency<'a>, Decimal>,
+//     margin: &HashMap<&'a str, Decimal>,
 //     balance_account: &'a str,
 //     pad_source: &'a str,
 // ) -> Vec<Posting<'a>> {
@@ -803,7 +799,7 @@ fn calculate_balance_margin<'a>(
 
 fn construct_balance_error_and_clear_diagnostics<'a>(
     account: &mut AccountBuilder<'a>,
-    margin: &HashMap<parser::Currency<'a>, Decimal>,
+    margin: &HashMap<&'a str, Decimal>,
     element: &parser::Spanned<LoaderElement>,
 ) -> parser::AnnotatedError {
     let reason = format!(
@@ -856,7 +852,7 @@ enum Adjustment {
 
 fn adjust_account_to_match_balance<'a>(
     account: &mut AccountBuilder<'a>,
-    margin: &HashMap<parser::Currency<'a>, Decimal>,
+    margin: &HashMap<&'a str, Decimal>,
     adjustment: Adjustment,
 ) {
     use Adjustment::*;
@@ -875,7 +871,7 @@ fn adjust_account_to_match_balance<'a>(
 
 #[derive(Debug)]
 struct AccountBuilder<'a> {
-    allowed_currencies: HashSet<parser::Currency<'a>>,
+    allowed_currencies: HashSet<&'a str>,
     positions: LoaderPositions<'a>,
     opened: Span,
     pad_idx: Option<usize>, // index in directives in Loader
@@ -886,7 +882,7 @@ struct AccountBuilder<'a> {
 impl<'a> AccountBuilder<'a> {
     fn new<I>(allowed_currencies: I, booking: Booking, opened: Span) -> Self
     where
-        I: Iterator<Item = parser::Currency<'a>>,
+        I: Iterator<Item = &'a str>,
     {
         AccountBuilder {
             allowed_currencies: allowed_currencies.collect(),
@@ -899,14 +895,14 @@ impl<'a> AccountBuilder<'a> {
     }
 
     /// all currencies are valid unless any were specified during open
-    fn is_currency_valid(&self, currency: parser::Currency<'_>) -> bool {
-        self.allowed_currencies.is_empty() || self.allowed_currencies.contains(&currency)
+    fn is_currency_valid(&self, currency: &'a str) -> bool {
+        self.allowed_currencies.is_empty() || self.allowed_currencies.contains(currency)
     }
 
     fn validate_currency(
         &self,
         element: &parser::Spanned<LoaderElement>,
-        currency: parser::Currency<'_>,
+        currency: &'a str,
     ) -> Result<(), parser::AnnotatedError> {
         if self.is_currency_valid(currency) {
             Ok(())
@@ -1067,14 +1063,14 @@ fn loader_cost_into_cell<'a>(cost: LoaderCost<'a>) -> Cell<'a, 'static> {
 }
 
 fn loader_cur_posting_cost_to_cost<'a>(
-    currency: parser::Currency<'a>,
+    currency: &'a str,
     cost: limabean_booking::PostingCost<LimaParserBookingTypes<'a>>,
 ) -> booked::Cost<'a> {
     booked::Cost {
         date: cost.date,
         per_unit: cost.per_unit,
         total: cost.total,
-        cur: currency.into(),
+        cur: currency,
         label: cost.label,
         merge: cost.merge,
     }

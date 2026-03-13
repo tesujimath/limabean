@@ -1,7 +1,7 @@
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
 };
-use limabean_booking::{Booking, Bookings, Interpolated, is_supported_method};
+use limabean_booking::{Booking, Bookings, Interpolated, LimaTolerance, is_supported_method};
 use std::{io::Write, iter::empty, path::Path};
 
 use rust_decimal::Decimal;
@@ -69,7 +69,9 @@ where
                 }
             };
 
-            match Loader::new(default_booking_option, &options, &plugins.internal)
+            let tolerance = (&options).into();
+
+            match Loader::new(default_booking_option, tolerance, &plugins.internal)
                 .collect(&directives)
             {
                 Ok(LoadSuccess {
@@ -109,16 +111,16 @@ where
 }
 
 #[derive(Debug)]
-pub(crate) struct Loader<'a, 'b, T> {
+pub(crate) struct Loader<'a, 'b> {
     directives: Vec<Directive<'a>>,
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
     open_accounts: hashbrown::HashMap<&'a str, Span>,
     closed_accounts: hashbrown::HashMap<&'a str, Span>,
     accounts: HashMap<&'a str, AccountBuilder<'a>>,
-    currency_usage: hashbrown::HashMap<parser::Currency<'a>, i32>,
+    currency_usage: hashbrown::HashMap<&'a str, i32>,
     internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
     default_booking: Booking,
-    tolerance: T,
+    tolerance: LimaTolerance<'a>,
     warnings: Vec<parser::AnnotatedWarning>,
 }
 
@@ -131,10 +133,10 @@ pub(crate) struct LoadError {
     pub(crate) errors: Vec<parser::AnnotatedError>,
 }
 
-impl<'a, 'b, T> Loader<'a, 'b, T> {
+impl<'a, 'b> Loader<'a, 'b> {
     pub(crate) fn new(
         default_booking: Booking,
-        tolerance: T,
+        tolerance: LimaTolerance<'a>,
         internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
     ) -> Self {
         Self {
@@ -182,7 +184,6 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     pub(crate) fn collect<I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
         I: IntoIterator<Item = &'a Spanned<parser::Directive<'a>>>,
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let mut errors = Vec::default();
 
@@ -206,10 +207,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     fn directive(
         &mut self,
         directive: &'a Spanned<parser::Directive<'a>>,
-    ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
-    where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
-    {
+    ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError> {
         use parser::DirectiveVariant::*;
 
         let date = *directive.date().item();
@@ -236,10 +234,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         transaction: &'a parser::Transaction<'a>,
         date: Date,
         element: parser::Spanned<Element>,
-    ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
-    where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
-    {
+    ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError> {
         let description = transaction.payee().map_or_else(
             || {
                 transaction
@@ -290,14 +285,11 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         date: Date,
         postings: &[&'a parser::Spanned<parser::Posting<'a>>],
         description: &'a str,
-    ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
-    where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
-    {
+    ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError> {
         match limabean_booking::book(
             date,
             postings,
-            self.tolerance,
+            &self.tolerance,
             |accname| self.accounts.get(accname).map(|acc| &acc.positions),
             |accname| {
                 self.accounts
@@ -310,7 +302,7 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
                 interpolated_postings,
                 updated_inventory,
             }) => {
-                let mut prices: HashSet<(parser::Currency, Price)> = HashSet::default();
+                let mut prices: HashSet<(&'a str, Price)> = HashSet::default();
 
                 // check all postings have valid accounts and currencies
                 // returning the first error
@@ -503,13 +495,13 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         &self,
         element: &parser::Spanned<Element>,
         account_name: &'a str,
-        currency: parser::Currency<'a>,
+        currency: &'a str,
     ) -> Result<(), parser::AnnotatedError> {
         let account = self.get_valid_account(element, account_name)?;
         account.validate_currency(element, currency)
     }
 
-    fn tally_currency_usage(&mut self, currency: parser::Currency<'a>) {
+    fn tally_currency_usage(&mut self, currency: &'a str) {
         use hashbrown::hash_map::Entry::*;
 
         match self.currency_usage.entry(currency) {
@@ -524,15 +516,12 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
     }
 
     // base account is known
-    fn rollup_units(
-        &self,
-        base_account_name: &str,
-    ) -> hashbrown::HashMap<parser::Currency<'a>, Decimal> {
+    fn rollup_units(&self, base_account_name: &str) -> hashbrown::HashMap<&'a str, Decimal> {
         if self
             .internal_plugins
             .contains_key(&InternalPlugin::BalanceRollup)
         {
-            let mut rollup_units = hashbrown::HashMap::<parser::Currency<'a>, Decimal>::default();
+            let mut rollup_units = hashbrown::HashMap::<&'a str, Decimal>::default();
             self.accounts
                 .keys()
                 .filter_map(|s| {
@@ -574,12 +563,9 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
         balance: &'a parser::Balance,
         date: Date,
         element: parser::Spanned<Element>,
-    ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError>
-    where
-        T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
-    {
+    ) -> Result<DirectiveVariant<'a>, parser::AnnotatedError> {
         let account_name = balance.account().item().as_ref();
-        let balance_currency = *balance.atol().amount().currency().item();
+        let balance_currency = balance.atol().amount().currency().item().into();
         let balance_units = balance.atol().amount().number().value();
         let balance_tolerance = balance
             .atol()
@@ -699,7 +685,11 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
                     self.accounts.insert(
                         open.account().item().as_ref(),
-                        AccountBuilder::new(open.currencies().map(|c| *c.item()), booking, *span),
+                        AccountBuilder::new(
+                            open.currencies().map(|c| c.item().into()),
+                            booking,
+                            *span,
+                        ),
                     );
                 }
             }
@@ -782,15 +772,15 @@ impl<'a, 'b, T> Loader<'a, 'b, T> {
 
 struct BookedPostingsAndPrices<'a> {
     postings: Vec<Posting<'a>>,
-    prices: HashSet<(parser::Currency<'a>, Price<'a>)>,
+    prices: HashSet<(&'a str, Price<'a>)>,
 }
 
 fn calculate_balance_margin<'a>(
     balance_units: Decimal,
-    balance_currency: parser::Currency<'a>,
+    balance_currency: &'a str,
     balance_tolerance: Decimal,
-    account_rollup: hashbrown::HashMap<parser::Currency<'a>, Decimal>,
-) -> HashMap<parser::Currency<'a>, Decimal> {
+    account_rollup: hashbrown::HashMap<&'a str, Decimal>,
+) -> HashMap<&'a str, Decimal> {
     // what's the gap between what we have and what the balance says we should have?
     let mut inventory_has_balance_currency = false;
     let mut margin = account_rollup
@@ -818,7 +808,7 @@ fn calculate_balance_margin<'a>(
 }
 
 fn calculate_balance_pad_postings<'a>(
-    margin: &HashMap<parser::Currency<'a>, Decimal>,
+    margin: &HashMap<&'a str, Decimal>,
     balance_account: &'a str,
     pad_source: &'a str,
 ) -> Vec<Posting<'a>> {
@@ -830,7 +820,7 @@ fn calculate_balance_pad_postings<'a>(
                     flag: Some(pad_flag()),
                     account: balance_account,
                     units: *number,
-                    currency: *cur,
+                    currency: cur,
                     cost: None,
                     price: None,
                 },
@@ -838,7 +828,7 @@ fn calculate_balance_pad_postings<'a>(
                     flag: Some(pad_flag()),
                     account: pad_source,
                     units: -*number,
-                    currency: *cur,
+                    currency: cur,
                     cost: None,
                     price: None,
                 },
@@ -849,7 +839,7 @@ fn calculate_balance_pad_postings<'a>(
 
 fn construct_balance_error_and_clear_diagnostics<'a>(
     account: &mut AccountBuilder<'a>,
-    margin: &HashMap<parser::Currency<'a>, Decimal>,
+    margin: &HashMap<&'a str, Decimal>,
     element: &parser::Spanned<Element>,
 ) -> parser::AnnotatedError {
     let reason = format!(
@@ -900,7 +890,7 @@ enum Adjustment {
 
 fn adjust_account_to_match_balance<'a>(
     account: &mut AccountBuilder<'a>,
-    margin: &HashMap<parser::Currency<'a>, Decimal>,
+    margin: &HashMap<&'a str, Decimal>,
     adjustment: Adjustment,
 ) {
     use Adjustment::*;
@@ -919,7 +909,7 @@ fn adjust_account_to_match_balance<'a>(
 
 #[derive(Debug)]
 struct AccountBuilder<'a> {
-    allowed_currencies: HashSet<parser::Currency<'a>>,
+    allowed_currencies: HashSet<&'a str>,
     positions: Positions<'a>,
     opened: Span,
     pad_idx: Option<usize>, // index in directives in Loader
@@ -930,7 +920,7 @@ struct AccountBuilder<'a> {
 impl<'a> AccountBuilder<'a> {
     fn new<I>(allowed_currencies: I, booking: Booking, opened: Span) -> Self
     where
-        I: Iterator<Item = parser::Currency<'a>>,
+        I: Iterator<Item = &'a str>,
     {
         AccountBuilder {
             allowed_currencies: allowed_currencies.collect(),
@@ -943,14 +933,14 @@ impl<'a> AccountBuilder<'a> {
     }
 
     /// all currencies are valid unless any were specified during open
-    fn is_currency_valid(&self, currency: parser::Currency<'_>) -> bool {
+    fn is_currency_valid(&self, currency: &'a str) -> bool {
         self.allowed_currencies.is_empty() || self.allowed_currencies.contains(&currency)
     }
 
     fn validate_currency(
         &self,
         element: &parser::Spanned<Element>,
-        currency: parser::Currency<'_>,
+        currency: &'a str,
     ) -> Result<(), parser::AnnotatedError> {
         if self.is_currency_valid(currency) {
             Ok(())

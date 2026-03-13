@@ -161,7 +161,7 @@ impl<'a> FmtEdn
             let mut prices = loaded.prices.iter().collect::<Vec<_>>();
             prices.sort();
             for (cur, price) in &prices {
-                fmt_price(f, date, *cur, price, true)?;
+                fmt_price(f, date, cur, price, true)?;
             }
         }
 
@@ -197,16 +197,16 @@ impl<'a> FmtEdn for (Date, &parser::Price<'a>) {
         let price = Price {
             per_unit: parsed.amount().number().value(),
             total: None,
-            currency: *parsed.amount().currency().item(),
+            currency: parsed.amount().currency().item().into(),
         };
-        fmt_price(f, date, *parsed.currency().item(), &price, false)
+        fmt_price(f, date, parsed.currency().item().into(), &price, false)
     }
 }
 
 fn fmt_price<'a>(
     f: &mut Formatter<'_>,
     date: Date,
-    cur: parser::Currency<'a>,
+    cur: &'a str,
     price: &Price<'a>,
     // TODO: metadata, so we can write implicit: TRUE for implicit prices
     _implicit: bool,
@@ -216,7 +216,7 @@ fn fmt_price<'a>(
     map_begin(f)?;
     (Keyword::Date, date, Flush).fmt_edn(f)?;
     (Keyword::Directive, Keyword::Price, Spaced).fmt_edn(f)?;
-    (Keyword::Currency, cur.as_ref(), Spaced).fmt_edn(f)?;
+    (Keyword::Currency, cur, Spaced).fmt_edn(f)?;
     (Keyword::Price, price, Spaced).fmt_edn(f)?;
     map_end(f)
 }
@@ -238,7 +238,7 @@ impl<'a> FmtEdn for (Date, &parser::Balance<'a>) {
             .fmt_edn(f)?;
         (
             Keyword::Currency,
-            *parsed.atol().amount().currency().item(),
+            Into::<&str>::into(parsed.atol().amount().currency().item()),
             Spaced,
         )
             .fmt_edn(f)?;
@@ -256,7 +256,7 @@ impl<'a> FmtEdn for (Date, &parser::Open<'a>) {
             f,
             date,
             parsed.account().item().as_ref(),
-            parsed.currencies().map(|cur| cur.item()),
+            parsed.currencies().map(|cur| cur.item().into()),
             parsed.booking().map(|booking| *booking.item()),
             false,
         )
@@ -267,7 +267,7 @@ fn fmt_open<'a>(
     f: &mut Formatter<'_>,
     date: Date,
     account: &str,
-    currencies: impl Iterator<Item = &'a parser::Currency<'a>>,
+    currencies: impl Iterator<Item = &'a str>,
     booking: Option<parser::Booking>,
     // TODO: metadata, so we can write auto: TRUE for implicit prices
     _auto: bool,
@@ -280,7 +280,7 @@ fn fmt_open<'a>(
     (Keyword::Account, account, Spaced).fmt_edn(f)?;
     let mut currencies = currencies.peekable();
     if currencies.peek().is_some() {
-        (Keyword::Currencies, EdnSet(currencies.copied()), Spaced).fmt_edn(f)?;
+        (Keyword::Currencies, EdnSet(currencies), Spaced).fmt_edn(f)?;
     }
     if let Some(booking) = booking {
         (Keyword::Booking, booking, Spaced).fmt_edn(f)?;
@@ -309,7 +309,12 @@ impl<'a> FmtEdn for (Date, &parser::Commodity<'a>) {
         map_begin(f)?;
         (Keyword::Date, date, Flush).fmt_edn(f)?;
         (Keyword::Directive, Keyword::Commodity, Spaced).fmt_edn(f)?;
-        (Keyword::Currency, *parsed.currency().item(), Spaced).fmt_edn(f)?;
+        (
+            Keyword::Currency,
+            Into::<&str>::into(parsed.currency().item()),
+            Spaced,
+        )
+            .fmt_edn(f)?;
         map_end(f)
     }
 }
@@ -437,12 +442,6 @@ impl<'a> FmtEdn for &Price<'a> {
         }
         (Keyword::Currency, self.currency, Spaced).fmt_edn(f)?;
         map_end(f)
-    }
-}
-
-impl<'a> FmtEdn for parser::Currency<'a> {
-    fn fmt_edn(self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.as_ref().fmt_edn(f)
     }
 }
 
@@ -590,7 +589,7 @@ impl<'a> FmtEdn for &parser::Options<'a> {
             map_begin(f)?;
             for ((cur, tol), sep) in inferred_tolerance_defaults.zip(separators()) {
                 if let Some(cur) = cur {
-                    (cur, tol, sep).fmt_edn(f)?;
+                    (Into::<&str>::into(cur), tol, sep).fmt_edn(f)?;
                 } else {
                     (ANY, tol, sep).fmt_edn(f)?;
                 }

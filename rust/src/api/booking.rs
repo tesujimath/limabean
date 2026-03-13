@@ -28,9 +28,11 @@ pub(crate) fn book<'a>(
     //     }
     // };
 
+    let tolerance = options.into();
+
     Loader::new(
         default_booking_option,
-        options, // TODO , &plugins.internal
+        &tolerance, // TODO , &plugins.internal
     )
     .collect(directives)
 }

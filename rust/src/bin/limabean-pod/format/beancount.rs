@@ -89,7 +89,7 @@ impl<'a> Transaction<'a> {
             let mut prices = self.prices.iter().collect::<Vec<_>>();
             prices.sort();
             for (cur, price) in &prices {
-                fmt_price(f, date, *cur, price, true)?;
+                fmt_price(f, date, cur, price, true)?;
             }
         }
 
@@ -110,7 +110,7 @@ fn fmt_open(f: &mut Formatter<'_>, date: Date, account: &str, auto: bool) -> fmt
 fn fmt_price(
     f: &mut Formatter<'_>,
     date: Date,
-    cur: parser::Currency,
+    cur: &str,
     price: &Price,
     implicit: bool,
 ) -> fmt::Result {

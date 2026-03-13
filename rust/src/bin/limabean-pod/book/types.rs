@@ -22,7 +22,7 @@ pub(crate) enum DirectiveVariant<'a> {
 #[derive(Clone, Debug)]
 pub(crate) struct Transaction<'a> {
     pub(crate) postings: Vec<Posting<'a>>,
-    pub(crate) prices: HashSet<(parser::Currency<'a>, Price<'a>)>,
+    pub(crate) prices: HashSet<(&'a str, Price<'a>)>,
     pub(crate) auto_accounts: HashSet<&'a str>,
 }
 
@@ -36,7 +36,7 @@ pub(crate) struct Posting<'a> {
     pub(crate) flag: Option<parser::Flag>,
     pub(crate) account: &'a str,
     pub(crate) units: Decimal,
-    pub(crate) currency: parser::Currency<'a>,
+    pub(crate) currency: &'a str,
     pub(crate) cost: Option<Cost<'a>>,
     pub(crate) price: Option<Price<'a>>,
     // pub(crate) metadata: Metadata<'a>,
@@ -70,10 +70,7 @@ pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
 pub(crate) type PostingCost<'a> =
     limabean_booking::PostingCost<limabean_booking::LimaParserBookingTypes<'a>>;
 
-pub(crate) fn cur_posting_cost_to_cost<'a>(
-    currency: parser::Currency<'a>,
-    cost: PostingCost<'a>,
-) -> Cost<'a> {
+pub(crate) fn cur_posting_cost_to_cost<'a>(currency: &'a str, cost: PostingCost<'a>) -> Cost<'a> {
     Cost {
         date: cost.date,
         per_unit: cost.per_unit,
@@ -89,11 +86,11 @@ pub(crate) type Price<'a> = limabean_booking::Price<limabean_booking::LimaParser
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub(crate) struct Amount<'a> {
     pub(crate) number: Decimal,
-    pub(crate) currency: parser::Currency<'a>,
+    pub(crate) currency: &'a str,
 }
 
-impl<'a> From<(Decimal, parser::Currency<'a>)> for Amount<'a> {
-    fn from(value: (Decimal, parser::Currency<'a>)) -> Self {
+impl<'a> From<(Decimal, &'a str)> for Amount<'a> {
+    fn from(value: (Decimal, &'a str)) -> Self {
         Self {
             number: value.0,
             currency: value.1,
@@ -105,7 +102,7 @@ impl<'a> From<&'a parser::Amount<'a>> for Amount<'a> {
     fn from(value: &'a parser::Amount<'a>) -> Self {
         Amount {
             number: value.number().value(),
-            currency: *value.currency().item(),
+            currency: value.currency().item().into(),
         }
     }
 }
