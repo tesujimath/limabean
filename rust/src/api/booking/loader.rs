@@ -89,11 +89,11 @@ impl<'a, T> Loader<'a, T> {
         }
     }
 
-    pub(crate) fn collect<'b, I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
+    pub(crate) fn collect<'p, I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
-        'a: 'b,
+        'a: 'p,
         // TODO these should be raw directives not parser directives
-        I: IntoIterator<Item = &'b Spanned<parser::Directive<'a>>>,
+        I: IntoIterator<Item = &'p Spanned<parser::Directive<'a>>>,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let mut errors = Vec::default();
@@ -119,26 +119,24 @@ impl<'a, T> Loader<'a, T> {
         self.validate(errors)
     }
 
-    fn directive<'b>(
+    fn directive<'p>(
         &mut self,
-        directive: &'b Spanned<parser::Directive<'a>>,
+        directive: &'p Spanned<parser::Directive<'a>>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'b,
+        'a: 'p,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         use parser::DirectiveVariant as PDV;
 
         let date = *directive.date().item();
+        let element = into_spanned_loader_element(directive);
 
         match directive.variant() {
-            PDV::Transaction(transaction) => {
-                self.transaction(&into_spanned_loader_element(directive), transaction, date)
-            }
-            _ => todo!("all other directives"),
+            PDV::Transaction(transaction) => self.transaction(transaction, date, &element),
             // PDV::Price(_price) => Ok(DirectiveVariant::NA),
             // PDV::Balance(balance) => self.balance(balance, date, element),
-            // PDV::Open(open) => self.open(open, date, element),
+            PDV::Open(open) => self.open(open, date, &element),
             // PDV::Close(close) => self.close(close, date, element),
             // PDV::Commodity(_commodity) => Ok(DirectiveVariant::NA),
             // PDV::Pad(pad) => self.pad(pad, date, element),
@@ -147,17 +145,18 @@ impl<'a, T> Loader<'a, T> {
             // PDV::Event(_event) => Ok(DirectiveVariant::NA),
             // PDV::Query(_query) => Ok(DirectiveVariant::NA),
             // PDV::Custom(_custom) => Ok(DirectiveVariant::NA),
+            _ => todo!("all other directives"),
         }
     }
 
-    fn transaction<'b>(
+    fn transaction<'p>(
         &mut self,
-        element: &parser::Spanned<LoaderElement>,
-        transaction: &'b parser::Transaction<'a>,
+        transaction: &'p parser::Transaction<'a>,
         date: Date,
+        element: &parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'b,
+        'a: 'p,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let description = transaction.payee().map_or_else(
@@ -210,15 +209,15 @@ impl<'a, T> Loader<'a, T> {
         }))
     }
 
-    fn book<'b, 'c>(
+    fn book<'p, 'c>(
         &mut self,
         element: &parser::Spanned<LoaderElement>,
         date: Date,
-        postings: &'c [&'b parser::Spanned<parser::Posting<'a>>],
+        postings: &'c [&'p parser::Spanned<parser::Posting<'a>>],
         description: &'a str,
     ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
-        'a: 'b,
+        'a: 'p,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         match limabean_booking::book(
@@ -512,7 +511,7 @@ impl<'a, T> Loader<'a, T> {
         &mut self,
         balance: &'a parser::Balance,
         date: Date,
-        element: parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>>,
@@ -595,12 +594,15 @@ impl<'a, T> Loader<'a, T> {
         Ok(booked::DirectiveVariant::Balance(balance.into()))
     }
 
-    fn open(
+    fn open<'p>(
         &mut self,
-        open: &'a parser::Open,
+        open: &'p parser::Open<'a>,
         _date: Date,
-        element: parser::Spanned<LoaderElement>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
+        element: &parser::Spanned<LoaderElement>,
+    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    where
+        'a: 'p,
+    {
         use hashbrown::hash_map::Entry::*;
         let account_name = open.account().item().into();
         match self.open_accounts.entry(account_name) {
@@ -665,7 +667,7 @@ impl<'a, T> Loader<'a, T> {
         &mut self,
         close: &'a parser::Close,
         _date: Date,
-        element: parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(close.account().item().into()) {
@@ -698,7 +700,7 @@ impl<'a, T> Loader<'a, T> {
         &mut self,
         pad: &'a parser::Pad<'a>,
         _date: Date,
-        element: parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<LoaderElement>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError> {
         let n_directives = self.directives.len();
         let account_name = pad.account().item().into();
