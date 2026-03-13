@@ -25,7 +25,7 @@ pub(crate) struct Loader<'a, T> {
     closed_accounts: hashbrown::HashMap<&'a str, Span>,
     accounts: HashMap<&'a str, AccountBuilder<'a>>,
     currency_usage: hashbrown::HashMap<&'a str, i32>,
-    // TODO internal_plugins
+    // TODO internal_plugins, just as a struct of bool
     // internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
     default_booking: Booking,
     tolerance: T,
@@ -89,23 +89,24 @@ impl<'a, T> Loader<'a, T> {
         }
     }
 
-    pub(crate) fn collect<I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
+    pub(crate) fn collect<'b, I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
+        'a: 'b,
         // TODO these should be raw directives not parser directives
-        I: IntoIterator<Item = &'a Spanned<parser::Directive<'a>>>,
+        I: IntoIterator<Item = &'b Spanned<parser::Directive<'a>>>,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let mut errors = Vec::default();
 
-        for raw in directives {
-            match self.directive(raw) {
+        for parsed in directives {
+            match self.directive(parsed) {
                 Ok(booked_variant) => {
                     self.directives.push(booked::Directive {
-                        span: raw.into(),
-                        date: *raw.date().item(),
-                        tags: from_tags(raw.metadata().tags()),
-                        links: from_links(raw.metadata().links()),
-                        metadata: from_key_values(raw.metadata().key_values()),
+                        span: parsed.into(),
+                        date: *parsed.date().item(),
+                        tags: from_tags(parsed.metadata().tags()),
+                        links: from_links(parsed.metadata().links()),
+                        metadata: from_key_values(parsed.metadata().key_values()),
                         variant: booked_variant,
                     });
                 }
@@ -118,11 +119,12 @@ impl<'a, T> Loader<'a, T> {
         self.validate(errors)
     }
 
-    fn directive(
+    fn directive<'b>(
         &mut self,
-        directive: &'a Spanned<parser::Directive<'a>>,
+        directive: &'b Spanned<parser::Directive<'a>>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
+        'a: 'b,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         use parser::DirectiveVariant as PDV;
@@ -148,13 +150,14 @@ impl<'a, T> Loader<'a, T> {
         }
     }
 
-    fn transaction(
+    fn transaction<'b>(
         &mut self,
         element: &parser::Spanned<LoaderElement>,
-        transaction: &'a parser::Transaction<'a>,
+        transaction: &'b parser::Transaction<'a>,
         date: Date,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
+        'a: 'b,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         let description = transaction.payee().map_or_else(
@@ -176,7 +179,7 @@ impl<'a, T> Loader<'a, T> {
         //     let mut auto_accounts = HashSet::default();
 
         //     for account in postings.iter().map(|posting| posting.account()) {
-        //         let account_name = account.item().as_ref();
+        //         let account_name = account.item().into();
         //         if !self.accounts.contains_key(account_name) {
         //             auto_accounts.insert(account_name);
 
@@ -197,10 +200,8 @@ impl<'a, T> Loader<'a, T> {
 
         Ok(booked::DirectiveVariant::Transaction(booked::Transaction {
             flag: from_flag(*transaction.flag().item()),
-            payee: transaction.payee().map(|payee| payee.item().as_ref()),
-            narration: transaction
-                .narration()
-                .map(|narration| narration.item().as_ref()),
+            payee: transaction.payee().map(|payee| *payee.item()),
+            narration: transaction.narration().map(|narration| *narration.item()),
             postings,
             // TODO implicit prices
             // prices,
@@ -209,14 +210,15 @@ impl<'a, T> Loader<'a, T> {
         }))
     }
 
-    fn book(
+    fn book<'b, 'c>(
         &mut self,
         element: &parser::Spanned<LoaderElement>,
         date: Date,
-        postings: &[&'a parser::Spanned<parser::Posting<'a>>],
+        postings: &'c [&'b parser::Spanned<parser::Posting<'a>>],
         description: &'a str,
     ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
+        'a: 'b,
         T: limabean_booking::Tolerance<Types = limabean_booking::LimaParserBookingTypes<'a>> + Copy,
     {
         match limabean_booking::book(
@@ -926,6 +928,12 @@ pub(crate) fn pad_flag() -> parser::Flag {
 #[derive(Clone, Debug)]
 pub(crate) struct LoaderElement {
     element_type: &'static str,
+}
+
+impl LoaderElement {
+    pub(crate) fn new(element_type: &'static str, span: parser::Span) -> parser::Spanned<Self> {
+        parser::spanned(LoaderElement { element_type }, span)
+    }
 }
 
 impl parser::ElementType for LoaderElement {

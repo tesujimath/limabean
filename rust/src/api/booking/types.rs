@@ -18,8 +18,8 @@ impl<'a> BookingTypes for LimabeanApiBookingTypes<'a> {
 
 impl<'a> PostingSpec for &'a api::PostingSpec<'a> {
     type Types = LimabeanApiBookingTypes<'a>;
-    type CostSpec = &'a api::CostSpec<'a>;
-    type PriceSpec = &'a api::PriceSpec<'a>;
+    type CostSpec = api::CostSpec<'a>;
+    type PriceSpec = api::PriceSpec<'a>;
 
     fn account(&self) -> &'a str {
         self.acc
@@ -33,16 +33,16 @@ impl<'a> PostingSpec for &'a api::PostingSpec<'a> {
         self.units
     }
 
-    fn cost(&self) -> Option<Self::CostSpec> {
+    fn cost(&self) -> Option<&Self::CostSpec> {
         self.cost_spec.as_ref()
     }
 
-    fn price(&self) -> Option<Self::PriceSpec> {
+    fn price(&self) -> Option<&Self::PriceSpec> {
         self.price_spec.as_ref()
     }
 }
 
-impl<'a> CostSpec for &'a api::CostSpec<'a> {
+impl<'a> CostSpec for api::CostSpec<'a> {
     type Types = LimabeanApiBookingTypes<'a>;
 
     fn currency(&self) -> Option<&'a str> {
@@ -70,7 +70,7 @@ impl<'a> CostSpec for &'a api::CostSpec<'a> {
     }
 }
 
-impl<'a> PriceSpec for &'a api::PriceSpec<'a> {
+impl<'a> PriceSpec for api::PriceSpec<'a> {
     type Types = LimabeanApiBookingTypes<'a>;
 
     fn currency(&self) -> Option<&'a str> {
