@@ -26,12 +26,12 @@ pub(crate) enum Format {
 pub(crate) fn write_bookings_from<W1, W2>(
     path: &Path,
     format: Format,
-    out_w: W1,
-    error_w: W2,
+    out_w: &mut W1,
+    error_w: &mut W2,
 ) -> Result<(), crate::Error>
 where
-    W1: Write + Copy,
-    W2: Write + Copy,
+    W1: Write,
+    W2: Write,
 {
     let sources = BeancountSources::try_from(path)
         .map_err(|e| crate::Error::CannotReadFile(path.into(), e))?;

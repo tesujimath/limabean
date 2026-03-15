@@ -9,10 +9,10 @@ pub(crate) fn write_booked_as_beancount<'a, W>(
     directives: &[Directive<'a>],
     _options: &parser::Options<'a>,
     internal_plugins: &hashbrown::HashMap<InternalPlugin, Option<String>>,
-    mut out_w: W,
+    out_w: &mut W,
 ) -> Result<(), crate::Error>
 where
-    W: std::io::Write + Copy,
+    W: std::io::Write,
 {
     for d in directives {
         writeln!(out_w, "{}", DirectiveWithPlugins(d, internal_plugins))?;

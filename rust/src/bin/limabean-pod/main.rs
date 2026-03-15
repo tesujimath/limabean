@@ -61,8 +61,8 @@ const LIMABEAN_POD_LOG: &str = "LIMABEAN_POD_LOG";
 const LIMABEAN_POD_LOG_LEVEL: &str = "LIMABEAN_POD_LOG_LEVEL";
 
 fn main() {
-    let out_w = &std::io::stdout();
-    let error_w = &std::io::stderr();
+    let out_w = &mut std::io::stdout();
+    let error_w = &mut std::io::stderr();
 
     // enable logging only if environment variable LIMABEAN_POD_LOG defined
     // log level set via environment variable LIMABEAN_POD_LOG_LEVEL, or default

@@ -16,10 +16,10 @@ pub(crate) fn write_booked_as_edn<'a, W>(
     directives: &[Directive<'a>],
     options: &parser::Options,
     plugins: &Plugins,
-    out_w: W,
+    out_w: &mut W,
 ) -> io::Result<()>
 where
-    W: std::io::Write + Copy,
+    W: std::io::Write,
 {
     use std::io::{BufWriter, Write};
 
