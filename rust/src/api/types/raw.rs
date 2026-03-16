@@ -244,6 +244,16 @@ pub enum Booking {
     Hifo,
 }
 
+/// The booking method for an account.
+#[derive(Serialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct SpannedSource<'a> {
+    pub file_name: &'a str,
+    pub start_line: usize,
+    pub end_line: usize,
+    pub content: &'a str,
+}
+
 /// A span which identifies a source file location
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub(crate) struct Span {

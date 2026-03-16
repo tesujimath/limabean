@@ -366,6 +366,17 @@ where
         .collect::<Vec<_>>()
 }
 
+impl<'a> From<parser::SpannedSource<'a>> for SpannedSource<'a> {
+    fn from(value: parser::SpannedSource<'a>) -> Self {
+        SpannedSource {
+            file_name: value.file_name,
+            start_line: value.start_line,
+            end_line: value.end_line,
+            content: value.content,
+        }
+    }
+}
+
 impl<T> From<&parser::Spanned<T>> for Span {
     fn from(value: &parser::Spanned<T>) -> Self {
         let span = value.span();

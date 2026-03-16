@@ -5,7 +5,7 @@ use crate::api::types::booked;
 
 use super::types::{Report, raw::*};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Request<'a> {
     pub(crate) jsonrpc: &'a str,
@@ -17,7 +17,7 @@ pub(crate) struct Request<'a> {
 
 // TODO RequestMethod should be generic and the actual methods moved out of this module,
 // but the deserialize lifetimes are a bit tricksy
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(tag = "method")]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum RequestMethod<'a> {
@@ -28,24 +28,26 @@ pub(crate) enum RequestMethod<'a> {
     ParserFormatErrors(Params<Vec<Report<'a>>>),
     #[serde(rename = "parser.format-warnings")]
     ParserFormatWarnings(Params<Vec<Report<'a>>>),
+    #[serde(rename = "parser.resolve-span")]
+    ParserResolveSpan(Params<Span>),
     #[serde(borrow)]
     Book(OptionalParams<Vec<Directive<'a>>>),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Params<T> {
     pub(crate) params: T,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct OptionalParams<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) params: Option<T>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ResultResponse<'i, 'a, 'b> {
     pub(crate) jsonrpc: &'static str,
@@ -63,18 +65,19 @@ impl<'i, 'a, 'b> ResultResponse<'i, 'a, 'b> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ResultData<'a, 'b> {
     Ok,
     #[serde(borrow)]
     RawDirectives(Vec<Directive<'a>>),
     Report(Cow<'b, str>),
+    ResolvedSpan(SpannedSource<'a>),
     // TODO also return warnings with booked
     Booked(Vec<booked::Directive<'a>>),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ErrorResponse<'a, 'b> {
     pub(crate) jsonrpc: &'static str,
@@ -92,7 +95,7 @@ impl<'a, 'b> ErrorResponse<'a, 'b> {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub(crate) struct ErrorData<'a> {
     code: i32,
     message: Cow<'a, str>,

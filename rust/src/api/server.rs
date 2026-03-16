@@ -127,6 +127,10 @@ impl<'a> Server<'a> {
                             .parser_format_report::<parser::WarningKind, W>(id, &params, w)
                             .unwrap(),
 
+                        (Ok(healthy), Method::ParserResolveSpan(Params { params })) => {
+                            healthy.parser_resolve_span(id, &params, w).unwrap()
+                        }
+
                         (Ok(healthy), Method::Book(optional)) => {
                             healthy.book(id, optional.params.as_ref(), w).unwrap()
                         }
@@ -207,6 +211,16 @@ impl<'a> HealthyServer<'a> {
         }
 
         let response = ResultResponse::new(id, ResultData::Report(String::from_utf8_lossy(&buf)));
+        write_response(&response, w)
+    }
+
+    fn parser_resolve_span<W>(&self, id: Option<Id>, span: &Span, w: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {
+        let span = span.into();
+        let spanned_source = self.sources.resolve_span(&span);
+        let response = ResultResponse::new(id, ResultData::ResolvedSpan(spanned_source.into()));
         write_response(&response, w)
     }
 
