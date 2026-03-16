@@ -3,7 +3,6 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
 };
-use tabulator::Cell;
 
 use super::{Report, raw::*};
 
@@ -366,6 +365,39 @@ where
         .collect::<Vec<_>>()
 }
 
+pub(crate) fn from_errors_or_warnings<'a, K>(
+    errors_or_warnings: &'a [parser::ErrorOrWarning<K>],
+) -> Vec<Report<'a>>
+where
+    K: parser::ErrorOrWarningKind,
+{
+    errors_or_warnings
+        .iter()
+        .map(|eow| {
+            let mut contexts = eow.contexts();
+            let has_context = contexts.by_ref().count() > 0;
+            let mut related = eow.related();
+            let has_related = related.by_ref().count() > 0;
+            Report {
+                message: Cow::Borrowed(eow.message()),
+                label: Cow::Borrowed(eow.reason()),
+                span: eow.span().into(),
+                contexts: has_context.then_some(
+                    contexts
+                        .map(|(ctx, span)| (Cow::Borrowed(ctx), span.into()))
+                        .collect::<Vec<_>>(),
+                ),
+                related: has_related.then_some(
+                    related
+                        .map(|(rel, span)| (Cow::Borrowed(rel), span.into()))
+                        .collect::<Vec<_>>(),
+                ),
+                annotation: None,
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
 impl<'a> From<parser::SpannedSource<'a>> for SpannedSource<'a> {
     fn from(value: parser::SpannedSource<'a>) -> Self {
         SpannedSource {
@@ -384,6 +416,16 @@ impl<T> From<&parser::Spanned<T>> for Span {
             source: span.source,
             start: span.start,
             end: span.end,
+        }
+    }
+}
+
+impl From<&parser::Span> for Span {
+    fn from(value: &parser::Span) -> Self {
+        Span {
+            source: value.source,
+            start: value.start,
+            end: value.end,
         }
     }
 }

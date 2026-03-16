@@ -9,7 +9,10 @@ use std::{
 
 use crate::api::{
     booking,
-    types::{parser_type_conversions::into_errors_or_warnings, raw},
+    types::{
+        parser_type_conversions::{from_errors_or_warnings, into_errors_or_warnings},
+        raw,
+    },
 };
 
 use super::{
@@ -96,7 +99,7 @@ impl<'a> Server<'a> {
         use RequestMethod as Method;
 
         match serde_json::from_str::<Request>(request) {
-            Err(e) => write_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap(),
+            Err(e) => write_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), None, w).unwrap(),
 
             Ok(Request {
                 id,
@@ -108,6 +111,7 @@ impl<'a> Server<'a> {
                         id,
                         ERROR_INVALID_REQUEST,
                         Cow::Owned(format!("JSON-RPC protocol must be 2.0, found {}", jsonrpc)),
+                        None,
                         w,
                     )
                     .unwrap()
@@ -139,6 +143,7 @@ impl<'a> Server<'a> {
                             id,
                             ERROR_BEANFILE_IO_ERROR,
                             Cow::Borrowed(unhealthy.as_str()),
+                            None,
                             w,
                         )
                         .unwrap(),
@@ -165,21 +170,30 @@ impl<'a> HealthyServer<'a> {
     where
         W: Write,
     {
-        if let Ok(ParseSuccess { directives, .. }) = &self.parsed {
-            let response = ResultResponse::new(
-                id,
-                ResultData::RawDirectives(
-                    directives
-                        .iter()
-                        .map(Into::<Directive>::into)
-                        .collect::<Vec<_>>(),
-                ),
-            );
+        match &self.parsed {
+            Ok(ParseSuccess { directives, .. }) => {
+                let response = ResultResponse::new(
+                    id,
+                    ResultData::RawDirectives(
+                        directives
+                            .iter()
+                            .map(Into::<Directive>::into)
+                            .collect::<Vec<_>>(),
+                    ),
+                );
 
-            write_response(&response, w)
-        } else {
-            tracing::error!("parse error, no directives to return");
-            Ok(())
+                write_response(&response, w)
+            }
+            Err(ParseError { errors, .. }) => {
+                let reports = from_errors_or_warnings(errors);
+                write_error(
+                    None,
+                    ERROR_PARSE,
+                    Cow::Borrowed("Parse errors"),
+                    Some(reports),
+                    w,
+                )
+            }
         }
     }
 
@@ -239,6 +253,7 @@ impl<'a> HealthyServer<'a> {
                 id,
                 ERROR_INTERNAL,
                 Cow::Borrowed("Booking directives other than as-parsed is not yet supported"),
+                None,
                 w,
             )
         } else if let Ok(ParseSuccess {
@@ -265,6 +280,7 @@ impl<'a> HealthyServer<'a> {
                 id,
                 ERROR_PARSE,
                 Cow::Borrowed("parse errors, cannot book"),
+                None,
                 w,
             )
         }
@@ -288,7 +304,13 @@ where
                     "while writing JSON",
                 ))
             } else {
-                write_error(response.id, ERROR_INTERNAL, Cow::Owned(e.to_string()), w)
+                write_error(
+                    response.id,
+                    ERROR_INTERNAL,
+                    Cow::Owned(e.to_string()),
+                    None,
+                    w,
+                )
             }
         }
     }
@@ -298,12 +320,13 @@ fn write_error<'a, 'b, W>(
     id: Option<Id<'a>>,
     code: ErrorCode,
     message: Cow<'b, str>,
+    data: Option<Vec<Report<'a>>>,
     w: &mut W,
 ) -> io::Result<()>
 where
     W: Write,
 {
-    let response = ErrorResponse::new(id, code, message);
+    let response = ErrorResponse::new(id, code, message, data);
     match serde_json::to_string(&response) {
         Ok(json) => {
             tracing::debug!("-> {}", &json);

@@ -86,11 +86,20 @@ pub(crate) struct ErrorResponse<'a, 'b> {
 }
 
 impl<'a, 'b> ErrorResponse<'a, 'b> {
-    pub(crate) fn new(id: Option<Id<'a>>, code: ErrorCode, message: Cow<'b, str>) -> Self {
+    pub(crate) fn new(
+        id: Option<Id<'a>>,
+        code: ErrorCode,
+        message: Cow<'b, str>,
+        data: Option<Vec<Report<'b>>>,
+    ) -> Self {
         ErrorResponse {
             jsonrpc: JSONRPC_VERSION,
             id,
-            error: ErrorData { code, message },
+            error: ErrorData {
+                code,
+                message,
+                data,
+            },
         }
     }
 }
@@ -99,6 +108,8 @@ impl<'a, 'b> ErrorResponse<'a, 'b> {
 pub(crate) struct ErrorData<'a> {
     code: i32,
     message: Cow<'a, str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    data: Option<Vec<Report<'a>>>,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
