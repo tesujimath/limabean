@@ -8,9 +8,11 @@ use std::{
 };
 
 use crate::api::{
-    booking,
+    booking::{self, LoadError},
     types::{
-        parser_type_conversions::{from_errors_or_warnings, into_errors_or_warnings},
+        parser_type_conversions::{
+            from_annotated_errors_or_warnings, from_errors_or_warnings, into_errors_or_warnings,
+        },
         raw,
     },
 };
@@ -188,7 +190,7 @@ impl<'a> HealthyServer<'a> {
                 let reports = from_errors_or_warnings(errors);
                 write_error(
                     None,
-                    ERROR_PARSE,
+                    ERROR_BEANFILE_PARSE_ERROR,
                     Cow::Borrowed("Parse errors"),
                     Some(reports),
                     w,
@@ -265,14 +267,23 @@ impl<'a> HealthyServer<'a> {
             match booking::book(directives, options) {
                 Ok(booking::LoadSuccess {
                     directives,
-                    warnings,
+                    warnings: _,
                 }) => {
                     // TODO warnings
                     let response = ResultResponse::new(id, ResultData::Booked(directives));
                     write_response(&response, w)
                 }
 
-                Err(_) => todo!(),
+                Err(LoadError { errors, .. }) => {
+                    let reports = from_annotated_errors_or_warnings(&errors);
+                    write_error(
+                        None,
+                        ERROR_BOOKING_ERROR,
+                        Cow::Borrowed("Booking errors"),
+                        Some(reports),
+                        w,
+                    )
+                }
             }
         } else {
             // TODO format parse errors and return

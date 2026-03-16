@@ -365,6 +365,35 @@ where
         .collect::<Vec<_>>()
 }
 
+fn from_error_or_warning<'a, K>(
+    eow: &'a parser::ErrorOrWarning<K>,
+    annotation: Option<Cow<'a, str>>,
+) -> Report<'a>
+where
+    K: parser::ErrorOrWarningKind,
+{
+    let mut contexts = eow.contexts();
+    let has_context = contexts.by_ref().count() > 0;
+    let mut related = eow.related();
+    let has_related = related.by_ref().count() > 0;
+    Report {
+        message: Cow::Borrowed(eow.message()),
+        label: Cow::Borrowed(eow.reason()),
+        span: eow.span().into(),
+        contexts: has_context.then_some(
+            contexts
+                .map(|(ctx, span)| (Cow::Borrowed(ctx), span.into()))
+                .collect::<Vec<_>>(),
+        ),
+        related: has_related.then_some(
+            related
+                .map(|(rel, span)| (Cow::Borrowed(rel), span.into()))
+                .collect::<Vec<_>>(),
+        ),
+        annotation,
+    }
+}
+
 pub(crate) fn from_errors_or_warnings<'a, K>(
     errors_or_warnings: &'a [parser::ErrorOrWarning<K>],
 ) -> Vec<Report<'a>>
@@ -373,28 +402,19 @@ where
 {
     errors_or_warnings
         .iter()
-        .map(|eow| {
-            let mut contexts = eow.contexts();
-            let has_context = contexts.by_ref().count() > 0;
-            let mut related = eow.related();
-            let has_related = related.by_ref().count() > 0;
-            Report {
-                message: Cow::Borrowed(eow.message()),
-                label: Cow::Borrowed(eow.reason()),
-                span: eow.span().into(),
-                contexts: has_context.then_some(
-                    contexts
-                        .map(|(ctx, span)| (Cow::Borrowed(ctx), span.into()))
-                        .collect::<Vec<_>>(),
-                ),
-                related: has_related.then_some(
-                    related
-                        .map(|(rel, span)| (Cow::Borrowed(rel), span.into()))
-                        .collect::<Vec<_>>(),
-                ),
-                annotation: None,
-            }
-        })
+        .map(|eow| from_error_or_warning(eow, None))
+        .collect::<Vec<_>>()
+}
+
+pub(crate) fn from_annotated_errors_or_warnings<'a, K>(
+    errors_or_warnings: &'a [parser::AnnotatedErrorOrWarning<K>],
+) -> Vec<Report<'a>>
+where
+    K: parser::ErrorOrWarningKind,
+{
+    errors_or_warnings
+        .iter()
+        .map(|eow| from_error_or_warning(eow, eow.annotation().map(Cow::Borrowed)))
         .collect::<Vec<_>>()
 }
 
