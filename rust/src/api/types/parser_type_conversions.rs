@@ -340,9 +340,9 @@ impl From<&parser::Booking> for Booking {
     }
 }
 
-pub(crate) fn into_errors_or_warnings<'a, 'b, K>(
-    report: &'b [Report<'a>],
-) -> Vec<(parser::ErrorOrWarning<K>, Option<&'b Cell<'a, 'a>>)>
+pub(crate) fn into_errors_or_warnings<'a, K>(
+    report: &[Report<'a>],
+) -> Vec<(parser::ErrorOrWarning<K>, Option<Cow<'a, str>>)>
 where
     K: parser::ErrorOrWarningKind,
 {
@@ -360,7 +360,7 @@ where
                         .map(|ctx| (ctx.0.to_string(), ctx.1.into()))
                         .collect::<Vec<_>>(),
                 ),
-                r.annotation.as_ref(),
+                r.annotation.clone(),
             )
         })
         .collect::<Vec<_>>()

@@ -20,7 +20,7 @@ pub struct Report<'a> {
     pub(crate) related: Option<Vec<(Cow<'a, str>, Span)>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(borrow)]
-    pub(crate) annotation: Option<Cell<'a, 'a>>,
+    pub(crate) annotation: Option<Cow<'a, str>>,
 }
 
 /// Format a date as ISO8601
