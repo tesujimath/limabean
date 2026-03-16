@@ -248,7 +248,10 @@ pub enum Booking {
 #[derive(Serialize, PartialEq, Eq, Clone, Copy, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct SpannedSource<'a> {
-    pub file_name: &'a str,
+    /// File-name of source, only None in the case of the source being an inline string,
+    /// which the API server never uses
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<&'a str>,
     pub start_line: usize,
     pub end_line: usize,
     pub content: &'a str,
