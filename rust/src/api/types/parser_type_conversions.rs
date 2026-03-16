@@ -5,7 +5,7 @@ use std::{
 };
 use tabulator::Cell;
 
-use super::{Report, ReportKind, raw::*};
+use super::{Report, raw::*};
 
 impl<'a> From<&'_ parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
     fn from(value: &'_ parser::Spanned<parser::Directive<'a>>) -> Self {
@@ -340,53 +340,30 @@ impl From<&parser::Booking> for Booking {
     }
 }
 
-pub(crate) struct AnnotatedErrorsAndWarnings<'a, 'b> {
-    pub(crate) errors: Vec<(parser::Error, Option<&'b Cell<'a, 'a>>)>,
-    pub(crate) warnings: Vec<(parser::Warning, Option<&'b Cell<'a, 'a>>)>,
-}
-
-impl<'a, 'b> From<&'b [Report<'a>]> for AnnotatedErrorsAndWarnings<'a, 'b> {
-    fn from(value: &'b [Report<'a>]) -> Self {
-        fn into_parser_contexts(
-            contexts: &Option<Vec<(Cow<'_, str>, Span)>>,
-        ) -> Vec<(String, parser::Span)> {
-            contexts
-                .iter()
-                .flatten()
-                .map(|ctx| (ctx.0.to_string(), ctx.1.into()))
-                .collect::<Vec<_>>()
-        }
-        let errors = value
-            .iter()
-            .filter_map(|r| {
-                (r.kind == ReportKind::Error).then_some((
-                    parser::Error::with_contexts(
-                        r.message.to_string(),
-                        r.label.to_string(),
-                        r.span.into(),
-                        into_parser_contexts(&r.contexts),
-                    ),
-                    r.annotation.as_ref(),
-                ))
-            })
-            .collect::<Vec<_>>();
-        let warnings = value
-            .iter()
-            .filter_map(|r| {
-                (r.kind == ReportKind::Warning).then_some((
-                    parser::Warning::with_contexts(
-                        r.message.to_string(),
-                        r.label.to_string(),
-                        r.span.into(),
-                        into_parser_contexts(&r.contexts),
-                    ),
-                    r.annotation.as_ref(),
-                ))
-            })
-            .collect::<Vec<_>>();
-
-        AnnotatedErrorsAndWarnings { errors, warnings }
-    }
+pub(crate) fn into_errors_or_warnings<'a, 'b, K>(
+    report: &'b [Report<'a>],
+) -> Vec<(parser::ErrorOrWarning<K>, Option<&'b Cell<'a, 'a>>)>
+where
+    K: parser::ErrorOrWarningKind,
+{
+    report
+        .iter()
+        .map(|r| {
+            (
+                parser::ErrorOrWarning::<K>::with_contexts(
+                    r.message.to_string(),
+                    r.label.to_string(),
+                    r.span.into(),
+                    r.contexts
+                        .iter()
+                        .flatten()
+                        .map(|ctx| (ctx.0.to_string(), ctx.1.into()))
+                        .collect::<Vec<_>>(),
+                ),
+                r.annotation.as_ref(),
+            )
+        })
+        .collect::<Vec<_>>()
 }
 
 impl<T> From<&parser::Spanned<T>> for Span {

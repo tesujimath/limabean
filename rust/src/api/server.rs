@@ -1,4 +1,6 @@
-use beancount_parser_lima::{BeancountParser, BeancountSources, ParseError, ParseSuccess};
+use beancount_parser_lima::{
+    self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess,
+};
 use std::{
     borrow::Cow,
     io::{self, BufRead, BufReader, Read, Write, stdin, stdout},
@@ -7,7 +9,7 @@ use std::{
 
 use crate::api::{
     booking,
-    types::{parser_type_conversions::AnnotatedErrorsAndWarnings, raw},
+    types::{parser_type_conversions::into_errors_or_warnings, raw},
 };
 
 use super::{
@@ -20,14 +22,14 @@ pub fn serve(path: &Path) {
         Ok(sources) => {
             let parser = BeancountParser::new(&sources);
 
-            Server(Ok(HealthyServer::new(&sources, &parser))).serve(&stdin(), &stdout());
+            Server(Ok(HealthyServer::new(&sources, &parser))).serve(&stdin(), &mut stdout());
         }
         Err(e) => Server(Err(format!(
             "Can't read {}: {}",
             path.to_string_lossy(),
             &e
         )))
-        .serve(&stdin(), &stdout()),
+        .serve(&stdin(), &mut stdout()),
     };
 }
 
@@ -52,10 +54,10 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> Server<'a> {
-    fn serve<R, W>(&self, r: R, w: W)
+    fn serve<R, W>(&self, r: R, w: &mut W)
     where
-        R: Read + Copy,
-        W: Write + Copy,
+        R: Read,
+        W: Write,
     {
         let mut buf = String::new();
         let mut reader = BufReader::new(r);
@@ -87,9 +89,9 @@ impl<'a> Server<'a> {
         }
     }
 
-    fn dispatch<W>(&self, request: &str, w: W)
+    fn dispatch<W>(&self, request: &str, w: &mut W)
     where
-        W: Write + Copy,
+        W: Write,
     {
         use RequestMethod as Method;
 
@@ -117,9 +119,13 @@ impl<'a> Server<'a> {
                             healthy.parser_directives(id, w).unwrap()
                         }
 
-                        (Ok(healthy), Method::ParserFormatReport(Params { params })) => {
-                            healthy.parser_format_report(id, &params, w).unwrap()
-                        }
+                        (Ok(healthy), Method::ParserFormatErrors(Params { params })) => healthy
+                            .parser_format_report::<parser::ErrorKind, W>(id, &params, w)
+                            .unwrap(),
+
+                        (Ok(healthy), Method::ParserFormatWarnings(Params { params })) => healthy
+                            .parser_format_report::<parser::WarningKind, W>(id, &params, w)
+                            .unwrap(),
 
                         (Ok(healthy), Method::Book(optional)) => {
                             healthy.book(id, optional.params.as_ref(), w).unwrap()
@@ -140,9 +146,9 @@ impl<'a> Server<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn status<W>(&self, id: Option<Id>, w: W) -> io::Result<()>
+    fn status<W>(&self, id: Option<Id>, w: &mut W) -> io::Result<()>
     where
-        W: Write + Copy,
+        W: Write,
     {
         let response = ResultResponse::new(id, ResultData::Ok);
 
@@ -151,9 +157,9 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn parser_directives<W>(&self, id: Option<Id>, w: W) -> io::Result<()>
+    fn parser_directives<W>(&self, id: Option<Id>, w: &mut W) -> io::Result<()>
     where
-        W: Write + Copy,
+        W: Write,
     {
         if let Ok(ParseSuccess { directives, .. }) = &self.parsed {
             let response = ResultResponse::new(
@@ -173,39 +179,26 @@ impl<'a> HealthyServer<'a> {
         }
     }
 
-    fn parser_format_report<W>(
+    fn parser_format_report<K, W>(
         &self,
         id: Option<Id>,
         reports: &[Report<'a>],
-        w: W,
+        w: &mut W,
     ) -> io::Result<()>
     where
-        W: Write + Copy,
+        K: parser::ErrorOrWarningKind,
+        W: Write,
     {
         let mut buf = Vec::new();
         let mut sep = false;
 
-        let reports: AnnotatedErrorsAndWarnings = reports.into();
-
-        for (error, annotation) in &reports.errors {
+        for (error_or_warning, annotation) in into_errors_or_warnings::<K>(reports) {
             if sep {
                 buf.write_all(b"\n")?;
             }
 
-            self.sources.write_error_or_warning(&mut buf, error)?;
-            if let Some(annotation) = annotation {
-                buf.write_fmt(core::format_args!("{}\n", annotation))?;
-            }
-
-            sep = true;
-        }
-
-        for (warning, annotation) in &reports.warnings {
-            if sep {
-                buf.write_all(b"\n")?;
-            }
-
-            self.sources.write_error_or_warning(&mut buf, warning)?;
+            self.sources
+                .write_error_or_warning(&mut buf, &error_or_warning)?;
             if let Some(annotation) = annotation {
                 buf.write_fmt(core::format_args!("{}\n", annotation))?;
             }
@@ -217,9 +210,14 @@ impl<'a> HealthyServer<'a> {
         write_response(&response, w)
     }
 
-    fn book<W>(&self, id: Option<Id>, directives: Option<&Vec<Directive>>, w: W) -> io::Result<()>
+    fn book<W>(
+        &self,
+        id: Option<Id>,
+        directives: Option<&Vec<Directive>>,
+        w: &mut W,
+    ) -> io::Result<()>
     where
-        W: Write + Copy,
+        W: Write,
     {
         if let Some(_directives) = directives {
             // TODO
@@ -259,9 +257,9 @@ impl<'a> HealthyServer<'a> {
     }
 }
 
-fn write_response<W>(response: &ResultResponse, mut w: W) -> io::Result<()>
+fn write_response<W>(response: &ResultResponse, w: &mut W) -> io::Result<()>
 where
-    W: Write + Copy,
+    W: Write,
 {
     match serde_json::to_string(&response) {
         Ok(json) => {
@@ -286,10 +284,10 @@ fn write_error<'a, 'b, W>(
     id: Option<Id<'a>>,
     code: ErrorCode,
     message: Cow<'b, str>,
-    mut w: W,
+    w: &mut W,
 ) -> io::Result<()>
 where
-    W: Write + Copy,
+    W: Write,
 {
     let response = ErrorResponse::new(id, code, message);
     match serde_json::to_string(&response) {

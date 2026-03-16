@@ -24,8 +24,10 @@ pub(crate) enum RequestMethod<'a> {
     Status,
     #[serde(rename = "parser.directives")]
     ParserDirectives,
-    #[serde(rename = "parser.format-report")]
-    ParserFormatReport(Params<Vec<Report<'a>>>),
+    #[serde(rename = "parser.format-errors")]
+    ParserFormatErrors(Params<Vec<Report<'a>>>),
+    #[serde(rename = "parser.format-warnings")]
+    ParserFormatWarnings(Params<Vec<Report<'a>>>),
     #[serde(borrow)]
     Book(OptionalParams<Vec<Directive<'a>>>),
 }

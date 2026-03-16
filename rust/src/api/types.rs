@@ -10,7 +10,6 @@ use raw::Span;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Report<'a> {
-    pub(crate) kind: ReportKind,
     pub(crate) message: Cow<'a, str>,
     pub(crate) label: Cow<'a, str>,
     pub(crate) span: Span,
@@ -22,14 +21,6 @@ pub struct Report<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(borrow)]
     pub(crate) annotation: Option<Cell<'a, 'a>>,
-}
-
-/// The booking method for an account.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
-#[serde(rename_all = "kebab-case")]
-pub enum ReportKind {
-    Error,
-    Warning,
 }
 
 /// Format a date as ISO8601
