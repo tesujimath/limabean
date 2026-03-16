@@ -1,16 +1,27 @@
+use std::borrow::Cow;
+
 use serde::{Deserialize, Serialize};
+use tabulator::Cell;
 use time::Date;
 
 use raw::Span;
 
 /// A report for formatting in the context of the source files
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Report<'a> {
     pub(crate) kind: ReportKind,
-    pub(crate) message: &'a str,
-    pub(crate) label: &'a str,
+    pub(crate) message: Cow<'a, str>,
+    pub(crate) label: Cow<'a, str>,
     pub(crate) span: Span,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) contexts: Option<Vec<(Cow<'a, str>, Span)>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) related: Option<Vec<(Cow<'a, str>, Span)>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(borrow)]
+    pub(crate) annotation: Option<Cell<'a, 'a>>,
 }
 
 /// The booking method for an account.

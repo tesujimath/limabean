@@ -5,7 +5,10 @@ use std::{
     path::Path,
 };
 
-use crate::api::{booking, types::raw};
+use crate::api::{
+    booking,
+    types::{parser_type_conversions::AnnotatedErrorsAndWarnings, raw},
+};
 
 use super::{
     json_rpc::*,
@@ -181,18 +184,31 @@ impl<'a> HealthyServer<'a> {
     {
         let mut buf = Vec::new();
         let mut sep = false;
-        for report in reports {
+
+        let reports: AnnotatedErrorsAndWarnings = reports.into();
+
+        for (error, annotation) in &reports.errors {
             if sep {
                 buf.write_all(b"\n")?;
             }
 
-            self.sources.write_report(
-                &mut buf,
-                report.kind.into(),
-                report.message,
-                report.label,
-                &((&report.span).into()),
-            )?;
+            self.sources.write_error_or_warning(&mut buf, error)?;
+            if let Some(annotation) = annotation {
+                buf.write_fmt(core::format_args!("{}\n", annotation))?;
+            }
+
+            sep = true;
+        }
+
+        for (warning, annotation) in &reports.warnings {
+            if sep {
+                buf.write_all(b"\n")?;
+            }
+
+            self.sources.write_error_or_warning(&mut buf, warning)?;
+            if let Some(annotation) = annotation {
+                buf.write_fmt(core::format_args!("{}\n", annotation))?;
+            }
 
             sep = true;
         }

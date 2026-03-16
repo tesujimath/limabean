@@ -17,7 +17,7 @@ pub(crate) struct Request<'a> {
 
 // TODO RequestMethod should be generic and the actual methods moved out of this module,
 // but the deserialize lifetimes are a bit tricksy
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "method")]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum RequestMethod<'a> {
@@ -30,13 +30,13 @@ pub(crate) enum RequestMethod<'a> {
     Book(OptionalParams<Vec<Directive<'a>>>),
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Params<T> {
     pub(crate) params: T,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct OptionalParams<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -61,7 +61,7 @@ impl<'i, 'a, 'b> ResultResponse<'i, 'a, 'b> {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ResultData<'a, 'b> {
     Ok,
@@ -90,7 +90,7 @@ impl<'a, 'b> ErrorResponse<'a, 'b> {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct ErrorData<'a> {
     code: i32,
     message: Cow<'a, str>,
