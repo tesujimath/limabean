@@ -1,3 +1,4 @@
+use limabean_booking::LimaParserBookingTypes;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -6,10 +7,7 @@ use std::{
 };
 use time::Date;
 
-use crate::api::{
-    booking::LimabeanApiBookingTypes,
-    types::{iso8601date, raw},
-};
+use crate::api::types::{iso8601date, raw};
 
 /// A Beancount directive of a particular [DirectiveVariant].
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
@@ -100,8 +98,8 @@ pub(crate) struct Cost<'a> {
     pub(crate) merge: bool,
 }
 
-impl<'a> From<&'a limabean_booking::Cost<LimabeanApiBookingTypes<'a>>> for Cost<'a> {
-    fn from(value: &'a limabean_booking::Cost<LimabeanApiBookingTypes<'a>>) -> Self {
+impl<'a> From<&'a limabean_booking::Cost<LimaParserBookingTypes<'a>>> for Cost<'a> {
+    fn from(value: &'a limabean_booking::Cost<LimaParserBookingTypes>) -> Self {
         Cost {
             date: value.date,
             per_unit: value.per_unit,

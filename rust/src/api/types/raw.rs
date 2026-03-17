@@ -27,7 +27,7 @@ pub struct Directive<'a> {
 }
 
 /// A Beancount directive, without the fields common to all, which belong to [Directive].
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, strum_macros::IntoStaticStr, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[serde(tag = "dct")]
 pub enum DirectiveVariant<'a> {

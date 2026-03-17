@@ -121,9 +121,8 @@ impl<'a> From<Amount<'a>> for Cell<'static, 'static> {
 
 impl<'a> From<&'_ Amount<'a>> for Cell<'a, 'static> {
     fn from(value: &'_ Amount<'a>) -> Self {
-        let cur: &str = value.currency.into();
         Cell::Row(
-            vec![value.number.into(), (cur, Align::Left).into()],
+            vec![value.number.into(), (value.currency, Align::Left).into()],
             GUTTER_MINOR,
         )
     }
@@ -160,7 +159,7 @@ pub(crate) fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static
     Cell::Row(cells, GUTTER_MINOR)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub(crate) struct Element {
     element_type: &'static str,
 }
@@ -171,7 +170,7 @@ impl Element {
     }
 }
 
-impl parser::ElementType for Element {
+impl parser::ElementType<'static> for Element {
     fn element_type(&self) -> &'static str {
         self.element_type
     }
@@ -179,7 +178,7 @@ impl parser::ElementType for Element {
 
 pub(crate) fn into_spanned_element<T>(value: &parser::Spanned<T>) -> parser::Spanned<Element>
 where
-    T: parser::ElementType,
+    T: parser::ElementType<'static>,
 {
     parser::spanned(
         Element {

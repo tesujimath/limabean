@@ -1,4 +1,4 @@
-use beancount_parser_lima::{self as parser, Span, Spanned};
+use beancount_parser_lima::{self as parser};
 use limabean_booking::{
     Booking, Bookings, Interpolated, LimaParserBookingTypes, LimaTolerance, is_supported_method,
 };
@@ -11,18 +11,14 @@ use std::{
 use tabulator::{Align, Cell};
 use time::Date;
 
-use crate::api::types::{
-    booked,
-    parser_type_conversions::{from_flag, from_key_values, from_links, from_tags},
-    raw,
-};
+use crate::api::types::{Element, booked, raw};
 
 #[derive(Debug)]
 pub(crate) struct Loader<'a, 't> {
     directives: Vec<booked::Directive<'a>>,
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
-    open_accounts: hashbrown::HashMap<&'a str, Span>,
-    closed_accounts: hashbrown::HashMap<&'a str, Span>,
+    open_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
+    closed_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
     accounts: HashMap<&'a str, AccountBuilder<'a>>,
     currency_usage: hashbrown::HashMap<&'a str, i32>,
     // TODO internal_plugins, just as a struct of bool
@@ -89,23 +85,22 @@ impl<'a, 't> Loader<'a, 't> {
         }
     }
 
-    pub(crate) fn collect<'p, I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
+    pub(crate) fn collect<'r, I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
     where
-        'a: 'p,
-        // TODO these should be raw directives not parser directives
-        I: IntoIterator<Item = &'p Spanned<parser::Directive<'a>>>,
+        'a: 'r,
+        I: IntoIterator<Item = &'r raw::Directive<'a>>,
     {
         let mut errors = Vec::default();
 
-        for parsed in directives {
-            match self.directive(parsed) {
+        for raw in directives {
+            match self.directive(raw) {
                 Ok(booked_variant) => {
                     self.directives.push(booked::Directive {
-                        span: parsed.into(),
-                        date: *parsed.date().item(),
-                        tags: from_tags(parsed.metadata().tags()),
-                        links: from_links(parsed.metadata().links()),
-                        metadata: from_key_values(parsed.metadata().key_values()),
+                        span: raw.span,
+                        date: raw.date,
+                        tags: raw.tags.clone(),
+                        links: raw.links.clone(),
+                        metadata: raw.metadata.clone(),
                         variant: booked_variant,
                     });
                 }
@@ -118,54 +113,53 @@ impl<'a, 't> Loader<'a, 't> {
         self.validate(errors)
     }
 
-    fn directive<'p>(
+    fn directive<'r>(
         &mut self,
-        directive: &'p Spanned<parser::Directive<'a>>,
+        directive: &'r raw::Directive<'a>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'p,
+        'a: 'r,
     {
         use booked::DirectiveVariant as BDV;
-        use parser::DirectiveVariant as PDV;
+        use raw::DirectiveVariant as RDV;
 
-        let date = *directive.date().item();
-        let element = into_spanned_loader_element(directive);
+        let date = directive.date;
+        let element = directive.into();
 
-        match directive.variant() {
-            PDV::Transaction(transaction) => self.transaction(transaction, date, &element),
-            PDV::Price(price) => Ok(BDV::Price(price.into())),
-            PDV::Balance(balance) => self.balance(balance, date, &element),
-            PDV::Open(open) => self.open(open, date, &element),
-            PDV::Close(close) => self.close(close, date, &element),
-            PDV::Commodity(commodity) => Ok(BDV::Commodity(commodity.into())),
-            PDV::Pad(pad) => self.pad(pad, date, &element),
-            PDV::Document(document) => Ok(BDV::Document(document.into())),
-            PDV::Note(note) => Ok(BDV::Note(note.into())),
-            PDV::Event(event) => Ok(BDV::Event(event.into())),
-            PDV::Query(query) => Ok(BDV::Query(query.into())),
-            PDV::Custom(custom) => Ok(BDV::Custom(custom.into())),
+        match &directive.variant {
+            RDV::Transaction(transaction) => self.transaction(transaction, date, &element),
+            RDV::Price(price) => Ok(BDV::Price(price.clone())),
+            RDV::Balance(balance) => self.balance(balance, date, &element),
+            RDV::Open(open) => self.open(open, date, &element),
+            RDV::Close(close) => self.close(close, date, &element),
+            RDV::Commodity(commodity) => Ok(BDV::Commodity(commodity.clone())),
+            RDV::Pad(pad) => self.pad(pad, date, &element),
+            RDV::Document(document) => Ok(BDV::Document(document.clone())),
+            RDV::Note(note) => Ok(BDV::Note(note.clone())),
+            RDV::Event(event) => Ok(BDV::Event(event.clone())),
+            RDV::Query(query) => Ok(BDV::Query(query.clone())),
+            RDV::Custom(custom) => Ok(BDV::Custom(custom.clone())),
         }
     }
 
-    fn transaction<'p>(
+    fn transaction<'r>(
         &mut self,
-        transaction: &'p parser::Transaction<'a>,
+        transaction: &'r raw::Transaction<'a>,
         date: Date,
-        element: &parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'p,
+        'a: 'r,
     {
-        let description = transaction.payee().map_or_else(
+        let description = transaction.payee.as_ref().map_or_else(
             || {
                 transaction
-                    .narration()
-                    .map_or("post", |narration| narration.item())
+                    .narration
+                    .as_ref()
+                    .map_or("post", |narration| *narration)
             },
-            |payee| payee.item(),
+            |payee| *payee,
         );
-
-        let postings = transaction.postings().collect::<Vec<_>>();
 
         // TODO auto accounts
         // let auto_accounts = if self
@@ -192,12 +186,12 @@ impl<'a, 't> Loader<'a, 't> {
         // };
 
         let BookedPostingsAndPrices { postings, prices } =
-            self.book(element, date, &postings, description)?;
+            self.book(date, &transaction.postings, description, element)?;
 
         Ok(booked::DirectiveVariant::Transaction(booked::Transaction {
-            flag: from_flag(*transaction.flag().item()),
-            payee: transaction.payee().map(|payee| *payee.item()),
-            narration: transaction.narration().map(|narration| *narration.item()),
+            flag: transaction.flag.clone(),
+            payee: transaction.payee,
+            narration: transaction.narration,
             postings,
             // TODO implicit prices
             // prices,
@@ -206,19 +200,22 @@ impl<'a, 't> Loader<'a, 't> {
         }))
     }
 
-    fn book<'p, 'c>(
+    fn book<'r>(
         &mut self,
-        element: &parser::Spanned<LoaderElement>,
         date: Date,
-        postings: &'c [&'p parser::Spanned<parser::Posting<'a>>],
+        postings: &'r [raw::PostingSpec<'a>],
         description: &'a str,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
-        'a: 'p,
+        'a: 'r,
     {
+        // ugh, difference of reference vs value
+        let postings = postings.iter().collect::<Vec<_>>();
+
         match limabean_booking::book(
             date,
-            postings,
+            &postings,
             self.tolerance,
             |accname| self.accounts.get(accname).map(|acc| &acc.positions),
             |accname| {
@@ -238,12 +235,13 @@ impl<'a, 't> Loader<'a, 't> {
                 // returning the first error
                 if let Some(error) = interpolated_postings
                     .iter()
-                    .zip(postings)
+                    .zip(&postings)
                     .filter_map(|(interpolated, posting)| {
+                        let posting_element = (*posting).into();
                         self.validate_account_and_currency(
-                            &into_spanned_loader_element(posting),
-                            posting.account().item().into(),
+                            posting.acc,
                             interpolated.currency,
+                            &posting_element,
                         )
                         .map_or_else(Some, |_| None)
                     })
@@ -256,10 +254,10 @@ impl<'a, 't> Loader<'a, 't> {
                 // each with a simple cost, so we don't have to deal with composite costs for a posting elsewhere
                 let booked_postings = interpolated_postings
                     .into_iter()
-                    .zip(postings)
+                    .zip(&postings)
                     .flat_map(|(interpolated, posting)| {
-                        let account = posting.account().item().into();
-                        let flag = posting.flag().map(|flag| *flag.item());
+                        let account = posting.acc;
+                        let flag = posting.flag.clone();
                         let Interpolated {
                             units,
                             currency,
@@ -267,8 +265,6 @@ impl<'a, 't> Loader<'a, 't> {
                             price,
                             ..
                         } = interpolated;
-
-                        let posting_span: raw::Span = (*posting).into();
 
                         if let Some(costs) = cost {
                             costs
@@ -284,16 +280,16 @@ impl<'a, 't> Loader<'a, 't> {
                                     ));
 
                                     booked::Posting {
-                                        span: posting_span,
-                                        flag: posting.flag().map(|flag| from_flag(*flag.item())),
+                                        span: posting.span,
+                                        flag: posting.flag.clone(),
                                         acc: account,
                                         units: cost.units,
                                         cur: currency,
                                         cost: Some(loader_cur_posting_cost_to_cost(cost_cur, cost)),
                                         price: None,
-                                        tags: from_tags(posting.metadata().tags()),
-                                        links: from_links(posting.metadata().links()),
-                                        metadata: from_key_values(posting.metadata().key_values()),
+                                        tags: posting.tags.clone(),
+                                        links: posting.links.clone(),
+                                        metadata: posting.metadata.clone(),
                                     }
                                 })
                                 .collect::<Vec<_>>()
@@ -310,16 +306,16 @@ impl<'a, 't> Loader<'a, 't> {
                             }
 
                             vec![booked::Posting {
-                                span: posting_span,
-                                flag: posting.flag().map(|flag| from_flag(*flag.item())),
+                                span: posting.span,
+                                flag: posting.flag.clone(),
                                 acc: account,
                                 units,
                                 cur: currency,
                                 cost: None,
                                 price: price.map(|price| (&price).into()),
-                                tags: from_tags(posting.metadata().tags()),
-                                links: from_links(posting.metadata().links()),
-                                metadata: from_key_values(posting.metadata().key_values()),
+                                tags: posting.tags.clone(),
+                                links: posting.links.clone(),
+                                metadata: posting.metadata.clone(),
                             }]
                         }
                     })
@@ -351,7 +347,7 @@ impl<'a, 't> Loader<'a, 't> {
                 }
 
                 for (account_name, updated_positions) in updated_inventory {
-                    let account = self.get_mut_valid_account(element, account_name)?;
+                    let account = self.get_mut_valid_account(account_name, element)?;
 
                     account.positions = updated_positions;
 
@@ -400,14 +396,15 @@ impl<'a, 't> Loader<'a, 't> {
 
     fn validate_account(
         &self,
-        element: &parser::Spanned<LoaderElement>,
         account_name: &'a str,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<(), parser::AnnotatedError> {
         if self.open_accounts.contains_key(account_name) {
             Ok(())
         } else if let Some(closed) = self.closed_accounts.get(account_name) {
             Err(element
-                .error_with_contexts("account was closed", vec![("close".to_string(), *closed)])
+                .error("account was closed")
+                .related_to(closed)
                 .into())
         } else {
             Err(element.error("account not open").into())
@@ -416,30 +413,30 @@ impl<'a, 't> Loader<'a, 't> {
 
     fn get_valid_account(
         &self,
-        element: &parser::Spanned<LoaderElement>,
         account_name: &'a str,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<&AccountBuilder<'a>, parser::AnnotatedError> {
-        self.validate_account(element, account_name)?;
+        self.validate_account(account_name, element)?;
         Ok(self.accounts.get(account_name).unwrap())
     }
 
     fn get_mut_valid_account(
         &mut self,
-        element: &parser::Spanned<LoaderElement>,
         account_name: &'a str,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<&mut AccountBuilder<'a>, parser::AnnotatedError> {
-        self.validate_account(element, account_name)?;
+        self.validate_account(account_name, element)?;
         Ok(self.accounts.get_mut(account_name).unwrap())
     }
 
     fn validate_account_and_currency(
         &self,
-        element: &parser::Spanned<LoaderElement>,
         account_name: &'a str,
         currency: &'a str,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<(), parser::AnnotatedError> {
-        let account = self.get_valid_account(element, account_name)?;
-        account.validate_currency(element, currency)
+        let account = self.get_valid_account(account_name, element)?;
+        account.validate_currency(currency, element)
     }
 
     fn tally_currency_usage(&mut self, currency: &'a str) {
@@ -500,32 +497,24 @@ impl<'a, 't> Loader<'a, 't> {
         // }
     }
 
-    fn balance<'p>(
+    fn balance<'r>(
         &mut self,
-        balance: &'p parser::Balance<'a>,
+        balance: &'r raw::Balance<'a>,
         date: Date,
-        element: &parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'p,
+        'a: 'r,
     {
-        let account_name = balance.account().item().into();
-        let balance_currency = balance.atol().amount().currency().item().into();
-        let balance_units = balance.atol().amount().number().value();
-        let balance_tolerance = balance
-            .atol()
-            .tolerance()
-            .map(|x| *x.item())
-            .unwrap_or(Decimal::ZERO);
         let margin = calculate_balance_margin(
-            balance_units,
-            balance_currency,
-            balance_tolerance,
-            self.rollup_units(account_name),
+            balance.units,
+            balance.cur,
+            balance.tolerance.unwrap_or(Decimal::ZERO),
+            self.rollup_units(balance.acc),
         );
 
-        let account = self.get_mut_valid_account(element, account_name)?;
-        account.validate_currency(element, balance_currency)?;
+        let account = self.get_mut_valid_account(balance.acc, element)?;
+        account.validate_currency(balance.cur, element)?;
         // pad can't last beyond balance
         let pad_idx = account.pad_idx.take();
 
@@ -533,7 +522,7 @@ impl<'a, 't> Loader<'a, 't> {
             // balance assertion is correct, and we already cleared the pad, so:
 
             account.balance_diagnostics.clear();
-            return Ok(booked::DirectiveVariant::Balance(balance.into()));
+            return Ok(booked::DirectiveVariant::Balance(balance.clone()));
         }
 
         if pad_idx.is_none() {
@@ -555,7 +544,7 @@ impl<'a, 't> Loader<'a, 't> {
 
         // initialize balance diagnostics according to balance assertion
         let mut positions = LoaderPositions::default();
-        positions.accumulate(balance_units, balance_currency, None, Booking::default());
+        positions.accumulate(balance.units, balance.cur, None, Booking::default());
         account.balance_diagnostics.push(BalanceDiagnostic {
             date,
             description: None,
@@ -584,45 +573,39 @@ impl<'a, 't> Loader<'a, 't> {
         // let pad_account = self.accounts.get_mut(pad_source).unwrap();
         // adjust_account_to_match_balance(pad_account, &margin, Adjustment::Subtract);
 
-        Ok(booked::DirectiveVariant::Balance(balance.into()))
+        Ok(booked::DirectiveVariant::Balance(balance.clone()))
     }
 
-    fn open<'p>(
+    fn open<'r>(
         &mut self,
-        open: &'p parser::Open<'a>,
+        open: &'r raw::Open<'a>,
         _date: Date,
-        element: &parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'p,
+        'a: 'r,
     {
         use hashbrown::hash_map::Entry::*;
-        let account_name = open.account().item().into();
-        match self.open_accounts.entry(account_name) {
+        match self.open_accounts.entry(open.acc) {
             Occupied(open_entry) => {
                 return Err(element
-                    .error_with_contexts(
-                        "account already opened",
-                        vec![("open".to_string(), *open_entry.get())],
-                    )
+                    .error("account already opened")
+                    .related_to(open_entry.get())
                     .into());
             }
             Vacant(open_entry) => {
-                let span = element.span();
-                open_entry.insert(*span);
+                open_entry.insert(*element);
 
                 // cannot reopen a closed account
-                if let Some(closed) = self.closed_accounts.get(account_name) {
+                if let Some(closed) = self.closed_accounts.get(open.acc) {
                     return Err(element
-                        .error_with_contexts(
-                            "account was closed",
-                            vec![("close".to_string(), *closed)],
-                        )
+                        .error("account was closed")
+                        .related_to(closed)
                         .into());
                 } else {
                     let mut booking = open
-                        .booking()
-                        .map(|booking| Into::<Booking>::into(*booking.item()))
+                        .booking
+                        .map(|booking| booking.into())
                         .unwrap_or(self.default_booking);
 
                     if !is_supported_method(booking) {
@@ -634,20 +617,19 @@ impl<'a, 't> Loader<'a, 't> {
                     }
 
                     self.accounts.insert(
-                        open.account().item().into(),
+                        open.acc,
                         AccountBuilder::new(
-                            open.currencies().map(|c| c.item().into()),
+                            open.currencies.iter().flatten().copied(),
                             booking,
-                            *span,
+                            *element,
                         ),
                     );
                 }
             }
         }
 
-        if let Some(booking) = open.booking() {
-            let booking = Into::<Booking>::into(*booking.item());
-            if is_supported_method(booking) {
+        if let Some(booking) = open.booking {
+            if is_supported_method(booking.into()) {
             } else {
                 self.warnings.push(
                     element
@@ -657,34 +639,32 @@ impl<'a, 't> Loader<'a, 't> {
             }
         }
 
-        Ok(booked::DirectiveVariant::Open(open.into()))
+        Ok(booked::DirectiveVariant::Open(open.clone()))
     }
 
-    fn close<'p>(
+    fn close<'r>(
         &mut self,
-        close: &'p parser::Close<'a>,
+        close: &'r raw::Close<'a>,
         _date: Date,
-        element: &parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'p,
+        'a: 'r,
     {
         use hashbrown::hash_map::Entry::*;
-        match self.open_accounts.entry(close.account().item().into()) {
+        match self.open_accounts.entry(close.acc) {
             Occupied(open_entry) => {
-                match self.closed_accounts.entry(close.account().item().into()) {
+                match self.closed_accounts.entry(close.acc) {
                     Occupied(closed_entry) => {
                         // cannot reclose a closed account
                         return Err(element
-                            .error_with_contexts(
-                                "account was already closed",
-                                vec![("close".to_string(), *closed_entry.get())],
-                            )
+                            .error("account was already closed")
+                            .related_to(closed_entry.get())
                             .into());
                     }
                     Vacant(closed_entry) => {
                         open_entry.remove_entry();
-                        closed_entry.insert(*element.span());
+                        closed_entry.insert(*element);
                     }
                 }
             }
@@ -693,21 +673,20 @@ impl<'a, 't> Loader<'a, 't> {
             }
         }
 
-        Ok(booked::DirectiveVariant::Close(close.into()))
+        Ok(booked::DirectiveVariant::Close(close.clone()))
     }
 
-    fn pad<'p>(
+    fn pad<'r>(
         &mut self,
-        pad: &'p parser::Pad<'a>,
+        pad: &'r raw::Pad<'a>,
         _date: Date,
-        element: &parser::Spanned<LoaderElement>,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
     where
-        'a: 'p,
+        'a: 'r,
     {
         let n_directives = self.directives.len();
-        let account_name = pad.account().item().into();
-        let account = self.get_mut_valid_account(element, account_name)?;
+        let account = self.get_mut_valid_account(pad.acc, element)?;
 
         let unused_pad_idx = account.pad_idx.replace(n_directives);
 
@@ -722,9 +701,9 @@ impl<'a, 't> Loader<'a, 't> {
 
         // TODO pad postings
         Ok(booked::DirectiveVariant::Pad(
-            pad.into(), //     Pad {
-                        //     postings: Vec::default(),
-                        // }
+            pad.clone(), //     Pad {
+                         //     postings: Vec::default(),
+                         // }
         ))
     }
 }
@@ -800,7 +779,7 @@ fn calculate_balance_margin<'a>(
 fn construct_balance_error_and_clear_diagnostics<'a>(
     account: &mut AccountBuilder<'a>,
     margin: &HashMap<&'a str, Decimal>,
-    element: &parser::Spanned<LoaderElement>,
+    element: &parser::Spanned<Element<'static>>,
 ) -> parser::AnnotatedError {
     let reason = format!(
         "accumulated {}, error {}",
@@ -873,14 +852,18 @@ fn adjust_account_to_match_balance<'a>(
 struct AccountBuilder<'a> {
     allowed_currencies: HashSet<&'a str>,
     positions: LoaderPositions<'a>,
-    opened: Span,
+    opened: parser::Spanned<Element<'static>>,
     pad_idx: Option<usize>, // index in directives in Loader
     balance_diagnostics: Vec<BalanceDiagnostic<'a>>,
     booking: Booking,
 }
 
 impl<'a> AccountBuilder<'a> {
-    fn new<I>(allowed_currencies: I, booking: Booking, opened: Span) -> Self
+    fn new<I>(
+        allowed_currencies: I,
+        booking: Booking,
+        opened: parser::Spanned<Element<'static>>,
+    ) -> Self
     where
         I: Iterator<Item = &'a str>,
     {
@@ -901,17 +884,15 @@ impl<'a> AccountBuilder<'a> {
 
     fn validate_currency(
         &self,
-        element: &parser::Spanned<LoaderElement>,
         currency: &'a str,
+        element: &parser::Spanned<Element<'static>>,
     ) -> Result<(), parser::AnnotatedError> {
         if self.is_currency_valid(currency) {
             Ok(())
         } else {
             Err(element
-                .error_with_contexts(
-                    "invalid currency for account",
-                    vec![("open".to_string(), self.opened)],
-                )
+                .error("currency incompatible with account")
+                .related_to(&self.opened)
                 .into())
         }
     }
@@ -927,38 +908,6 @@ struct BalanceDiagnostic<'a> {
 
 pub(crate) fn pad_flag() -> parser::Flag {
     parser::Flag::Letter(TryInto::<parser::FlagLetter>::try_into('P').unwrap())
-}
-
-// TODO remove the other Element ans rename this one
-#[derive(Clone, Debug)]
-pub(crate) struct LoaderElement {
-    element_type: &'static str,
-}
-
-impl LoaderElement {
-    pub(crate) fn new(element_type: &'static str, span: parser::Span) -> parser::Spanned<Self> {
-        parser::spanned(LoaderElement { element_type }, span)
-    }
-}
-
-impl parser::ElementType for LoaderElement {
-    fn element_type(&self) -> &'static str {
-        self.element_type
-    }
-}
-
-pub(crate) fn into_spanned_loader_element<T>(
-    value: &parser::Spanned<T>,
-) -> parser::Spanned<LoaderElement>
-where
-    T: parser::ElementType,
-{
-    parser::spanned(
-        LoaderElement {
-            element_type: value.element_type(),
-        },
-        *value.span(),
-    )
 }
 
 // TODO find a better home for LoaderAmount and change its name back when Amount is deleted from book

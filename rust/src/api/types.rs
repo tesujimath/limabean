@@ -1,7 +1,6 @@
-use std::borrow::Cow;
-
+use beancount_parser_lima as parser;
 use serde::{Deserialize, Serialize};
-use tabulator::Cell;
+use std::borrow::Cow;
 use time::Date;
 
 use raw::Span;
@@ -11,7 +10,7 @@ use raw::Span;
 #[serde(rename_all = "kebab-case")]
 pub struct Report<'a> {
     pub(crate) message: Cow<'a, str>,
-    pub(crate) label: Cow<'a, str>,
+    pub(crate) reason: Cow<'a, str>,
     pub(crate) span: Span,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -21,6 +20,45 @@ pub struct Report<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(borrow)]
     pub(crate) annotation: Option<Cow<'a, str>>,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct Element<'a> {
+    element_type: &'a str,
+}
+
+impl<'a> Element<'a> {
+    pub(crate) fn new(element_type: &'a str, span: parser::Span) -> parser::Spanned<Self> {
+        parser::spanned(Element { element_type }, span)
+    }
+}
+
+impl<'a> parser::ElementType<'a> for Element<'a> {
+    fn element_type(&self) -> &'a str {
+        self.element_type
+    }
+}
+
+impl<'a> From<&raw::Directive<'a>> for parser::Spanned<Element<'static>> {
+    fn from(value: &raw::Directive<'a>) -> Self {
+        parser::spanned(
+            Element {
+                element_type: (&value.variant).into(),
+            },
+            value.span.into(),
+        )
+    }
+}
+
+impl<'a> From<&raw::PostingSpec<'a>> for parser::Spanned<Element<'static>> {
+    fn from(value: &raw::PostingSpec<'a>) -> Self {
+        parser::spanned(
+            Element {
+                element_type: "posting",
+            },
+            value.span.into(),
+        )
+    }
 }
 
 /// Format a date as ISO8601

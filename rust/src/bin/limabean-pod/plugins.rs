@@ -32,25 +32,25 @@ pub(crate) struct Plugins {
 pub(crate) fn collate_plugins<'a>(
     parsed_plugins: &[parser::Plugin<'a>],
 ) -> Result<Plugins, Vec<parser::Error>> {
-    let mut plugin_spans = HashMap::<&'a str, parser::Span>::default();
+    let mut plugin_spans = HashMap::<&'a str, parser::Spanned<Element>>::default();
     let mut internal = HashMap::<InternalPlugin, Option<String>>::default();
     let mut external = Vec::<(String, Option<String>)>::default();
 
     let mut errors = Vec::default();
 
     for plugin in parsed_plugins {
+        let element = Element::new("plugin", *plugin.module_name().span());
         let module_name = *plugin.module_name().item();
         match plugin_spans.entry(module_name) {
             hashbrown::hash_map::Entry::Occupied(entry) => {
-                let previous_span = *entry.get();
-                let e = Element::new("plugin", *plugin.module_name().span()).error_with_contexts(
-                    "duplicate plugin",
-                    vec![("previous plugin".to_string(), previous_span)],
-                );
+                let previous_element = *entry.get();
+                let e = element
+                    .error("duplicate plugin")
+                    .related_to(&previous_element);
                 errors.push(e);
             }
             hashbrown::hash_map::Entry::Vacant(entry) => {
-                entry.insert(*plugin.module_name().span());
+                entry.insert(element);
                 let plugin_config = plugin.config().map(|config| config.item().to_string());
                 if let Ok(internal_plugin) = InternalPlugin::from_str(module_name) {
                     internal.insert(internal_plugin, plugin_config);

@@ -1,5 +1,5 @@
 use beancount_parser_lima::{
-    self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Span, Spanned,
+    self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess, Spanned,
 };
 use limabean_booking::{Booking, Bookings, Interpolated, LimaTolerance, is_supported_method};
 use std::{io::Write, iter::empty, path::Path};
@@ -114,8 +114,8 @@ where
 pub(crate) struct Loader<'a, 'b> {
     directives: Vec<Directive<'a>>,
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
-    open_accounts: hashbrown::HashMap<&'a str, Span>,
-    closed_accounts: hashbrown::HashMap<&'a str, Span>,
+    open_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element>>,
+    closed_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element>>,
     accounts: HashMap<&'a str, AccountBuilder<'a>>,
     currency_usage: hashbrown::HashMap<&'a str, i32>,
     internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
@@ -259,9 +259,14 @@ impl<'a, 'b> Loader<'a, 'b> {
 
                     self.accounts.insert(
                         account_name,
-                        AccountBuilder::new(empty(), self.default_booking, *account.span()),
+                        AccountBuilder::new(
+                            empty(),
+                            self.default_booking,
+                            into_spanned_element(account),
+                        ),
                     );
-                    self.open_accounts.insert(account_name, *account.span());
+                    self.open_accounts
+                        .insert(account_name, into_spanned_element(account));
                 }
             }
             auto_accounts
@@ -466,7 +471,8 @@ impl<'a, 'b> Loader<'a, 'b> {
             Ok(())
         } else if let Some(closed) = self.closed_accounts.get(account_name) {
             Err(element
-                .error_with_contexts("account was closed", vec![("close".to_string(), *closed)])
+                .error("account was closed")
+                .related_to(closed)
                 .into())
         } else {
             Err(element.error("account not open").into())
@@ -651,23 +657,18 @@ impl<'a, 'b> Loader<'a, 'b> {
         match self.open_accounts.entry(open.account().item().as_ref()) {
             Occupied(open_entry) => {
                 return Err(element
-                    .error_with_contexts(
-                        "account already opened",
-                        vec![("open".to_string(), *open_entry.get())],
-                    )
+                    .error("account already opened")
+                    .related_to(open_entry.get())
                     .into());
             }
             Vacant(open_entry) => {
-                let span = element.span();
-                open_entry.insert(*span);
+                open_entry.insert(element);
 
                 // cannot reopen a closed account
                 if let Some(closed) = self.closed_accounts.get(&open.account().item().as_ref()) {
                     return Err(element
-                        .error_with_contexts(
-                            "account was closed",
-                            vec![("close".to_string(), *closed)],
-                        )
+                        .error("account was closed")
+                        .related_to(closed)
                         .into());
                 } else {
                     let mut booking = open
@@ -688,7 +689,7 @@ impl<'a, 'b> Loader<'a, 'b> {
                         AccountBuilder::new(
                             open.currencies().map(|c| c.item().into()),
                             booking,
-                            *span,
+                            element,
                         ),
                     );
                 }
@@ -723,15 +724,13 @@ impl<'a, 'b> Loader<'a, 'b> {
                     Occupied(closed_entry) => {
                         // cannot reclose a closed account
                         return Err(element
-                            .error_with_contexts(
-                                "account was already closed",
-                                vec![("close".to_string(), *closed_entry.get())],
-                            )
+                            .error("account was already closed")
+                            .related_to(closed_entry.get())
                             .into());
                     }
                     Vacant(closed_entry) => {
                         open_entry.remove_entry();
-                        closed_entry.insert(*element.span());
+                        closed_entry.insert(element);
                     }
                 }
             }
@@ -911,14 +910,14 @@ fn adjust_account_to_match_balance<'a>(
 struct AccountBuilder<'a> {
     allowed_currencies: HashSet<&'a str>,
     positions: Positions<'a>,
-    opened: Span,
+    opened: parser::Spanned<Element>,
     pad_idx: Option<usize>, // index in directives in Loader
     balance_diagnostics: Vec<BalanceDiagnostic<'a>>,
     booking: Booking,
 }
 
 impl<'a> AccountBuilder<'a> {
-    fn new<I>(allowed_currencies: I, booking: Booking, opened: Span) -> Self
+    fn new<I>(allowed_currencies: I, booking: Booking, opened: parser::Spanned<Element>) -> Self
     where
         I: Iterator<Item = &'a str>,
     {
@@ -946,10 +945,8 @@ impl<'a> AccountBuilder<'a> {
             Ok(())
         } else {
             Err(element
-                .error_with_contexts(
-                    "invalid currency for account",
-                    vec![("open".to_string(), self.opened)],
-                )
+                .error("invalid currency for account")
+                .related_to(&self.opened)
                 .into())
         }
     }

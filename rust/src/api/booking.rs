@@ -1,7 +1,7 @@
 use beancount_parser_lima as parser;
 
 pub(crate) fn book<'a>(
-    directives: &[parser::Spanned<parser::Directive<'a>>],
+    directives: &[Directive<'a>],
     options: &parser::Options<'a>,
     // plugins: &[parser::Plugin<'a>],
 ) -> Result<LoadSuccess<'a>, LoadError> {
@@ -38,12 +38,10 @@ pub(crate) fn book<'a>(
 }
 
 mod loader;
-// TODO fix LoaderElement
-pub(crate) use loader::LoaderElement;
 
 mod types;
-pub(crate) use types::LimabeanApiBookingTypes;
 
+use crate::api::types::raw::Directive;
 pub(crate) use crate::api::{
     booking::loader::{LoadError, LoadSuccess, Loader},
     plugins::collate_plugins,

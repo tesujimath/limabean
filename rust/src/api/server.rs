@@ -9,17 +9,12 @@ use std::{
 
 use crate::api::{
     booking::{self, LoadError},
-    types::{
-        parser_type_conversions::{
-            from_annotated_errors_or_warnings, from_errors_or_warnings, into_errors_or_warnings,
-        },
-        raw,
-    },
-};
-
-use super::{
     json_rpc::*,
-    types::{Report, raw::*},
+    types::{
+        Report,
+        parser_type_conversions::{from_annotated_errors_or_warnings, from_errors_or_warnings},
+        raw::*,
+    },
 };
 
 pub fn serve(path: &Path) {
@@ -212,14 +207,13 @@ impl<'a> HealthyServer<'a> {
         let mut buf = Vec::new();
         let mut sep = false;
 
-        for (error_or_warning, annotation) in into_errors_or_warnings::<K>(reports) {
+        for report in reports {
             if sep {
                 buf.write_all(b"\n")?;
             }
 
-            self.sources
-                .write_error_or_warning(&mut buf, &error_or_warning)?;
-            if let Some(annotation) = annotation {
+            self.sources.write_report::<W, K, Report>(w, report)?;
+            if let Some(annotation) = report.annotation.as_ref() {
                 buf.write_fmt(core::format_args!("{}\n", annotation))?;
             }
 
@@ -259,12 +253,17 @@ impl<'a> HealthyServer<'a> {
                 w,
             )
         } else if let Ok(ParseSuccess {
-            directives,
+            directives: parsed_directives,
             options,
             ..
         }) = &self.parsed
         {
-            match booking::book(directives, options) {
+            let raw_directives = parsed_directives
+                .iter()
+                .map(Into::<Directive>::into)
+                .collect::<Vec<_>>();
+
+            match booking::book(&raw_directives, options) {
                 Ok(booking::LoadSuccess {
                     directives,
                     warnings: _,

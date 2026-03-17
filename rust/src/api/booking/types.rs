@@ -1,25 +1,13 @@
-use limabean_booking::{Booking, BookingTypes, CostSpec, PostingSpec, PriceSpec};
+use limabean_booking::{Booking, CostSpec, LimaParserBookingTypes, PostingSpec, PriceSpec};
 use rust_decimal::Decimal;
-use std::marker::PhantomData;
 use time::Date;
 
-use crate::api::types::raw as api;
+use crate::api::types::raw;
 
-#[derive(PartialEq, Eq, Clone, Debug)]
-pub struct LimabeanApiBookingTypes<'a>(PhantomData<&'a str>);
-
-impl<'a> BookingTypes for LimabeanApiBookingTypes<'a> {
-    type Account = &'a str;
-    type Date = time::Date;
-    type Currency = &'a str;
-    type Number = Decimal;
-    type Label = &'a str;
-}
-
-impl<'a> PostingSpec for &'a api::PostingSpec<'a> {
-    type Types = LimabeanApiBookingTypes<'a>;
-    type CostSpec = api::CostSpec<'a>;
-    type PriceSpec = api::PriceSpec<'a>;
+impl<'a> PostingSpec for raw::PostingSpec<'a> {
+    type Types = LimaParserBookingTypes<'a>;
+    type CostSpec = raw::CostSpec<'a>;
+    type PriceSpec = raw::PriceSpec<'a>;
 
     fn account(&self) -> &'a str {
         self.acc
@@ -42,8 +30,8 @@ impl<'a> PostingSpec for &'a api::PostingSpec<'a> {
     }
 }
 
-impl<'a> CostSpec for api::CostSpec<'a> {
-    type Types = LimabeanApiBookingTypes<'a>;
+impl<'a> CostSpec for raw::CostSpec<'a> {
+    type Types = LimaParserBookingTypes<'a>;
 
     fn currency(&self) -> Option<&'a str> {
         self.cur
@@ -70,8 +58,8 @@ impl<'a> CostSpec for api::CostSpec<'a> {
     }
 }
 
-impl<'a> PriceSpec for api::PriceSpec<'a> {
-    type Types = LimabeanApiBookingTypes<'a>;
+impl<'a> PriceSpec for raw::PriceSpec<'a> {
+    type Types = LimaParserBookingTypes<'a>;
 
     fn currency(&self) -> Option<&'a str> {
         self.cur
@@ -86,19 +74,19 @@ impl<'a> PriceSpec for api::PriceSpec<'a> {
     }
 }
 
-impl From<api::Booking> for Booking {
-    fn from(value: api::Booking) -> Self {
+impl From<raw::Booking> for Booking {
+    fn from(value: raw::Booking) -> Self {
         use Booking::*;
-        use api::Booking as api;
+        use raw::Booking as raw;
 
         match value {
-            api::Strict => Strict,
-            api::StrictWithSize => StrictWithSize,
-            api::None => None,
-            api::Average => Average,
-            api::Fifo => Fifo,
-            api::Lifo => Lifo,
-            api::Hifo => Hifo,
+            raw::Strict => Strict,
+            raw::StrictWithSize => StrictWithSize,
+            raw::None => None,
+            raw::Average => Average,
+            raw::Fifo => Fifo,
+            raw::Lifo => Lifo,
+            raw::Hifo => Hifo,
         }
     }
 }

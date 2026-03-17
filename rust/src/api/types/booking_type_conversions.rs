@@ -33,7 +33,7 @@ impl<'a> From<&'_ limabean_booking::Price<limabean_booking::LimaParserBookingTyp
         Price {
             per_unit: value.per_unit,
             total: value.total,
-            cur: value.currency.into(),
+            cur: value.currency,
         }
     }
 }

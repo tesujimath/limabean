@@ -339,30 +339,28 @@ impl From<&parser::Booking> for Booking {
     }
 }
 
-pub(crate) fn into_errors_or_warnings<'a, K>(
-    report: &[Report<'a>],
-) -> Vec<(parser::ErrorOrWarning<K>, Option<Cow<'a, str>>)>
-where
-    K: parser::ErrorOrWarningKind,
-{
-    report
-        .iter()
-        .map(|r| {
-            (
-                parser::ErrorOrWarning::<K>::with_contexts(
-                    r.message.to_string(),
-                    r.label.to_string(),
-                    r.span.into(),
-                    r.contexts
-                        .iter()
-                        .flatten()
-                        .map(|ctx| (ctx.0.to_string(), ctx.1.into()))
-                        .collect::<Vec<_>>(),
-                ),
-                r.annotation.clone(),
-            )
-        })
-        .collect::<Vec<_>>()
+impl<'a> parser::Report for Report<'a> {
+    fn message(&self) -> &str {
+        self.message.as_ref()
+    }
+    fn reason(&self) -> &str {
+        self.reason.as_ref()
+    }
+    fn span(&self) -> parser::Span {
+        self.span.into()
+    }
+    fn contexts(&self) -> impl Iterator<Item = (&str, parser::Span)> {
+        self.contexts
+            .iter()
+            .flatten()
+            .map(|(label, span)| (label.as_ref(), span.into()))
+    }
+    fn related(&self) -> impl Iterator<Item = (&str, parser::Span)> {
+        self.related
+            .iter()
+            .flatten()
+            .map(|(label, span)| (label.as_ref(), span.into()))
+    }
 }
 
 fn from_error_or_warning<'a, K>(
@@ -372,24 +370,20 @@ fn from_error_or_warning<'a, K>(
 where
     K: parser::ErrorOrWarningKind,
 {
-    let mut contexts = eow.contexts();
-    let has_context = contexts.by_ref().count() > 0;
-    let mut related = eow.related();
-    let has_related = related.by_ref().count() > 0;
     Report {
         message: Cow::Borrowed(eow.message()),
-        label: Cow::Borrowed(eow.reason()),
+        reason: Cow::Borrowed(eow.reason()),
         span: eow.span().into(),
-        contexts: has_context.then_some(
+        contexts: eow.contexts().map(|contexts| {
             contexts
                 .map(|(ctx, span)| (Cow::Borrowed(ctx), span.into()))
-                .collect::<Vec<_>>(),
-        ),
-        related: has_related.then_some(
+                .collect::<Vec<_>>()
+        }),
+        related: eow.related().map(|related| {
             related
                 .map(|(rel, span)| (Cow::Borrowed(rel), span.into()))
-                .collect::<Vec<_>>(),
-        ),
+                .collect::<Vec<_>>()
+        }),
         annotation,
     }
 }
