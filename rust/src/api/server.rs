@@ -212,7 +212,8 @@ impl<'a> HealthyServer<'a> {
                 buf.write_all(b"\n")?;
             }
 
-            self.sources.write_report::<W, K, Report>(w, report)?;
+            self.sources
+                .write_report::<_, K, Report>(&mut buf, report)?;
             if let Some(annotation) = report.annotation.as_ref() {
                 buf.write_fmt(core::format_args!("{}\n", annotation))?;
             }
