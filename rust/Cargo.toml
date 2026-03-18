@@ -17,16 +17,16 @@ name = "limabean-pod"
 path = "src/bin/limabean-pod/main.rs"
 
 [dependencies]
-# limabean-booking = { version = "0.9.1", features = [
-#   "lima-parser-types",
-#   "rust-decimal",
-# ] }
-limabean-booking = { path = "../../limabean-booking", version = "0.9.1", features = [
+limabean-booking = { version = "0.10.0", features = [
   "lima-parser-types",
   "rust-decimal",
 ] }
-# beancount-parser-lima = "0.15.0"
-beancount-parser-lima = { version = "0.15.0", path = "../../beancount-parser-lima" }
+# limabean-booking = { path = "../../limabean-booking", version = "0.10.0", features = [
+#   "lima-parser-types",
+#   "rust-decimal",
+# ] }
+beancount-parser-lima = "0.15.0"
+# beancount-parser-lima = { version = "0.15.0", path = "../../beancount-parser-lima" }
 # tabulator = { version = ">=0.6.0", features = [
 #   "bin",
 #   "num-bigint",
