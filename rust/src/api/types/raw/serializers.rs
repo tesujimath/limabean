@@ -113,7 +113,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
                 Ok(value)
             }
 
-            fn visit_none<E>(self) -> Result<Self::Value, E>
+            fn visit_unit<E>(self) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
@@ -121,7 +121,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
             }
         }
 
-        deserializer.deserialize_map(MetaValueVisitor)
+        deserializer.deserialize_any(MetaValueVisitor)
     }
 }
 
