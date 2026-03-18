@@ -370,20 +370,23 @@ fn from_error_or_warning<'a, K>(
 where
     K: parser::ErrorOrWarningKind,
 {
-    Report {
+    use parser::Report;
+
+    let contexts = eow
+        .contexts()
+        .map(|(ctx, span)| (Cow::Borrowed(ctx), span.into()))
+        .collect::<Vec<_>>();
+    let related = eow
+        .related()
+        .map(|(rel, span)| (Cow::Borrowed(rel), span.into()))
+        .collect::<Vec<_>>();
+
+    super::Report {
         message: Cow::Borrowed(eow.message()),
         reason: Cow::Borrowed(eow.reason()),
         span: eow.span().into(),
-        contexts: eow.contexts().map(|contexts| {
-            contexts
-                .map(|(ctx, span)| (Cow::Borrowed(ctx), span.into()))
-                .collect::<Vec<_>>()
-        }),
-        related: eow.related().map(|related| {
-            related
-                .map(|(rel, span)| (Cow::Borrowed(rel), span.into()))
-                .collect::<Vec<_>>()
-        }),
+        contexts: (!contexts.is_empty()).then_some(contexts),
+        related: (!related.is_empty()).then_some(related),
         annotation,
     }
 }
@@ -441,6 +444,12 @@ impl From<&parser::Span> for Span {
             start: value.start,
             end: value.end,
         }
+    }
+}
+
+impl From<parser::Span> for Span {
+    fn from(value: parser::Span) -> Self {
+        Span::from(&value)
     }
 }
 
