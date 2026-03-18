@@ -230,53 +230,53 @@ impl<'a> HealthyServer<'a> {
     fn book<W>(
         &self,
         id: Option<Id>,
-        directives: Option<&Vec<Directive>>,
+        param_directives: Option<&Vec<Directive>>,
         w: &mut W,
     ) -> io::Result<()>
     where
         W: Write,
     {
-        if let Some(_directives) = directives {
-            // TODO
-            write_error(
-                id,
-                ERROR_INTERNAL,
-                Cow::Borrowed("Booking directives other than as-parsed is not yet supported"),
-                None,
-                w,
-            )
-        } else {
-            match &self.parsed {
-                Ok(ParseSuccess {
-                    directives: parsed_directives,
-                    options,
-                    ..
-                }) => {
-                    let raw_directives = parsed_directives
-                        .iter()
-                        .map(Into::<Directive>::into)
-                        .collect::<Vec<_>>();
+        match &self.parsed {
+            Ok(ParseSuccess {
+                directives: parsed_directives,
+                options,
+                ..
+            }) => {
+                let raw_parsed_directives = if param_directives.is_none() {
+                    Some(
+                        parsed_directives
+                            .iter()
+                            .map(Into::<Directive>::into)
+                            .collect::<Vec<_>>(),
+                    )
+                } else {
+                    None
+                };
+                let directives_to_book = match (param_directives, raw_parsed_directives.as_ref()) {
+                    (Some(param_directives), _) => param_directives,
+                    (None, Some(raw_parsed_directives)) => raw_parsed_directives,
+                    _ => panic!("impossible"),
+                };
 
-                    match booking::book(&raw_directives, options) {
-                        Ok(booking::LoadSuccess {
-                            directives,
-                            warnings: _,
-                        }) => {
-                            // TODO warnings
-                            let response = ResultResponse::new(id, ResultData::Booked(directives));
-                            write_response(&response, w)
-                        }
+                match booking::book(directives_to_book, options) {
+                    Ok(booking::LoadSuccess {
+                        directives,
+                        warnings: _,
+                    }) => {
+                        // TODO warnings
+                        let response = ResultResponse::new(id, ResultData::Booked(directives));
+                        write_response(&response, w)
+                    }
 
-                        Err(LoadError { errors, .. }) => {
-                            let reports = from_annotated_errors_or_warnings(&errors);
-                            write_error_reports(None, reports, w)
-                        }
+                    Err(LoadError { errors, .. }) => {
+                        let reports = from_annotated_errors_or_warnings(&errors);
+                        write_error_reports(None, reports, w)
                     }
                 }
-                Err(ParseError { errors, .. }) => {
-                    let reports = from_errors_or_warnings(errors);
-                    write_error_reports(id, reports, w)
-                }
+            }
+            Err(ParseError { errors, .. }) => {
+                let reports = from_errors_or_warnings(errors);
+                write_error_reports(id, reports, w)
             }
         }
     }
