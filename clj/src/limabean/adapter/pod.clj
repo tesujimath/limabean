@@ -66,18 +66,12 @@
          (:result response) (assoc :ok (:result response))
          (:error response) (assoc :err (:error response)))))))
 
-(defn unwrap-ok
-  [response k]
-  (if-let [response-data (:ok response)]
-    {:ok (get response-data k)}
-    response))
-
 ;; methods
 (defn status "Return pod status" [pod] (invoke pod "status"))
 (defn directives
   "Return parsed directives"
   [pod]
-  (unwrap-ok (invoke pod "parser.directives") :raw-directives))
+  (invoke pod "parser.directives"))
 (defn format-errors
   "Format errors"
   [pod errors]
@@ -89,7 +83,7 @@
 (defn resolve-span
   "Resolve a span in terms of original sources"
   [pod span]
-  (unwrap-ok (invoke pod "parser.resolve-span" span) :resolved-span))
+  (invoke pod "parser.resolve-span" span))
 (defn book
   "Book directives, or parsed directives by default"
   ([pod] (invoke pod "book"))

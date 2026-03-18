@@ -67,6 +67,7 @@ impl<'i, 'a, 'b> ResultResponse<'i, 'a, 'b> {
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
+#[serde(untagged)]
 pub(crate) enum ResultData<'a, 'b> {
     Ok,
     #[serde(borrow)]
