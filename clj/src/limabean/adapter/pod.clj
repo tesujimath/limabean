@@ -17,7 +17,7 @@
     (throw (ex-info "attempt to write message with newline to pod" {:msg msg})))
   (binding [*out* (:in pod)] (println msg)))
 
-(defn read-line
+(defn read-to-eol
   "Read a single line message from the pod"
   [pod]
   (.readLine (:out pod)))
@@ -51,7 +51,7 @@
   [pod]
   (binding [cheshire.parse/*use-bigdecimals?* true]
     (-> pod
-        (read-line)
+        (read-to-eol)
         (cheshire/parse-string true coerce-arrays)
         (convert-values))))
 
