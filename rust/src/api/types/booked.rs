@@ -90,6 +90,7 @@ pub(crate) struct Posting<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Cost<'a> {
+    #[serde(with = "iso8601date")]
     pub(crate) date: Date,
     pub(crate) per_unit: Decimal,
     pub(crate) total: Decimal,
