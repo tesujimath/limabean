@@ -45,8 +45,8 @@ impl<'a> From<&'_ parser::Transaction<'a>> for Transaction<'a> {
     fn from(value: &'_ parser::Transaction<'a>) -> Self {
         Transaction {
             flag: from_flag(*value.flag().item()),
-            payee: value.payee().map(|x| *x.item()),
-            narration: value.narration().map(|x| *x.item()),
+            payee: value.payee().map(|x| Cow::Borrowed(*x.item())),
+            narration: value.narration().map(|x| Cow::Borrowed(*x.item())),
             postings: value.postings().map(|x| x.into()).collect::<Vec<_>>(),
         }
     }
@@ -121,7 +121,7 @@ impl<'a> From<&'_ parser::Document<'a>> for Document<'a> {
     fn from(value: &'_ parser::Document<'a>) -> Self {
         Document {
             acc: value.account().item().into(),
-            path: value.path().item(),
+            path: Cow::Borrowed(value.path().item()),
         }
     }
 }
@@ -130,7 +130,7 @@ impl<'a> From<&'_ parser::Note<'a>> for Note<'a> {
     fn from(value: &'_ parser::Note<'a>) -> Self {
         Note {
             acc: value.account().item().into(),
-            comment: value.comment().item(),
+            comment: Cow::Borrowed(value.comment().item()),
         }
     }
 }
@@ -138,8 +138,8 @@ impl<'a> From<&'_ parser::Note<'a>> for Note<'a> {
 impl<'a> From<&'_ parser::Event<'a>> for Event<'a> {
     fn from(value: &'_ parser::Event<'a>) -> Self {
         Event {
-            type_: value.event_type().item(),
-            description: value.description().item(),
+            type_: Cow::Borrowed(value.event_type().item()),
+            description: Cow::Borrowed(value.description().item()),
         }
     }
 }
@@ -147,8 +147,8 @@ impl<'a> From<&'_ parser::Event<'a>> for Event<'a> {
 impl<'a> From<&'_ parser::Query<'a>> for Query<'a> {
     fn from(value: &'_ parser::Query<'a>) -> Self {
         Query {
-            name: value.name().item(),
-            content: value.content().item(),
+            name: Cow::Borrowed(value.name().item()),
+            content: Cow::Borrowed(value.content().item()),
         }
     }
 }
@@ -156,7 +156,7 @@ impl<'a> From<&'_ parser::Query<'a>> for Query<'a> {
 impl<'a> From<&'_ parser::Custom<'a>> for Custom<'a> {
     fn from(value: &'_ parser::Custom<'a>) -> Self {
         Custom {
-            type_: value.type_().item(),
+            type_: Cow::Borrowed(value.type_().item()),
             // TODO custom meta values
         }
     }
@@ -302,7 +302,7 @@ impl<'a> From<&'_ parser::MetaValue<'a>> for MetaValue<'a> {
         use parser::SimpleValue;
 
         match value {
-            pmv::Simple(SimpleValue::String(x)) => String(x),
+            pmv::Simple(SimpleValue::String(x)) => String(Cow::Borrowed(*x)),
             pmv::Simple(SimpleValue::Currency(x)) => Currency(x.into()),
             pmv::Simple(SimpleValue::Account(x)) => Account(x.into()),
             pmv::Simple(SimpleValue::Tag(x)) => Tag(x.into()),

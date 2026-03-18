@@ -14,15 +14,14 @@ use time::Date;
 use crate::api::types::{Element, booked, raw};
 
 #[derive(Debug)]
-pub(crate) struct Loader<'a, 't> {
-    directives: Vec<booked::Directive<'a>>,
+pub(crate) struct Loader<'a, 'd, 't> {
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
     open_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
     closed_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
-    accounts: HashMap<&'a str, AccountBuilder<'a>>,
+    accounts: HashMap<&'a str, AccountBuilder<'a, 'd>>,
     currency_usage: hashbrown::HashMap<&'a str, i32>,
     // TODO internal_plugins, just as a struct of bool
-    // internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
+    // internal_plugins: &'p hashbrown::HashMap<InternalPlugin, Option<String>>,
     default_booking: Booking,
     tolerance: &'t LimaTolerance<'a>,
     warnings: Vec<parser::AnnotatedWarning>,
@@ -37,14 +36,13 @@ pub(crate) struct LoadError {
     pub(crate) errors: Vec<parser::AnnotatedError>,
 }
 
-impl<'a, 't> Loader<'a, 't> {
+impl<'a, 'd, 't> Loader<'a, 'd, 't> {
     pub(crate) fn new(
         default_booking: Booking,
         tolerance: &'t LimaTolerance<'a>,
-        // internal_plugins: &'b hashbrown::HashMap<InternalPlugin, Option<String>>,
+        // internal_plugins: &'p hashbrown::HashMap<InternalPlugin, Option<String>>,
     ) -> Self {
         Self {
-            directives: Vec::default(),
             open_accounts: hashbrown::HashMap::default(),
             closed_accounts: hashbrown::HashMap::default(),
             accounts: HashMap::default(),
@@ -57,15 +55,16 @@ impl<'a, 't> Loader<'a, 't> {
     }
 
     // generate any errors before building
-    fn validate(
+    fn validate<'b>(
         self,
+        directives: Vec<booked::Directive<'b>>,
         mut errors: Vec<parser::AnnotatedError>,
-    ) -> Result<LoadSuccess<'a>, LoadError> {
+    ) -> Result<LoadSuccess<'b>, LoadError>
+    where
+        'a: 'b,
+    {
         let Self {
-            directives,
-            accounts,
-            warnings,
-            ..
+            accounts, warnings, ..
         } = self;
 
         // TODO check for unused pad directives
@@ -85,17 +84,19 @@ impl<'a, 't> Loader<'a, 't> {
         }
     }
 
-    pub(crate) fn collect<'r, I>(mut self, directives: I) -> Result<LoadSuccess<'a>, LoadError>
+    pub(crate) fn collect<'r, 'b, I>(mut self, directives: I) -> Result<LoadSuccess<'b>, LoadError>
     where
-        'a: 'r,
+        'a: 'r + 'b + 'd,
+        'r: 'b + 'd,
         I: IntoIterator<Item = &'r raw::Directive<'a>>,
     {
         let mut errors = Vec::default();
+        let mut booked_directives = Vec::default();
 
         for raw in directives {
-            match self.directive(raw) {
+            match self.directive(raw, booked_directives.len()) {
                 Ok(booked_variant) => {
-                    self.directives.push(booked::Directive {
+                    booked_directives.push(booked::Directive {
                         span: raw.span,
                         date: raw.date,
                         tags: raw.tags.clone(),
@@ -110,15 +111,17 @@ impl<'a, 't> Loader<'a, 't> {
             }
         }
 
-        self.validate(errors)
+        self.validate(booked_directives, errors)
     }
 
-    fn directive<'r>(
+    fn directive<'r, 'b>(
         &mut self,
         directive: &'r raw::Directive<'a>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+        idx: usize,
+    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
-        'a: 'r,
+        'a: 'r + 'b + 'd,
+        'r: 'b + 'd,
     {
         use booked::DirectiveVariant as BDV;
         use raw::DirectiveVariant as RDV;
@@ -133,7 +136,7 @@ impl<'a, 't> Loader<'a, 't> {
             RDV::Open(open) => self.open(open, date, &element),
             RDV::Close(close) => self.close(close, date, &element),
             RDV::Commodity(commodity) => Ok(BDV::Commodity(commodity.clone())),
-            RDV::Pad(pad) => self.pad(pad, date, &element),
+            RDV::Pad(pad) => self.pad(pad, date, idx, &element),
             RDV::Document(document) => Ok(BDV::Document(document.clone())),
             RDV::Note(note) => Ok(BDV::Note(note.clone())),
             RDV::Event(event) => Ok(BDV::Event(event.clone())),
@@ -142,23 +145,24 @@ impl<'a, 't> Loader<'a, 't> {
         }
     }
 
-    fn transaction<'r>(
+    fn transaction<'r, 'b>(
         &mut self,
         transaction: &'r raw::Transaction<'a>,
         date: Date,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
-        'a: 'r,
+        'a: 'r + 'b + 'd,
+        'r: 'b + 'd,
     {
         let description = transaction.payee.as_ref().map_or_else(
             || {
                 transaction
                     .narration
                     .as_ref()
-                    .map_or("post", |narration| *narration)
+                    .map_or("post", |narration| narration.as_ref())
             },
-            |payee| *payee,
+            |payee| payee.as_ref(),
         );
 
         // TODO auto accounts
@@ -190,8 +194,11 @@ impl<'a, 't> Loader<'a, 't> {
 
         Ok(booked::DirectiveVariant::Transaction(booked::Transaction {
             flag: transaction.flag.clone(),
-            payee: transaction.payee,
-            narration: transaction.narration,
+            payee: transaction.payee.as_ref().map(|payee| payee.as_ref()),
+            narration: transaction
+                .narration
+                .as_ref()
+                .map(|narration| narration.as_ref()),
             postings,
             // TODO implicit prices
             // prices,
@@ -200,15 +207,16 @@ impl<'a, 't> Loader<'a, 't> {
         }))
     }
 
-    fn book<'r>(
+    fn book<'r, 'b>(
         &mut self,
         date: Date,
         postings: &'r [raw::PostingSpec<'a>],
-        description: &'a str,
+        description: &'d str,
         element: &parser::Spanned<Element<'static>>,
     ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
     where
-        'a: 'r,
+        'a: 'r + 'b + 'd,
+        'r: 'b + 'd,
     {
         // ugh, difference of reference vs value
         let postings = postings.iter().collect::<Vec<_>>();
@@ -415,7 +423,7 @@ impl<'a, 't> Loader<'a, 't> {
         &self,
         account_name: &'a str,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<&AccountBuilder<'a>, parser::AnnotatedError> {
+    ) -> Result<&AccountBuilder<'a, 'd>, parser::AnnotatedError> {
         self.validate_account(account_name, element)?;
         Ok(self.accounts.get(account_name).unwrap())
     }
@@ -424,7 +432,7 @@ impl<'a, 't> Loader<'a, 't> {
         &mut self,
         account_name: &'a str,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<&mut AccountBuilder<'a>, parser::AnnotatedError> {
+    ) -> Result<&mut AccountBuilder<'a, 'd>, parser::AnnotatedError> {
         self.validate_account(account_name, element)?;
         Ok(self.accounts.get_mut(account_name).unwrap())
     }
@@ -497,14 +505,15 @@ impl<'a, 't> Loader<'a, 't> {
         // }
     }
 
-    fn balance<'r>(
+    fn balance<'r, 'b>(
         &mut self,
         balance: &'r raw::Balance<'a>,
         date: Date,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
-        'a: 'r,
+        'a: 'r + 'b,
+        'r: 'b,
     {
         let margin = calculate_balance_margin(
             balance.units,
@@ -576,14 +585,15 @@ impl<'a, 't> Loader<'a, 't> {
         Ok(booked::DirectiveVariant::Balance(balance.clone()))
     }
 
-    fn open<'r>(
+    fn open<'r, 'b>(
         &mut self,
         open: &'r raw::Open<'a>,
         _date: Date,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
-        'a: 'r,
+        'a: 'r + 'b,
+        'r: 'b,
     {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(open.acc) {
@@ -642,14 +652,15 @@ impl<'a, 't> Loader<'a, 't> {
         Ok(booked::DirectiveVariant::Open(open.clone()))
     }
 
-    fn close<'r>(
+    fn close<'r, 'b>(
         &mut self,
         close: &'r raw::Close<'a>,
         _date: Date,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
-        'a: 'r,
+        'a: 'r + 'b,
+        'r: 'b,
     {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(close.acc) {
@@ -676,19 +687,20 @@ impl<'a, 't> Loader<'a, 't> {
         Ok(booked::DirectiveVariant::Close(close.clone()))
     }
 
-    fn pad<'r>(
+    fn pad<'r, 'b>(
         &mut self,
         pad: &'r raw::Pad<'a>,
         _date: Date,
+        idx: usize,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'a>, parser::AnnotatedError>
+    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
-        'a: 'r,
+        'a: 'r + 'b,
+        'r: 'b,
     {
-        let n_directives = self.directives.len();
         let account = self.get_mut_valid_account(pad.acc, element)?;
 
-        let unused_pad_idx = account.pad_idx.replace(n_directives);
+        let unused_pad_idx = account.pad_idx.replace(idx);
 
         // TODO unused pad directives are errors
         // https://beancount.github.io/docs/beancount_language_syntax.html#unused-pad-directives
@@ -776,8 +788,8 @@ fn calculate_balance_margin<'a>(
 //         .collect::<Vec<_>>()
 // }
 
-fn construct_balance_error_and_clear_diagnostics<'a>(
-    account: &mut AccountBuilder<'a>,
+fn construct_balance_error_and_clear_diagnostics<'a, 'd>(
+    account: &mut AccountBuilder<'a, 'd>,
     margin: &HashMap<&'a str, Decimal>,
     element: &parser::Spanned<Element<'static>>,
 ) -> parser::AnnotatedError {
@@ -829,8 +841,8 @@ enum Adjustment {
     Subtract,
 }
 
-fn adjust_account_to_match_balance<'a>(
-    account: &mut AccountBuilder<'a>,
+fn adjust_account_to_match_balance<'a, 'd>(
+    account: &mut AccountBuilder<'a, 'd>,
     margin: &HashMap<&'a str, Decimal>,
     adjustment: Adjustment,
 ) {
@@ -849,16 +861,16 @@ fn adjust_account_to_match_balance<'a>(
 }
 
 #[derive(Debug)]
-struct AccountBuilder<'a> {
+struct AccountBuilder<'a, 'd> {
     allowed_currencies: HashSet<&'a str>,
     positions: LoaderPositions<'a>,
     opened: parser::Spanned<Element<'static>>,
     pad_idx: Option<usize>, // index in directives in Loader
-    balance_diagnostics: Vec<BalanceDiagnostic<'a>>,
+    balance_diagnostics: Vec<BalanceDiagnostic<'a, 'd>>,
     booking: Booking,
 }
 
-impl<'a> AccountBuilder<'a> {
+impl<'a, 'd> AccountBuilder<'a, 'd> {
     fn new<I>(
         allowed_currencies: I,
         booking: Booking,
@@ -899,9 +911,9 @@ impl<'a> AccountBuilder<'a> {
 }
 
 #[derive(Debug)]
-struct BalanceDiagnostic<'a> {
+struct BalanceDiagnostic<'a, 'd> {
     date: Date,
-    description: Option<&'a str>,
+    description: Option<&'d str>,
     amount: Option<LoaderAmount<'a>>,
     positions: Option<LoaderPositions<'a>>,
 }

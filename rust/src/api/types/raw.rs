@@ -53,9 +53,10 @@ pub enum DirectiveVariant<'a> {
 pub struct Transaction<'a> {
     pub(crate) flag: Cow<'static, str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) payee: Option<&'a str>,
+    pub(crate) payee: Option<Cow<'a, str>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) narration: Option<&'a str>,
+    pub(crate) narration: Option<Cow<'a, str>>,
+    #[serde(borrow)]
     pub(crate) postings: Vec<PostingSpec<'a>>,
 }
 
@@ -116,7 +117,7 @@ pub struct Pad<'a> {
 #[serde(rename_all = "kebab-case")]
 pub struct Document<'a> {
     pub(crate) acc: &'a str,
-    pub(crate) path: &'a str,
+    pub(crate) path: Cow<'a, str>,
 }
 
 /// A Beancount note directive, without the common [Directive] fields.
@@ -124,7 +125,7 @@ pub struct Document<'a> {
 #[serde(rename_all = "kebab-case")]
 pub struct Note<'a> {
     pub(crate) acc: &'a str,
-    pub(crate) comment: &'a str,
+    pub(crate) comment: Cow<'a, str>,
 }
 
 /// A Beancount event directive, without the common [Directive] fields.
@@ -132,23 +133,23 @@ pub struct Note<'a> {
 #[serde(rename_all = "kebab-case")]
 pub struct Event<'a> {
     #[serde(rename = "type")]
-    pub(crate) type_: &'a str,
-    pub(crate) description: &'a str,
+    pub(crate) type_: Cow<'a, str>,
+    pub(crate) description: Cow<'a, str>,
 }
 
 /// A Beancount query directive, without the common [Directive] fields.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Query<'a> {
-    pub(crate) name: &'a str,
-    pub(crate) content: &'a str,
+    pub(crate) name: Cow<'a, str>,
+    pub(crate) content: Cow<'a, str>,
 }
 
 /// A Beancount custom directive, without the common [Directive] fields.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Custom<'a> {
-    pub(crate) type_: &'a str,
+    pub(crate) type_: Cow<'a, str>,
     // TODO custom meta values
 }
 
@@ -220,7 +221,7 @@ pub struct Price<'a> {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum MetaValue<'a> {
     Amount(Decimal, &'a str), // units, currency
-    String(&'a str),
+    String(Cow<'a, str>),
     Currency(&'a str),
     Account(&'a str),
     Tag(&'a str),

@@ -1,10 +1,14 @@
 use beancount_parser_lima as parser;
 
-pub(crate) fn book<'a>(
-    directives: &[Directive<'a>],
+pub(crate) fn book<'a, 'r, 'b>(
+    directives: &'r [Directive<'a>],
     options: &parser::Options<'a>,
     // plugins: &[parser::Plugin<'a>],
-) -> Result<LoadSuccess<'a>, LoadError> {
+) -> Result<LoadSuccess<'b>, LoadError>
+where
+    'a: 'b,
+    'r: 'b,
+{
     let default_booking = limabean_booking::Booking::default();
     let default_booking_option = if let Some(booking_method) = options.booking_method() {
         let booking = Into::<limabean_booking::Booking>::into(*booking_method.item());
