@@ -10,19 +10,19 @@
 
 (defn- next-id! [pod] (swap! (:next-id pod) inc))
 
-(defn write-line
+(defn- write-line
   "Write a single line message to the pod"
   [pod msg]
   (when (some #(= % \newline) msg)
     (throw (ex-info "attempt to write message with newline to pod" {:msg msg})))
   (binding [*out* (:in pod)] (println msg)))
 
-(defn read-to-eol
+(defn- read-to-eol
   "Read a single line message from the pod"
   [pod]
   (.readLine (:out pod)))
 
-(defn write-msg
+(defn- write-msg
   "Write a message map with fields [:method :params] to the pod, adding `id` and `jsonrpc` fields"
   [pod msg]
   (let [id (next-id! pod)
@@ -31,7 +31,7 @@
                                                 :jsonrpc "2.0"))]
     (write-line pod jsonrpc-msg)))
 
-(defn convert-values
+(defn- convert-values
   [data]
   (walk/postwalk
     (fn [x]
@@ -41,12 +41,12 @@
         (and (map? x) (contains? x :booking)) (update :booking keyword)))
     data))
 
-(defn coerce-arrays
+(defn- coerce-arrays
   "Map JSON array to Clojure set or vector according to map key"
   [k]
   (if (contains? #{"currencies" "tags" "links"} k) #{} []))
 
-(defn read-msg
+(defn- read-msg
   "Read and decode a response, using BigDecimal for all numbers, and converting values as appropriate"
   [pod]
   (binding [cheshire.parse/*use-bigdecimals?* true]
@@ -65,6 +65,35 @@
        (cond-> {}
          (:result response) (assoc :ok (:result response))
          (:error response) (assoc :err (:error response)))))))
+
+(defn unwrap-ok
+  [response k]
+  (if-let [response-data (:ok response)]
+    {:ok (get response-data k)}
+    response))
+
+;; methods
+(defn status "Return pod status" [pod] (invoke pod "status"))
+(defn directives
+  "Return parsed directives"
+  [pod]
+  (unwrap-ok (invoke pod "parser.directives") :raw-directives))
+(defn format-errors
+  "Format errors"
+  [pod errors]
+  (invoke pod "parser.format-errors" errors))
+(defn format-warnings
+  "Format warnings"
+  [pod warnings]
+  (invoke pod "parser.format-warnings" warnings))
+(defn resolve-span
+  "Resolve a span in terms of original sources"
+  [pod span]
+  (unwrap-ok (invoke pod "parser.resolve-span" span) :resolved-span))
+(defn book
+  "Book directives, or parsed directives by default"
+  ([pod] (invoke pod "book"))
+  ([pod directives] (invoke pod "book" directives)))
 
 (defn stop
   "Stop the limabean-pod"

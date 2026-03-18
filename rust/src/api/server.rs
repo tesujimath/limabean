@@ -96,7 +96,7 @@ impl<'a> Server<'a> {
         use RequestMethod as Method;
 
         match serde_json::from_str::<Request>(request) {
-            Err(e) => write_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), None, w).unwrap(),
+            Err(e) => write_other_error(None, ERROR_PARSE, Cow::Owned(e.to_string()), w).unwrap(),
 
             Ok(Request {
                 id,
@@ -104,11 +104,10 @@ impl<'a> Server<'a> {
                 method,
             }) => {
                 if jsonrpc != JSONRPC_VERSION {
-                    write_error(
+                    write_other_error(
                         id,
                         ERROR_INVALID_REQUEST,
                         Cow::Owned(format!("JSON-RPC protocol must be 2.0, found {}", jsonrpc)),
-                        None,
                         w,
                     )
                     .unwrap()
@@ -136,11 +135,10 @@ impl<'a> Server<'a> {
                             healthy.book(id, optional.params.as_ref(), w).unwrap()
                         }
 
-                        (Err(unhealthy), _) => write_error(
+                        (Err(unhealthy), _) => write_other_error(
                             id,
                             ERROR_BEANFILE_IO_ERROR,
                             Cow::Borrowed(unhealthy.as_str()),
-                            None,
                             w,
                         )
                         .unwrap(),
@@ -183,13 +181,7 @@ impl<'a> HealthyServer<'a> {
             }
             Err(ParseError { errors, .. }) => {
                 let reports = from_errors_or_warnings(errors);
-                write_error(
-                    None,
-                    ERROR_BEANFILE_PARSE_ERROR,
-                    Cow::Borrowed("Parse errors"),
-                    Some(reports),
-                    w,
-                )
+                write_error_reports(None, reports, w)
             }
         }
     }
@@ -253,47 +245,39 @@ impl<'a> HealthyServer<'a> {
                 None,
                 w,
             )
-        } else if let Ok(ParseSuccess {
-            directives: parsed_directives,
-            options,
-            ..
-        }) = &self.parsed
-        {
-            let raw_directives = parsed_directives
-                .iter()
-                .map(Into::<Directive>::into)
-                .collect::<Vec<_>>();
-
-            match booking::book(&raw_directives, options) {
-                Ok(booking::LoadSuccess {
-                    directives,
-                    warnings: _,
+        } else {
+            match &self.parsed {
+                Ok(ParseSuccess {
+                    directives: parsed_directives,
+                    options,
+                    ..
                 }) => {
-                    // TODO warnings
-                    let response = ResultResponse::new(id, ResultData::Booked(directives));
-                    write_response(&response, w)
-                }
+                    let raw_directives = parsed_directives
+                        .iter()
+                        .map(Into::<Directive>::into)
+                        .collect::<Vec<_>>();
 
-                Err(LoadError { errors, .. }) => {
-                    let reports = from_annotated_errors_or_warnings(&errors);
-                    write_error(
-                        None,
-                        ERROR_BOOKING_ERROR,
-                        Cow::Borrowed("Booking errors"),
-                        Some(reports),
-                        w,
-                    )
+                    match booking::book(&raw_directives, options) {
+                        Ok(booking::LoadSuccess {
+                            directives,
+                            warnings: _,
+                        }) => {
+                            // TODO warnings
+                            let response = ResultResponse::new(id, ResultData::Booked(directives));
+                            write_response(&response, w)
+                        }
+
+                        Err(LoadError { errors, .. }) => {
+                            let reports = from_annotated_errors_or_warnings(&errors);
+                            write_error_reports(None, reports, w)
+                        }
+                    }
+                }
+                Err(ParseError { errors, .. }) => {
+                    let reports = from_errors_or_warnings(errors);
+                    write_error_reports(id, reports, w)
                 }
             }
-        } else {
-            // TODO format parse errors and return
-            write_error(
-                id,
-                ERROR_PARSE,
-                Cow::Borrowed("parse errors, cannot book"),
-                None,
-                w,
-            )
         }
     }
 }
@@ -325,6 +309,35 @@ where
             }
         }
     }
+}
+
+fn write_error_reports<'a, W>(
+    id: Option<Id<'a>>,
+    reports: Vec<Report<'a>>,
+    w: &mut W,
+) -> io::Result<()>
+where
+    W: Write,
+{
+    write_error(
+        id,
+        ERROR_REPORT,
+        Cow::Borrowed("Error reports"),
+        Some(reports),
+        w,
+    )
+}
+
+fn write_other_error<'a, 'b, W>(
+    id: Option<Id<'a>>,
+    code: ErrorCode,
+    message: Cow<'b, str>,
+    w: &mut W,
+) -> io::Result<()>
+where
+    W: Write,
+{
+    write_error(id, code, message, None, w)
 }
 
 fn write_error<'a, 'b, W>(

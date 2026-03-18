@@ -403,14 +403,13 @@ where
         .collect::<Vec<_>>()
 }
 
-pub(crate) fn from_annotated_errors_or_warnings<'a, K>(
-    errors_or_warnings: &'a [parser::AnnotatedErrorOrWarning<K>],
-) -> Vec<Report<'a>>
+pub(crate) fn from_annotated_errors_or_warnings<'a, I, K>(errors_or_warnings: I) -> Vec<Report<'a>>
 where
-    K: parser::ErrorOrWarningKind,
+    I: IntoIterator<Item = &'a parser::AnnotatedErrorOrWarning<K>>,
+    K: parser::ErrorOrWarningKind + 'a,
 {
     errors_or_warnings
-        .iter()
+        .into_iter()
         .map(|eow| from_error_or_warning(eow, eow.annotation().map(Cow::Borrowed)))
         .collect::<Vec<_>>()
 }

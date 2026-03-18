@@ -125,8 +125,7 @@ pub(crate) const JSONRPC_VERSION: &str = "2.0";
 // https://www.jsonrpc.org/specification#error_object
 pub(crate) type ErrorCode = i32;
 pub(crate) const ERROR_BEANFILE_IO_ERROR: ErrorCode = 1;
-pub(crate) const ERROR_BEANFILE_PARSE_ERROR: ErrorCode = 2;
-pub(crate) const ERROR_BOOKING_ERROR: ErrorCode = 3;
+pub(crate) const ERROR_REPORT: ErrorCode = 2;
 pub(crate) const ERROR_PARSE: ErrorCode = -32700;
 pub(crate) const ERROR_INVALID_REQUEST: ErrorCode = -32600;
 pub(crate) const ERROR_INTERNAL: ErrorCode = -32603;
