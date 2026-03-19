@@ -50,18 +50,18 @@ pub(crate) fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
         per_unit,
         total: _total,
         currency,
-        label: _label,
-        merge: _merge,
+        label,
+        merge,
     } = cost;
     let mut cells = vec![
         (date.to_string(), Align::Left).into(),
         per_unit.into(),
         (Into::<&str>::into(currency), Align::Left).into(),
     ];
-    if let Some(label) = &cost.label {
-        cells.push((*label, Align::Left).into())
+    if let Some(label) = label.clone() {
+        cells.push((label, Align::Left).into())
     }
-    if cost.merge {
+    if merge {
         cells.push(("*", Align::Left).into())
     }
     Cell::Row(cells, GUTTER_MINOR)

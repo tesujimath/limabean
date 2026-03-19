@@ -1006,18 +1006,18 @@ fn loader_cost_into_cell<'a>(cost: LoaderCost<'a>) -> Cell<'a, 'static> {
         per_unit,
         total: _total,
         currency,
-        label: _label,
-        merge: _merge,
+        label,
+        merge,
     } = cost;
     let mut cells = vec![
         (date.to_string(), Align::Left).into(),
         per_unit.into(),
         (Into::<&str>::into(currency), Align::Left).into(),
     ];
-    if let Some(label) = &cost.label {
-        cells.push((*label, Align::Left).into())
+    if let Some(label) = label {
+        cells.push((label.clone(), Align::Left).into())
     }
-    if cost.merge {
+    if merge {
         cells.push(("*", Align::Left).into())
     }
     Cell::Row(cells, GUTTER_MINOR)

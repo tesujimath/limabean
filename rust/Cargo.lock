@@ -625,9 +625,9 @@ dependencies = [
 
 [[package]]
 name = "limabean-booking"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08869936685d10148ae8801f98c4f06e01700ed4280c6e1e9df5ff03c73c86f1"
+checksum = "fec7ab4ba345d68c6fbcc6f76be2f317bb4852fcc645ae1cd0f1e23fff14c161"
 dependencies = [
  "beancount-parser-lima",
  "hashbrown 0.15.5",

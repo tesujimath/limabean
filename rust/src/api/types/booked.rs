@@ -95,7 +95,7 @@ pub(crate) struct Cost<'a> {
     pub(crate) per_unit: Decimal,
     pub(crate) total: Decimal,
     pub(crate) cur: &'a str,
-    pub(crate) label: Option<&'a str>,
+    pub(crate) label: Option<Cow<'a, str>>,
     pub(crate) merge: bool,
 }
 
@@ -106,7 +106,7 @@ impl<'a> From<&'a limabean_booking::Cost<LimaParserBookingTypes<'a>>> for Cost<'
             per_unit: value.per_unit,
             total: value.total,
             cur: value.currency,
-            label: value.label,
+            label: value.label.clone(),
             merge: value.merge,
         }
     }

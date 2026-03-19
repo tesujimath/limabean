@@ -18,7 +18,7 @@ impl<'a>
             per_unit: value.1.per_unit,
             total: value.1.total,
             cur: value.0.into(),
-            label: value.1.label,
+            label: value.1.label.clone(),
             merge: value.1.merge,
         }
     }

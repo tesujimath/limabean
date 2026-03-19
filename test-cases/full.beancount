@@ -137,7 +137,7 @@ popmeta drink:
   Expenses:Car
 
 2024-02-16 * "Buying some IBM"
-  Assets:US:ETrade:IBM                                        10 IBM {160.00 USD, "first"}
+  Assets:US:ETrade:IBM                                        10 IBM {160.00 USD, "first\nsecond"}
   Assets:US:ETrade:Cash
   Expenses:Financial:Commissions                            9.95 USD
 

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use limabean_booking::{Booking, CostSpec, LimaParserBookingTypes, PostingSpec, PriceSpec};
 use rust_decimal::Decimal;
 use time::Date;
@@ -49,8 +51,8 @@ impl<'a> CostSpec for raw::CostSpec<'a> {
         self.date
     }
 
-    fn label(&self) -> Option<&'a str> {
-        self.label
+    fn label(&self) -> Option<Cow<'a, str>> {
+        self.label.clone()
     }
 
     fn merge(&self) -> bool {

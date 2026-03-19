@@ -178,7 +178,7 @@ pub struct PostingSpec<'a> {
 }
 
 /// A potentially incomplete cost-specification.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct CostSpec<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -192,12 +192,12 @@ pub struct CostSpec<'a> {
     #[serde(default)]
     pub(crate) date: Option<Date>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) label: Option<&'a str>,
+    pub(crate) label: Option<Cow<'a, str>>,
     pub(crate) merge: bool,
 }
 
 /// A potentially incomplete price-specification.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct PriceSpec<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -247,7 +247,7 @@ pub enum Booking {
 }
 
 /// The booking method for an account.
-#[derive(Serialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Serialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct SpannedSource<'a> {
     /// File-name of source, only None in the case of the source being an inline string,

@@ -421,7 +421,7 @@ impl<'a> FmtEdn for &Cost<'a> {
         (Keyword::PerUnit, self.per_unit, Spaced).fmt_edn(f)?;
         (Keyword::Total, self.total, Spaced).fmt_edn(f)?;
         (Keyword::Currency, self.currency, Spaced).fmt_edn(f)?;
-        if let Some(label) = self.label {
+        if let Some(label) = self.label.as_deref() {
             (Keyword::Label, label, Spaced).fmt_edn(f)?;
         }
         if self.merge {

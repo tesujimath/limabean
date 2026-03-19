@@ -200,7 +200,7 @@ impl<'a> From<&'_ parser::CostSpec<'a>> for CostSpec<'a> {
             total: value.total().map(|x| x.item().value()),
             cur: value.currency().map(|x| x.item().into()),
             date: value.date().map(|x| x.item()).copied(),
-            label: value.label().map(|x| *x.item()),
+            label: value.label().map(|x| Cow::Borrowed(*x.item())),
             merge: value.merge(),
         }
     }
