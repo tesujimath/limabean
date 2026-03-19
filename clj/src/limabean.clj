@@ -67,7 +67,7 @@
     (binding [*out* *err*]
       (println "[limabean]" (count (:booked-directives beans))
                "directives loaded from" path)
-      (let [bad-plugins (filter :err (:external (:plugins beans)))]
+      (let [bad-plugins (filter :err (:plugins beans))]
         (doseq [plugin bad-plugins]
           (println "ERROR in plugin" (:name plugin) "-" (:err plugin))))
       (assign-limabean-globals beans)

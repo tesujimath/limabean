@@ -20,8 +20,6 @@ pub(crate) struct Loader<'a, 'd, 't> {
     closed_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
     accounts: HashMap<&'a str, AccountBuilder<'a, 'd>>,
     currency_usage: hashbrown::HashMap<&'a str, i32>,
-    // TODO internal_plugins, just as a struct of bool
-    // internal_plugins: &'p hashbrown::HashMap<InternalPlugin, Option<String>>,
     default_booking: Booking,
     tolerance: &'t LimaTolerance<'a>,
     warnings: Vec<parser::AnnotatedWarning>,
@@ -37,17 +35,12 @@ pub(crate) struct LoadError {
 }
 
 impl<'a, 'd, 't> Loader<'a, 'd, 't> {
-    pub(crate) fn new(
-        default_booking: Booking,
-        tolerance: &'t LimaTolerance<'a>,
-        // internal_plugins: &'p hashbrown::HashMap<InternalPlugin, Option<String>>,
-    ) -> Self {
+    pub(crate) fn new(default_booking: Booking, tolerance: &'t LimaTolerance<'a>) -> Self {
         Self {
             open_accounts: hashbrown::HashMap::default(),
             closed_accounts: hashbrown::HashMap::default(),
             accounts: HashMap::default(),
             currency_usage: hashbrown::HashMap::default(),
-            // internal_plugins,
             default_booking,
             tolerance,
             warnings: Vec::default(),
@@ -165,30 +158,6 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             |payee| payee.as_ref(),
         );
 
-        // TODO auto accounts
-        // let auto_accounts = if self
-        //     .internal_plugins
-        //     .contains_key(&InternalPlugin::AutoAccounts)
-        // {
-        //     let mut auto_accounts = HashSet::default();
-
-        //     for account in postings.iter().map(|posting| posting.account()) {
-        //         let account_name = account.item().into();
-        //         if !self.accounts.contains_key(account_name) {
-        //             auto_accounts.insert(account_name);
-
-        //             self.accounts.insert(
-        //                 account_name,
-        //                 AccountBuilder::new(empty(), self.default_booking, *account.span()),
-        //             );
-        //             self.open_accounts.insert(account_name, *account.span());
-        //         }
-        //     }
-        //     auto_accounts
-        // } else {
-        //     HashSet::default()
-        // };
-
         let BookedPostingsAndPrices { postings, prices } =
             self.book(date, &transaction.postings, description, element)?;
 
@@ -200,10 +169,6 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                 .as_ref()
                 .map(|narration| narration.as_ref()),
             postings,
-            // TODO implicit prices
-            // prices,
-            // TODO auto accounts
-            // auto_accounts,
         }))
     }
 
@@ -463,34 +428,6 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
 
     // base account is known
     fn rollup_units(&self, base_account_name: &str) -> hashbrown::HashMap<&'a str, Decimal> {
-        // TODO internal plugin balance rollup
-        // if self
-        //     .internal_plugins
-        //     .contains_key(&InternalPlugin::BalanceRollup)
-        // {
-        //     let mut rollup_units = hashbrown::HashMap::<&'a str, Decimal>::default();
-        //     self.accounts
-        //         .keys()
-        //         .filter_map(|s| {
-        //             s.starts_with(base_account_name)
-        //                 .then_some(self.accounts.get(s).unwrap().positions.units())
-        //         })
-        //         .for_each(|account| {
-        //             account.into_iter().for_each(|(cur, number)| {
-        //                 use hashbrown::hash_map::Entry::*;
-        //                 match rollup_units.entry(*cur) {
-        //                     Occupied(mut entry) => {
-        //                         let existing_number = entry.get_mut();
-        //                         *existing_number += number;
-        //                     }
-        //                     Vacant(entry) => {
-        //                         entry.insert(number);
-        //                     }
-        //                 }
-        //             });
-        //         });
-        //     rollup_units
-        // } else {
         self.accounts
             .get(base_account_name)
             .map(|account| {

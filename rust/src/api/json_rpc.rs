@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-use crate::api::{plugins::Plugins, types::booked};
+use crate::api::types::booked;
 
-use super::types::{Report, raw::*};
+use super::types::{Plugin, Report, raw::*};
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -72,7 +72,7 @@ impl<'i, 'a, 'b> ResultResponse<'i, 'a, 'b> {
 #[serde(untagged)]
 pub(crate) enum ResultData<'a, 'b> {
     Ok,
-    Plugins(&'b Plugins),
+    Plugins(&'b [Plugin<'a>]),
     #[serde(borrow)]
     RawDirectives(Vec<Directive<'a>>),
     Report(Cow<'b, str>),

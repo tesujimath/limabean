@@ -3,7 +3,6 @@ use beancount_parser_lima as parser;
 pub(crate) fn book<'a, 'r, 'b>(
     directives: &'r [Directive<'a>],
     options: &parser::Options<'a>,
-    // plugins: &[parser::Plugin<'a>],
 ) -> Result<LoadSuccess<'b>, LoadError>
 where
     'a: 'b,
@@ -25,20 +24,9 @@ where
         default_booking
     };
 
-    // let plugins = match collate_plugins(plugins) {
-    //     Ok(plugins) => plugins,
-    //     Err(errors) => {
-    //         todo!("errors from plugins")
-    //     }
-    // };
-
     let tolerance = options.into();
 
-    Loader::new(
-        default_booking_option,
-        &tolerance, // TODO , &plugins.internal
-    )
-    .collect(directives)
+    Loader::new(default_booking_option, &tolerance).collect(directives)
 }
 
 mod loader;
@@ -48,6 +36,5 @@ mod types;
 use crate::api::types::raw::Directive;
 pub(crate) use crate::api::{
     booking::loader::{LoadError, LoadSuccess, Loader},
-    plugins::collate_plugins,
     types::booked,
 };

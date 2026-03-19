@@ -5,6 +5,14 @@ use time::Date;
 
 use raw::Span;
 
+/// A plugin
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct Plugin<'a> {
+    pub(crate) name: &'a str,
+    pub(crate) config: Option<&'a str>,
+}
+
 /// A report for formatting in the context of the source files
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]

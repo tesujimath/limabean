@@ -9,7 +9,7 @@
         plugins (pod/plugins pod)
         beans (-> {:pod pod, :plugins plugins, :options {}}
                   (assoc :directives (pod/book pod))
-                  (plugins/resolve-external))
+                  (plugins/resolve-symbols))
         booked-directives (:directives beans)
         {:keys [directives err]} (plugins/run-booked-xf booked-directives
                                                         (:plugins beans))]

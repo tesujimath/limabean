@@ -1,28 +1,12 @@
 # Plugins and user-supplied code
 
-External plugins in `limabean` are [Clojure transducers](https://clojure.org/reference/transducers).  Currently, they run on fully booked directives.  Running on raw directives before validation is planned but not yet implemented, see [issue #46](https://github.com/tesujimath/limabean/issues/46).
+Plugins in `limabean` are [Clojure transducers](https://clojure.org/reference/transducers).  Currently, they run on fully booked directives.  Running on raw directives before validation is planned but not yet implemented, see [issue #46](https://github.com/tesujimath/limabean/issues/46).
 
 In addition, arbitrary user-provided code may be loaded into the REPL (below).
 
-There are also a handful of internal plugins, as follows.
+In anticipation of support for raw plugins, the previous internal plugins have been removed.
 
-## Internal Plugins
-
-### Implicit Prices
-
-The existing plugin `beancount.plugins.implicit_prices` is built in.
-
-### Auto Accounts
-
-The existing plugin `beancount.plugins.auto_accounts` is built-in.
-
-### Balance Rollup
-
-As described in [Differences from OG Beancount](60-differences.md), the plugin `limabean.balance_rollup` modifies the behaviour of the `balance` directive.
-
-## External Plugins
-
-External plugins are referenced in the Beanfile by their namespace, e.g.
+Plugins are referenced in the Beanfile by their namespace, e.g.
 
 ```
 plugin "limabean.contrib.plugins.examples.magic-money"
@@ -100,17 +84,16 @@ user=> (binding [*directives* *booked-directives*] (show (journal)))
 
 ### Running plugins manually
 
-The external resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
+The resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
 
 ```
 user=> *plugins*
-{:internal [],
- :external [{:name "limabean.contrib.plugins.examples.set-narration",
-             :config "{:narration \"Plugins rule ok!\"}",
-             :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
-                                "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]}
+[{:name "limabean.contrib.plugins.examples.set-narration",
+  :config "{:narration \"Plugins rule ok!\"}",
+  :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
+                    "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]
 
-user=> (def set-narration-xf (get-in *plugins* [:external 0 :booked-xf]))
+user=> (def set-narration-xf (get-in *plugins* [0 :booked-xf]))
 
 user=> (into [] set-narration-xf *booked-directives*)
 [{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :dct :open, :acc "Assets:Bank:Current"}

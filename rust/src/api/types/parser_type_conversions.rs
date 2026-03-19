@@ -4,6 +4,8 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
+use crate::api::types::Plugin;
+
 use super::{Report, raw::*};
 
 impl<'a> From<&'_ parser::Spanned<parser::Directive<'a>>> for Directive<'a> {
@@ -336,6 +338,15 @@ impl From<parser::Booking> for Booking {
 impl From<&parser::Booking> for Booking {
     fn from(value: &parser::Booking) -> Self {
         Self::from(*value)
+    }
+}
+
+impl<'a> From<&parser::Plugin<'a>> for Plugin<'a> {
+    fn from(value: &parser::Plugin<'a>) -> Self {
+        Plugin {
+            name: value.module_name().item(),
+            config: value.config().as_ref().map(|config| *config.item()),
+        }
     }
 }
 

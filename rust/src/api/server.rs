@@ -10,9 +10,8 @@ use std::{
 use crate::api::{
     booking::{self, LoadError},
     json_rpc::*,
-    plugins::{Plugins, collate_plugins},
     types::{
-        Report,
+        Plugin, Report,
         parser_type_conversions::{from_annotated_errors_or_warnings, from_errors_or_warnings},
         raw::*,
     },
@@ -45,7 +44,7 @@ struct HealthyServer<'a> {
 struct Parsed<'a> {
     pub directives: Vec<parser::Spanned<parser::Directive<'a>>>,
     pub options: parser::Options<'a>,
-    pub plugins: Plugins,
+    pub plugins: Vec<parser::Plugin<'a>>,
     pub warnings: Vec<parser::Warning>,
 }
 
@@ -57,7 +56,7 @@ impl<'a> HealthyServer<'a> {
                 options,
                 plugins,
                 warnings,
-            }) => collate_plugins(&plugins).map(|plugins| Parsed {
+            }) => Ok(Parsed {
                 directives,
                 options,
                 plugins,
@@ -192,7 +191,11 @@ impl<'a> HealthyServer<'a> {
     {
         match &self.parsed {
             Ok(Parsed { plugins, .. }) => {
-                let response = ResultResponse::new(id, ResultData::Plugins(plugins));
+                let plugins = plugins
+                    .iter()
+                    .map(|plugin| plugin.into())
+                    .collect::<Vec<_>>();
+                let response = ResultResponse::new(id, ResultData::Plugins(&plugins));
 
                 write_response(&response, w)
             }
