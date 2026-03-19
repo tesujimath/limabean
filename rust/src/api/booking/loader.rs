@@ -5,6 +5,7 @@ use limabean_booking::{
 
 use rust_decimal::Decimal;
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet, VecDeque},
     fmt::Debug,
 };
@@ -87,8 +88,8 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         let mut booked_directives = Vec::default();
 
         for raw in directives {
-            match self.directive(raw, booked_directives.len()) {
-                Ok(booked_variant) => {
+            match self.directive(raw, booked_directives.len(), &mut booked_directives) {
+                Ok((booked_variant, pad_txn)) => {
                     booked_directives.push(booked::Directive {
                         span: raw.span,
                         date: raw.date,
@@ -97,6 +98,17 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                         metadata: raw.metadata.clone(),
                         variant: booked_variant,
                     });
+
+                    if let Some(pad_txn) = pad_txn {
+                        booked_directives.push(booked::Directive {
+                            span: raw.span,
+                            date: raw.date,
+                            tags: raw.tags.clone(),
+                            links: raw.links.clone(),
+                            metadata: raw.metadata.clone(),
+                            variant: pad_txn,
+                        });
+                    }
                 }
                 Err(e) => {
                     errors.push(e);
@@ -111,7 +123,14 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         &mut self,
         directive: &'r raw::Directive<'a>,
         idx: usize,
-    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
+        booked_directives: &mut Vec<booked::Directive<'b>>,
+    ) -> Result<
+        (
+            booked::DirectiveVariant<'b>,
+            Option<booked::DirectiveVariant<'b>>,
+        ),
+        parser::AnnotatedError,
+    >
     where
         'a: 'r + 'b + 'd,
         'r: 'b + 'd,
@@ -123,18 +142,22 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         let element = directive.into();
 
         match &directive.variant {
-            RDV::Transaction(transaction) => self.transaction(transaction, date, &element),
-            RDV::Price(price) => Ok(BDV::Price(price.clone())),
-            RDV::Balance(balance) => self.balance(balance, date, &element),
-            RDV::Open(open) => self.open(open, date, &element),
-            RDV::Close(close) => self.close(close, date, &element),
-            RDV::Commodity(commodity) => Ok(BDV::Commodity(commodity.clone())),
+            RDV::Transaction(transaction) => self
+                .transaction(transaction, date, &element)
+                .map(|x| (x, None)),
+            RDV::Price(price) => Ok((BDV::Price(price.clone()), None)),
+            RDV::Balance(balance) => self
+                .balance(balance, date, &element, booked_directives)
+                .map(|x| (x, None)),
+            RDV::Open(open) => self.open(open, date, &element).map(|x| (x, None)),
+            RDV::Close(close) => self.close(close, date, &element).map(|x| (x, None)),
+            RDV::Commodity(commodity) => Ok((BDV::Commodity(commodity.clone()), None)),
             RDV::Pad(pad) => self.pad(pad, date, idx, &element),
-            RDV::Document(document) => Ok(BDV::Document(document.clone())),
-            RDV::Note(note) => Ok(BDV::Note(note.clone())),
-            RDV::Event(event) => Ok(BDV::Event(event.clone())),
-            RDV::Query(query) => Ok(BDV::Query(query.clone())),
-            RDV::Custom(custom) => Ok(BDV::Custom(custom.clone())),
+            RDV::Document(document) => Ok((BDV::Document(document.clone()), None)),
+            RDV::Note(note) => Ok((BDV::Note(note.clone()), None)),
+            RDV::Event(event) => Ok((BDV::Event(event.clone()), None)),
+            RDV::Query(query) => Ok((BDV::Query(query.clone()), None)),
+            RDV::Custom(custom) => Ok((BDV::Custom(custom.clone()), None)),
         }
     }
 
@@ -447,6 +470,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         balance: &'r raw::Balance<'a>,
         date: Date,
         element: &parser::Spanned<Element<'static>>,
+        booked_directives: &mut Vec<booked::Directive<'b>>,
     ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
         'a: 'r + 'b,
@@ -498,26 +522,29 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             positions: Some(positions),
         });
 
-        // TODO pad postings
-        // let pad_directive = &mut self.directives[pad_idx];
-        // let parser::DirectiveVariant::Pad(pad) = pad_directive.parsed.variant() else {
-        //     panic!(
-        //         "directive at pad_idx {pad_directive} is not a pad, is {:?}",
-        //         pad_directive
-        //     );
-        // };
+        let booked::DirectiveVariant::Pad(pad) = &booked_directives[pad_idx].variant else {
+            panic!(
+                "directive at pad_idx {pad_idx} is not a pad, is {:?}",
+                &booked_directives[pad_idx]
+            );
+        };
+        let pad_source = pad.source;
 
-        // let pad_source = pad.source().item().into();
+        let booked::DirectiveVariant::Transaction(txn) =
+            &mut booked_directives[pad_idx + 1].variant
+        else {
+            panic!(
+                "directive at pad_idx {} is not a pad, is {:?}",
+                pad_idx + 1,
+                &booked_directives[pad_idx]
+            );
+        };
 
-        // let pad_postings =
-        //     calculate_balance_pad_postings(&margin, balance.account().item().into(), pad_source);
+        txn.postings =
+            calculate_balance_pad_postings(&margin, balance.acc, pad_source, element.span().into());
 
-        // if let DirectiveVariant::Pad(pad) = &mut pad_directive.loaded {
-        //     pad.postings = pad_postings;
-        // }
-
-        // let pad_account = self.accounts.get_mut(pad_source).unwrap();
-        // adjust_account_to_match_balance(pad_account, &margin, Adjustment::Subtract);
+        let pad_account = self.accounts.get_mut(pad_source).unwrap();
+        adjust_account_to_match_balance(pad_account, &margin, Adjustment::Subtract);
 
         Ok(booked::DirectiveVariant::Balance(balance.clone()))
     }
@@ -630,7 +657,13 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         _date: Date,
         idx: usize,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
+    ) -> Result<
+        (
+            booked::DirectiveVariant<'b>,
+            Option<booked::DirectiveVariant<'b>>,
+        ),
+        parser::AnnotatedError,
+    >
     where
         'a: 'r + 'b,
         'r: 'b,
@@ -648,11 +681,14 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         //         .into());
         // }
 
-        // TODO pad postings
-        Ok(booked::DirectiveVariant::Pad(
-            pad.clone(), //     Pad {
-                         //     postings: Vec::default(),
-                         // }
+        Ok((
+            booked::DirectiveVariant::Pad(pad.clone()),
+            Some(booked::DirectiveVariant::Transaction(booked::Transaction {
+                flag: Cow::Borrowed(PAD_FLAG),
+                payee: None,
+                narration: None,
+                postings: Vec::default(),
+            })),
         ))
     }
 }
@@ -694,36 +730,44 @@ fn calculate_balance_margin<'a>(
     margin
 }
 
-// TODO calculate_balance_pad_postings
-// fn calculate_balance_pad_postings<'a>(
-//     margin: &HashMap<&'a str, Decimal>,
-//     balance_account: &'a str,
-//     pad_source: &'a str,
-// ) -> Vec<Posting<'a>> {
-//     margin
-//         .iter()
-//         .flat_map(|(cur, number)| {
-//             vec![
-//                 Posting {
-//                     flag: Some(pad_flag()),
-//                     account: balance_account,
-//                     units: *number,
-//                     currency: *cur,
-//                     cost: None,
-//                     price: None,
-//                 },
-//                 Posting {
-//                     flag: Some(pad_flag()),
-//                     account: pad_source,
-//                     units: -*number,
-//                     currency: *cur,
-//                     cost: None,
-//                     price: None,
-//                 },
-//             ]
-//         })
-//         .collect::<Vec<_>>()
-// }
+fn calculate_balance_pad_postings<'a>(
+    margin: &HashMap<&'a str, Decimal>,
+    balance_account: &'a str,
+    pad_source: &'a str,
+    pad_span: raw::Span,
+) -> Vec<booked::Posting<'a>> {
+    margin
+        .iter()
+        .flat_map(|(cur, number)| {
+            vec![
+                booked::Posting {
+                    span: pad_span,
+                    flag: Some(Cow::Borrowed(PAD_FLAG)),
+                    acc: balance_account,
+                    units: *number,
+                    cur: *cur,
+                    cost: None,
+                    price: None,
+                    tags: None,
+                    links: None,
+                    metadata: None,
+                },
+                booked::Posting {
+                    span: pad_span,
+                    flag: Some(Cow::Borrowed(PAD_FLAG)),
+                    acc: pad_source,
+                    units: -*number,
+                    cur: *cur,
+                    cost: None,
+                    price: None,
+                    tags: None,
+                    links: None,
+                    metadata: None,
+                },
+            ]
+        })
+        .collect::<Vec<_>>()
+}
 
 fn construct_balance_error_and_clear_diagnostics<'a, 'd>(
     account: &mut AccountBuilder<'a, 'd>,
@@ -855,9 +899,7 @@ struct BalanceDiagnostic<'a, 'd> {
     positions: Option<LoaderPositions<'a>>,
 }
 
-pub(crate) fn pad_flag() -> parser::Flag {
-    parser::Flag::Letter(TryInto::<parser::FlagLetter>::try_into('P').unwrap())
-}
+const PAD_FLAG: &str = "'P";
 
 // TODO find a better home for LoaderAmount and change its name back when Amount is deleted from book
 #[derive(PartialEq, Eq, Clone, Debug)]

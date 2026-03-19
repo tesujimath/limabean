@@ -1,0 +1,7 @@
+2010-01-01 open Equity:Opening-Balances
+
+2010-01-01 open Assets:Bank
+
+2010-01-02 pad Assets:Bank Equity:Opening-Balances
+
+2010-02-10 balance Assets:Bank  100 NZD
