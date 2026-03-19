@@ -189,6 +189,7 @@ pub struct CostSpec<'a> {
     pub(crate) cur: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(with = "iso8601date::option")]
+    #[serde(default)]
     pub(crate) date: Option<Date>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) label: Option<&'a str>,

@@ -21,6 +21,12 @@ option "plugin_processing_mode" "RAW"
 
 1972-05-28 open Equity:Opening-Balances
 
+2010-03-01 open Assets:US:ETrade:IBM
+
+2010-03-01 open Expenses:Financial:Commissions
+
+2010-03-01 open Assets:US:ETrade:Cash
+
 2016-03-01 open Assets:Bank:Savings
 
 2016-03-01 open Assets:Bank:Current NZD #money ^www.bank.com
@@ -129,6 +135,11 @@ popmeta drink:
 2023-06-02 * "Repco" ""
   Assets:Bank:Current                                     -25.00 NZD
   Expenses:Car
+
+2024-02-16 * "Buying some IBM"
+  Assets:US:ETrade:IBM                                        10 IBM {160.00 USD, "first"}
+  Assets:US:ETrade:Cash
+  Expenses:Financial:Commissions                            9.95 USD
 
 2028-01-01 query "fictional SQL" "SELECT money FROM accounts;" #for-testing
   status: "bogus"
