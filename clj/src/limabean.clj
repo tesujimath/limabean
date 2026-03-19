@@ -33,7 +33,6 @@
         booked-directives (get beans :booked-directives [])
         options (get beans :options {})
         plugins (get beans :plugins {})]
-    (when *pod* (pod/stop pod))
     (alter-var-root #'*pod* (constantly pod))
     (alter-var-root #'*directives* (constantly directives))
     (alter-var-root #'*booked-directives* (constantly booked-directives))
@@ -61,6 +60,7 @@
 
 (defn load-beanfile
   [path]
+  (when *pod* (pod/stop *pod*))
   (assign-limabean-globals {})
   (logging/initialize)
   (let [beans (loader/load-beanfile path)]
