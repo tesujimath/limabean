@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-use crate::api::types::booked;
+use crate::api::{plugins::Plugins, types::booked};
 
 use super::types::{Report, raw::*};
 
@@ -22,6 +22,8 @@ pub(crate) struct Request<'a> {
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum RequestMethod<'a> {
     Status,
+    #[serde(rename = "parser.plugins")]
+    ParserPlugins,
     #[serde(rename = "parser.directives")]
     ParserDirectives,
     #[serde(rename = "parser.format-errors")]
@@ -70,6 +72,7 @@ impl<'i, 'a, 'b> ResultResponse<'i, 'a, 'b> {
 #[serde(untagged)]
 pub(crate) enum ResultData<'a, 'b> {
     Ok,
+    Plugins(&'b Plugins),
     #[serde(borrow)]
     RawDirectives(Vec<Directive<'a>>),
     Report(Cow<'b, str>),

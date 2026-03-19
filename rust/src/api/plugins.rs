@@ -7,6 +7,8 @@ use crate::api::types::Element;
 #[derive(
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
     Hash,
     strum_macros::Display,
     strum_macros::EnumString,
@@ -67,3 +69,5 @@ pub(crate) fn collate_plugins<'a>(
         Err(errors)
     }
 }
+
+mod serializers;

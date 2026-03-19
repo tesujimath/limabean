@@ -10,6 +10,7 @@ use std::{
 use crate::api::{
     booking::{self, LoadError},
     json_rpc::*,
+    plugins::{Plugins, collate_plugins},
     types::{
         Report,
         parser_type_conversions::{from_annotated_errors_or_warnings, from_errors_or_warnings},
@@ -38,12 +39,32 @@ struct Server<'a>(Result<HealthyServer<'a>, String>);
 struct HealthyServer<'a> {
     sources: &'a BeancountSources,
     _parser: &'a BeancountParser<'a>,
-    parsed: Result<ParseSuccess<'a>, ParseError>,
+    parsed: Result<Parsed<'a>, Vec<parser::Error>>,
+}
+
+struct Parsed<'a> {
+    pub directives: Vec<parser::Spanned<parser::Directive<'a>>>,
+    pub options: parser::Options<'a>,
+    pub plugins: Plugins,
+    pub warnings: Vec<parser::Warning>,
 }
 
 impl<'a> HealthyServer<'a> {
     fn new(sources: &'a BeancountSources, parser: &'a BeancountParser<'a>) -> Self {
-        let parsed = parser.parse();
+        let parsed = match parser.parse() {
+            Ok(ParseSuccess {
+                directives,
+                options,
+                plugins,
+                warnings,
+            }) => collate_plugins(&plugins).map(|plugins| Parsed {
+                directives,
+                options,
+                plugins,
+                warnings,
+            }),
+            Err(ParseError { errors, .. }) => Err(errors),
+        };
 
         Self {
             sources,
@@ -115,6 +136,10 @@ impl<'a> Server<'a> {
                     match (&self.0, method) {
                         (Ok(healthy), Method::Status) => healthy.status(id, w).unwrap(),
 
+                        (Ok(healthy), Method::ParserPlugins) => {
+                            healthy.parser_plugins(id, w).unwrap()
+                        }
+
                         (Ok(healthy), Method::ParserDirectives) => {
                             healthy.parser_directives(id, w).unwrap()
                         }
@@ -161,12 +186,29 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
+    fn parser_plugins<W>(&self, id: Option<Id>, w: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {
+        match &self.parsed {
+            Ok(Parsed { plugins, .. }) => {
+                let response = ResultResponse::new(id, ResultData::Plugins(plugins));
+
+                write_response(&response, w)
+            }
+            Err(errors) => {
+                let reports = from_errors_or_warnings(errors);
+                write_error_reports(None, reports, w)
+            }
+        }
+    }
+
     fn parser_directives<W>(&self, id: Option<Id>, w: &mut W) -> io::Result<()>
     where
         W: Write,
     {
         match &self.parsed {
-            Ok(ParseSuccess { directives, .. }) => {
+            Ok(Parsed { directives, .. }) => {
                 let response = ResultResponse::new(
                     id,
                     ResultData::RawDirectives(
@@ -179,7 +221,7 @@ impl<'a> HealthyServer<'a> {
 
                 write_response(&response, w)
             }
-            Err(ParseError { errors, .. }) => {
+            Err(errors) => {
                 let reports = from_errors_or_warnings(errors);
                 write_error_reports(None, reports, w)
             }
@@ -237,7 +279,7 @@ impl<'a> HealthyServer<'a> {
         W: Write,
     {
         match &self.parsed {
-            Ok(ParseSuccess {
+            Ok(Parsed {
                 directives: parsed_directives,
                 options,
                 ..
@@ -274,7 +316,7 @@ impl<'a> HealthyServer<'a> {
                     }
                 }
             }
-            Err(ParseError { errors, .. }) => {
+            Err(errors) => {
                 let reports = from_errors_or_warnings(errors);
                 write_error_reports(id, reports, w)
             }

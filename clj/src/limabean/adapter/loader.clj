@@ -6,8 +6,10 @@
 (defn load-beanfile
   [path]
   (let [pod (pod/start path)
-        beans (-> (plugins/resolve-external (pod/book pod))
-                  (assoc :pod pod))
+        plugins (pod/plugins pod)
+        beans (-> {:pod pod, :plugins plugins, :options {}}
+                  (assoc :directives (pod/book pod))
+                  (plugins/resolve-external))
         booked-directives (:directives beans)
         {:keys [directives err]} (plugins/run-booked-xf booked-directives
                                                         (:plugins beans))]

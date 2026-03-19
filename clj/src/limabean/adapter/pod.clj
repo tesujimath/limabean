@@ -90,6 +90,10 @@
 
 ;; methods
 (defn status "Return pod status" [pod] (invoke pod "status"))
+(defn plugins
+  "Return parsed plugins"
+  [pod]
+  (ok-or-print-errors-and-throw pod (invoke pod "parser.plugins")))
 (defn directives
   "Return parsed directives"
   [pod]
