@@ -1,17 +1,19 @@
 (ns limabean
   "Top-level limabean functions for use from the REPL."
   (:require [clojure.java.io :as io]
+            [limabean.adapter.edn] ;; edn is for print-method only
             [limabean.adapter.loader :as loader]
             [limabean.adapter.logging :as logging]
-            [limabean.adapter.plugins :as plugins]
             [limabean.adapter.show :as show]
             [limabean.core.filters :as f]
             [limabean.core.inventory :as inventory]
             [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
             [limabean.core.journal :as journal]
-            [limabean.core.rollup :as rollup]))
+            [limabean.core.rollup :as rollup]
+            [limabean.adapter.pod :as pod]))
 
+(def ^:dynamic *pod* "The pod for the current beanfile." nil)
 (def ^:dynamic *directives*
   "Vector of all directives form the beanfile after running plugins."
   nil)
@@ -26,10 +28,13 @@
 
 (defn- assign-limabean-globals
   [beans]
-  (let [directives (get beans :directives [])
+  (let [pod (get beans :pod)
+        directives (get beans :directives [])
         booked-directives (get beans :booked-directives [])
         options (get beans :options {})
         plugins (get beans :plugins {})]
+    (when *pod* (pod/stop pod))
+    (alter-var-root #'*pod* (constantly pod))
     (alter-var-root #'*directives* (constantly directives))
     (alter-var-root #'*booked-directives* (constantly booked-directives))
     (alter-var-root #'*options* (constantly options))

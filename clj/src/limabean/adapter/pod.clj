@@ -66,28 +66,50 @@
          (:result response) (assoc :ok (:result response))
          (:error response) (assoc :err (:error response)))))))
 
+(def ERROR-REPORT 2)
+
+(declare format-errors)
+
+(defn ok-or-print-errors-and-throw
+  "Either unwrap an ok result, or extract the errors, print them, and throw"
+  [pod result]
+  (if-let [err (:err result)]
+    (binding [*out* *err*]
+      (when (= ERROR-REPORT (:code err))
+        (println (format-errors pod (:data err)))
+        (throw (ex-info (:message err) {:user-error nil})))
+      (throw (ex-info (:message err) {:user-error (:message err)})))
+    (:ok result)))
+
+(defn ok-or-throw
+  "Either unwrap an ok result, or throw"
+  [result]
+  (if-let [err (:err result)]
+    (throw (ex-info (:message err) {:user-error (:message err)}))
+    (:ok result)))
+
 ;; methods
 (defn status "Return pod status" [pod] (invoke pod "status"))
 (defn directives
   "Return parsed directives"
   [pod]
-  (invoke pod "parser.directives"))
+  (ok-or-print-errors-and-throw pod (invoke pod "parser.directives")))
 (defn format-errors
   "Format errors"
   [pod errors]
-  (invoke pod "parser.format-errors" errors))
+  (ok-or-throw (invoke pod "parser.format-errors" errors)))
 (defn format-warnings
   "Format warnings"
   [pod warnings]
-  (invoke pod "parser.format-warnings" warnings))
+  (ok-or-throw (invoke pod "parser.format-warnings" warnings)))
 (defn resolve-span
   "Resolve a span in terms of original sources"
   [pod span]
-  (invoke pod "parser.resolve-span" span))
+  (ok-or-throw (invoke pod "parser.resolve-span" span)))
 (defn book
   "Book directives, or parsed directives by default"
-  ([pod] (invoke pod "book"))
-  ([pod directives] (invoke pod "book" directives)))
+  ([pod] (ok-or-throw (invoke pod "book")))
+  ([pod directives] (ok-or-throw (invoke pod "book" directives))))
 
 (defn stop
   "Stop the limabean-pod"
