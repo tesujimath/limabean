@@ -112,8 +112,9 @@
   (ok-or-throw (invoke pod "parser.resolve-span" span)))
 (defn book
   "Book directives, or parsed directives by default"
-  ([pod] (ok-or-throw (invoke pod "book")))
-  ([pod directives] (ok-or-throw (invoke pod "book" directives))))
+  ([pod] (ok-or-print-errors-and-throw pod (invoke pod "book")))
+  ([pod directives]
+   (ok-or-print-errors-and-throw pod (invoke pod "book" directives))))
 
 (defn stop
   "Stop the limabean-pod"
