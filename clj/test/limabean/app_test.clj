@@ -61,7 +61,8 @@
     (testing name
       (let [expected-directives (io/file golden-dir "directives.edn")]
         (when (.exists expected-directives)
-          (let [actual (try (loader/load-beanfile beanfile)
+          (let [actual (try (println "loading" beanfile "to check directives")
+                            (loader/load-beanfile beanfile)
                             (catch Exception e
                               (println "Exception while processing" beanfile)
                               []))
