@@ -80,6 +80,9 @@
     (testing name
       (let [expected-directives (io/file golden-dir "directives.edn")]
         (when (.exists expected-directives)
-          (let [actual (loader/load-beanfile beanfile)
+          (let [actual (try (loader/load-beanfile beanfile)
+                            (catch Exception e
+                              (println "Exception while processing" beanfile)
+                              []))
                 expected (edn/read-edn-string (slurp expected-directives))]
             (matcho/assert expected (:directives actual))))))))
