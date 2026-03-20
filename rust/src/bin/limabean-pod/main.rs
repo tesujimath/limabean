@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use std::{
     io::{self, Read},
     path::{Path, PathBuf},
@@ -24,46 +24,14 @@ enum Command {
         beanfile: PathBuf,
     },
 
-    /// Calculate all the bookings
-    Book {
-        /// Beancount file path
-        beanfile: PathBuf,
-
-        /// Output format, defaults to beancount
-        #[clap(short)]
-        format: Option<Format>,
-    },
-
     /// Tabulate JSON according to tabulator
     Tabulate,
-}
-
-#[derive(Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-pub(crate) enum Format {
-    #[default]
-    Beancount,
-    Edn,
-}
-
-impl From<Format> for book::Format {
-    fn from(value: Format) -> Self {
-        use Format::*;
-        use book::Format as B;
-
-        match value {
-            Beancount => B::Beancount,
-            Edn => B::Edn,
-        }
-    }
 }
 
 const LIMABEAN_POD_LOG: &str = "LIMABEAN_POD_LOG";
 const LIMABEAN_POD_LOG_LEVEL: &str = "LIMABEAN_POD_LOG_LEVEL";
 
 fn main() {
-    let out_w = &mut std::io::stdout();
-    let error_w = &mut std::io::stderr();
-
     // enable logging only if environment variable LIMABEAN_POD_LOG defined
     // log level set via environment variable LIMABEAN_POD_LOG_LEVEL, or default
     if let Ok(log_path) = std::env::var(LIMABEAN_POD_LOG) {
@@ -92,22 +60,9 @@ fn main() {
             Ok(())
         }
 
-        Command::Book { beanfile, format } => book::write_bookings_from(
-            beanfile,
-            format.unwrap_or(Format::default()).into(),
-            out_w,
-            error_w,
-        ),
-
         Command::Tabulate => tabulate(),
     } {
-        use crate::Error::*;
-
-        match e {
-            FatalAndAlreadyExplained => (),
-            _ => eprintln!("limabean-pod {}", &e),
-        }
-
+        eprintln!("limabean-pod {}", &e);
         std::process::exit(1);
     }
 }
@@ -126,9 +81,5 @@ fn tabulate() -> Result<(), crate::Error> {
     }
 }
 
-pub(crate) mod book;
 pub(crate) mod errors;
 pub(crate) use errors::Error;
-pub(crate) mod format;
-pub(crate) mod options;
-pub(crate) mod plugins;

@@ -181,8 +181,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             |payee| payee.as_ref(),
         );
 
-        let BookedPostingsAndPrices { postings, prices } =
-            self.book(date, &transaction.postings, description, element)?;
+        let booked_postings = self.book(date, &transaction.postings, description, element)?;
 
         Ok(booked::DirectiveVariant::Transaction(booked::Transaction {
             flag: transaction.flag.clone(),
@@ -191,7 +190,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                 .narration
                 .as_ref()
                 .map(|narration| narration.as_ref()),
-            postings,
+            postings: booked_postings,
         }))
     }
 
@@ -201,7 +200,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         postings: &'r [raw::PostingSpec<'a>],
         description: &'d str,
         element: &parser::Spanned<Element<'static>>,
-    ) -> Result<BookedPostingsAndPrices<'a>, parser::AnnotatedError>
+    ) -> Result<Vec<booked::Posting<'a>>, parser::AnnotatedError>
     where
         'a: 'r + 'b + 'd,
         'r: 'b + 'd,
@@ -225,8 +224,6 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                 interpolated_postings,
                 updated_inventory,
             }) => {
-                let mut prices: HashSet<(&str, booked::Price)> = HashSet::default();
-
                 // check all postings have valid accounts and currencies
                 // returning the first error
                 if let Some(error) = interpolated_postings
@@ -253,7 +250,6 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                     .zip(&postings)
                     .flat_map(|(interpolated, posting)| {
                         let account = posting.acc;
-                        let flag = posting.flag.clone();
                         let Interpolated {
                             units,
                             currency,
@@ -265,42 +261,20 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                         if let Some(costs) = cost {
                             costs
                                 .into_currency_costs()
-                                .map(|(cost_cur, cost)| {
-                                    prices.insert((
-                                        currency,
-                                        booked::Price {
-                                            cur: cost_cur,
-                                            per_unit: cost.per_unit,
-                                            total: None,
-                                        },
-                                    ));
-
-                                    booked::Posting {
-                                        span: posting.span,
-                                        flag: posting.flag.clone(),
-                                        acc: account,
-                                        units: cost.units,
-                                        cur: currency,
-                                        cost: Some(loader_cur_posting_cost_to_cost(cost_cur, cost)),
-                                        price: None,
-                                        tags: posting.tags.clone(),
-                                        links: posting.links.clone(),
-                                        metadata: posting.metadata.clone(),
-                                    }
+                                .map(|(cost_cur, cost)| booked::Posting {
+                                    span: posting.span,
+                                    flag: posting.flag.clone(),
+                                    acc: account,
+                                    units: cost.units,
+                                    cur: currency,
+                                    cost: Some(loader_cur_posting_cost_to_cost(cost_cur, cost)),
+                                    price: None,
+                                    tags: posting.tags.clone(),
+                                    links: posting.links.clone(),
+                                    metadata: posting.metadata.clone(),
                                 })
                                 .collect::<Vec<_>>()
                         } else {
-                            if let Some(price) = &price {
-                                prices.insert((
-                                    currency,
-                                    booked::Price {
-                                        cur: price.currency,
-                                        per_unit: price.per_unit,
-                                        total: None,
-                                    },
-                                ));
-                            }
-
                             vec![booked::Posting {
                                 span: posting.span,
                                 flag: posting.flag.clone(),
@@ -369,10 +343,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                     }
                 }
 
-                Ok(BookedPostingsAndPrices {
-                    postings: booked_postings,
-                    prices,
-                })
+                Ok(booked_postings)
             }
             Err(e) => {
                 use limabean_booking::BookingError::*;
@@ -470,7 +441,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         balance: &'r raw::Balance<'a>,
         date: Date,
         element: &parser::Spanned<Element<'static>>,
-        booked_directives: &mut Vec<booked::Directive<'b>>,
+        booked_directives: &mut [booked::Directive<'b>],
     ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
     where
         'a: 'r + 'b,
@@ -693,11 +664,6 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
     }
 }
 
-struct BookedPostingsAndPrices<'a> {
-    postings: Vec<booked::Posting<'a>>,
-    prices: HashSet<(&'a str, booked::Price<'a>)>,
-}
-
 fn calculate_balance_margin<'a>(
     balance_units: Decimal,
     balance_currency: &'a str,
@@ -745,7 +711,7 @@ fn calculate_balance_pad_postings<'a>(
                     flag: Some(Cow::Borrowed(PAD_FLAG)),
                     acc: balance_account,
                     units: *number,
-                    cur: *cur,
+                    cur,
                     cost: None,
                     price: None,
                     tags: None,
@@ -757,7 +723,7 @@ fn calculate_balance_pad_postings<'a>(
                     flag: Some(Cow::Borrowed(PAD_FLAG)),
                     acc: pad_source,
                     units: -*number,
-                    cur: *cur,
+                    cur,
                     cost: None,
                     price: None,
                     tags: None,

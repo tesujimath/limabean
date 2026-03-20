@@ -11,7 +11,7 @@ use crate::api::{
     booking::{self, LoadError},
     json_rpc::*,
     types::{
-        Plugin, Report,
+        Report,
         parser_type_conversions::{from_annotated_errors_or_warnings, from_errors_or_warnings},
         raw::*,
     },

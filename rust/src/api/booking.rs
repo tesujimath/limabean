@@ -33,8 +33,5 @@ mod loader;
 
 mod types;
 
+pub(crate) use crate::api::booking::loader::{LoadError, LoadSuccess, Loader};
 use crate::api::types::raw::Directive;
-pub(crate) use crate::api::{
-    booking::loader::{LoadError, LoadSuccess, Loader},
-    types::booked,
-};

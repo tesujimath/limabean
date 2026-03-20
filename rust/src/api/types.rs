@@ -35,12 +35,6 @@ pub(crate) struct Element<'a> {
     element_type: &'a str,
 }
 
-impl<'a> Element<'a> {
-    pub(crate) fn new(element_type: &'a str, span: parser::Span) -> parser::Spanned<Self> {
-        parser::spanned(Element { element_type }, span)
-    }
-}
-
 impl<'a> parser::ElementType<'a> for Element<'a> {
     fn element_type(&self) -> &'a str {
         self.element_type
