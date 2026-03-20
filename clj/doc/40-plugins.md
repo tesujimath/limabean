@@ -1,10 +1,10 @@
 # Plugins and user-supplied code
 
-Plugins in `limabean` are [Clojure transducers](https://clojure.org/reference/transducers).  Currently, they run on fully booked directives.  Running on raw directives before validation is planned but not yet implemented, see [issue #46](https://github.com/tesujimath/limabean/issues/46).
+Plugins in `limabean` are [Clojure transducers](https://clojure.org/reference/transducers), which may run early on raw directives before the booking algorithm, or later on fully booked directives.
 
 In addition, arbitrary user-provided code may be loaded into the REPL (below).
 
-In anticipation of support for raw plugins, the previous internal plugins have been removed.
+With the newly added support for raw plugins, the previous internal plugins have been removed.
 
 Plugins are referenced in the Beanfile by their namespace, e.g.
 
@@ -20,8 +20,7 @@ plugin "limabean.contrib.plugins.examples.magic-money" "{:units 1000.00M :cur \"
 
 In fact, any Clojure value may be supplied, not necessarily a map.  But it must match what the particular plugin is expecting.
 
-The Clojure namespace must define a function `booked-xf`, which is a Clojure transducer on booked directives.
-Soon (but not yet) it will be possible to define a function `raw-xf`, a Clojure transducer on raw directives, which runs before validation.
+The Clojure namespace must define one or both of the functions `raw-xf` and `booked-xf`, each of which is a function returning a Clojure transducer on raw or booked directives respectively.
 
 ## Running plugins
 
@@ -82,29 +81,9 @@ user=> (binding [*directives* *booked-directives*] (show (journal)))
 :ok
 ```
 
-### Running plugins manually
+### Auto accounts
 
-The resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
-
-```
-user=> *plugins*
-[{:name "limabean.contrib.plugins.examples.set-narration",
-  :config "{:narration \"Plugins rule ok!\"}",
-  :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
-                    "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]
-
-user=> (def set-narration-xf (get-in *plugins* [0 :booked-xf]))
-
-user=> (into [] set-narration-xf *booked-directives*)
-[{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :dct :open, :acc "Assets:Bank:Current"}
- {:date #object[java.time.LocalDate 0x63190b1 "2016-03-01"], :dct :open, :acc "Expenses:Groceries"}
- {:date #object[java.time.LocalDate 0x4325de9e "2023-05-29"], :dct :txn, :flag "*", :payee "New World",
-  :postings [{:acc "Expenses:Groceries", :units 10.00M, :cur "NZD"}
-             {:acc "Assets:Bank:Current", :units -10.00M, :cur "NZD"}], :narration "Plugins rule ok!"}
- {:date #object[java.time.LocalDate 0x1c0b38af "2023-05-30"], :dct :txn, :flag "*", :payee "Countdown",
-  :postings [{:acc "Expenses:Groceries", :units 17.50M, :cur "NZD"}
-             {:acc "Assets:Bank:Current", :units -17.50M, :cur "NZD"}], :narration "Plugins rule ok!"}]
-```
+The original Beancount plugin `auto_accounts` has been implemented as a [raw plugin](../src/beancount/plugins/auto_accounts.clj).
 
 ### Magic Money
 
@@ -126,6 +105,30 @@ user=> (show (journal))
 2023-05-30  Expenses:Groceries          Countdown                17.50  NZD     17.50 NZD
 2023-05-30  Assets:Bank:Current         Countdown               -17.50  NZD
 :ok
+```
+
+## Running plugins manually
+
+The resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
+
+```
+user=> *plugins*
+[{:name "limabean.contrib.plugins.examples.set-narration",
+  :config "{:narration \"Plugins rule ok!\"}",
+  :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
+                    "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]
+
+user=> (def set-narration-xf (get-in *plugins* [0 :booked-xf]))
+
+user=> (into [] set-narration-xf *booked-directives*)
+[{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :dct :open, :acc "Assets:Bank:Current"}
+ {:date #object[java.time.LocalDate 0x63190b1 "2016-03-01"], :dct :open, :acc "Expenses:Groceries"}
+ {:date #object[java.time.LocalDate 0x4325de9e "2023-05-29"], :dct :txn, :flag "*", :payee "New World",
+  :postings [{:acc "Expenses:Groceries", :units 10.00M, :cur "NZD"}
+             {:acc "Assets:Bank:Current", :units -10.00M, :cur "NZD"}], :narration "Plugins rule ok!"}
+ {:date #object[java.time.LocalDate 0x1c0b38af "2023-05-30"], :dct :txn, :flag "*", :payee "Countdown",
+  :postings [{:acc "Expenses:Groceries", :units 17.50M, :cur "NZD"}
+             {:acc "Assets:Bank:Current", :units -17.50M, :cur "NZD"}], :narration "Plugins rule ok!"}]
 ```
 
 ## User-provided code
