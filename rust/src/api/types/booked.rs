@@ -95,7 +95,9 @@ pub(crate) struct Cost<'a> {
     pub(crate) per_unit: Decimal,
     pub(crate) total: Decimal,
     pub(crate) cur: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) label: Option<Cow<'a, str>>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub(crate) merge: bool,
 }
 
@@ -121,6 +123,7 @@ impl<'a> From<&'a limabean_booking::Cost<LimaParserBookingTypes<'a>>> for Cost<'
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Price<'a> {
     pub(crate) per_unit: Decimal,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) total: Option<Decimal>,
     pub(crate) cur: &'a str,
 }

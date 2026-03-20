@@ -29,6 +29,9 @@
                        slipset/deps-deploy {:mvn/version "0.2.1"}},
           :extra-paths ["dev"],
           :main-opts ["-m" "user"]},
+    :gen-golden {:exec-fn limabean.golden/create-directives-files,
+                 :extra-deps {zprint/zprint {:mvn/version "1.3.0"}},
+                 :extra-paths ["test"]},
     :neil {:project {:name io.github.tesujimath/limabean}},
     :run-m {:main-opts ["-m" "limabean.main"]},
     :run-x
