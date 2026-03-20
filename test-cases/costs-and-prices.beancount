@@ -1,4 +1,6 @@
-plugin "beancount.plugins.auto_accounts"
+2020-01-01 open Assets:UK:Cash
+2020-01-01 open Assets:NZ:Cash
+2020-01-01 open Assets:Shares:IBM
 
 2025-01-01 * "price per-unit"
   Assets:UK:Cash     -1000.00 GBP @ 1.914 NZD
