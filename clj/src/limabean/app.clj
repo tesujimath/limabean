@@ -9,8 +9,10 @@
   [e]
   (binding [*out* *err*]
     (if (instance? clojure.lang.ExceptionInfo e)
-      (if-let [user-error (:user-error (ex-data e))]
-        (do (print user-error) (flush))
+      (if (contains? (ex-data e) :user-error)
+        (when-let [user-error (:user-error (ex-data e))]
+          (print user-error)
+          (flush))
         (println "unexpected error" e))
       (do (println "Unexpected error" e) (.printStackTrace e)))))
 

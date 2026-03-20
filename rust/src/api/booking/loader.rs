@@ -61,12 +61,16 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             accounts, warnings, ..
         } = self;
 
-        // TODO check for unused pad directives
-        // for account in accounts.values() {
-        //     if let Some(pad_idx) = &account.pad_idx {
-        //         errors.push(directives[*pad_idx].parsed.error("unused").into())
-        //     }
-        // }
+        // check for unused pad directives
+        for account in accounts.values() {
+            if let Some(pad_idx) = &account.pad_idx {
+                errors.push(
+                    Into::<parser::Spanned<Element>>::into(&directives[*pad_idx])
+                        .error("unused, no balance directive")
+                        .into(),
+                )
+            }
+        }
 
         if errors.is_empty() {
             Ok(LoadSuccess {
@@ -152,7 +156,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             RDV::Open(open) => self.open(open, date, &element).map(|x| (x, None)),
             RDV::Close(close) => self.close(close, date, &element).map(|x| (x, None)),
             RDV::Commodity(commodity) => Ok((BDV::Commodity(commodity.clone()), None)),
-            RDV::Pad(pad) => self.pad(pad, date, idx, &element),
+            RDV::Pad(pad) => self.pad(pad, date, idx, &element, &booked_directives),
             RDV::Document(document) => Ok((BDV::Document(document.clone()), None)),
             RDV::Note(note) => Ok((BDV::Note(note.clone()), None)),
             RDV::Event(event) => Ok((BDV::Event(event.clone()), None)),
@@ -463,7 +467,17 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             // balance assertion is correct, and we already cleared the pad, so:
 
             account.balance_diagnostics.clear();
-            return Ok(booked::DirectiveVariant::Balance(balance.clone()));
+
+            // but if there was a pad directive, we ought to have used it, so:
+            if let Some(pad_idx) = pad_idx {
+                return Err(
+                    Into::<parser::Spanned<Element>>::into(&booked_directives[pad_idx])
+                        .error("unused, no balance adjustment required")
+                        .into(),
+                );
+            } else {
+                return Ok(booked::DirectiveVariant::Balance(balance.clone()));
+            }
         }
 
         if pad_idx.is_none() {
@@ -628,6 +642,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         _date: Date,
         idx: usize,
         element: &parser::Spanned<Element<'static>>,
+        booked_directives: &[booked::Directive<'b>],
     ) -> Result<
         (
             booked::DirectiveVariant<'b>,
@@ -641,16 +656,20 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
     {
         let account = self.get_mut_valid_account(pad.acc, element)?;
 
-        let unused_pad_idx = account.pad_idx.replace(idx);
+        let unused_pad_idx = account.pad_idx.take();
 
-        // TODO unused pad directives are errors
+        // unused pad directives are errors
         // https://beancount.github.io/docs/beancount_language_syntax.html#unused-pad-directives
-        // if let Some(unused_pad_idx) = unused_pad_idx {
-        //     return Err(self.directives[unused_pad_idx]
-        //         .parsed
-        //         .error("unused")
-        //         .into());
-        // }
+        if let Some(unused_pad_idx) = unused_pad_idx {
+            return Err(
+                Into::<parser::Spanned<Element>>::into(&booked_directives[unused_pad_idx])
+                    .error("unused, second pad encountered")
+                    .related_to(element)
+                    .into(),
+            );
+        }
+
+        account.pad_idx = Some(idx);
 
         Ok((
             booked::DirectiveVariant::Pad(pad.clone()),

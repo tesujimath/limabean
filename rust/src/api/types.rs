@@ -52,6 +52,17 @@ impl<'a> From<&raw::Directive<'a>> for parser::Spanned<Element<'static>> {
     }
 }
 
+impl<'a> From<&booked::Directive<'a>> for parser::Spanned<Element<'static>> {
+    fn from(value: &booked::Directive<'a>) -> Self {
+        parser::spanned(
+            Element {
+                element_type: (&value.variant).into(),
+            },
+            value.span.into(),
+        )
+    }
+}
+
 impl<'a> From<&raw::PostingSpec<'a>> for parser::Spanned<Element<'static>> {
     fn from(value: &raw::PostingSpec<'a>) -> Self {
         parser::spanned(

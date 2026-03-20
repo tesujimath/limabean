@@ -4,6 +4,7 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
 };
+use strum_macros;
 use time::Date;
 
 use super::iso8601date;
@@ -30,6 +31,7 @@ pub struct Directive<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, strum_macros::IntoStaticStr, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[serde(tag = "dct")]
+#[strum(serialize_all = "kebab-case")]
 pub enum DirectiveVariant<'a> {
     #[serde(rename = "txn")]
     Transaction(Transaction<'a>),
