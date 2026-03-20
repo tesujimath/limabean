@@ -293,7 +293,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
 
                 // group postings by account and currency for balance diagnostics
                 let mut account_posting_amounts =
-                    hashbrown::HashMap::<&str, VecDeque<LoaderAmount<'_>>>::new();
+                    hashbrown::HashMap::<&str, VecDeque<Amount<'_>>>::new();
                 for booked in &booked_postings {
                     use hashbrown::hash_map::Entry::*;
 
@@ -484,7 +484,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         account.balance_diagnostics.clear();
 
         // initialize balance diagnostics according to balance assertion
-        let mut positions = LoaderPositions::default();
+        let mut positions = Positions::default();
         positions.accumulate(balance.units, balance.cur, None, Booking::default());
         account.balance_diagnostics.push(BalanceDiagnostic {
             date,
@@ -764,9 +764,7 @@ fn construct_balance_error_and_clear_diagnostics<'a, 'd>(
                     vec![
                         (bd.date.to_string(), Align::Left).into(),
                         bd.amount.map(|amt| amt.into()).unwrap_or(Cell::Empty),
-                        bd.positions
-                            .map(loader_positions_into_cell)
-                            .unwrap_or(Cell::Empty),
+                        bd.positions.map(positions_into_cell).unwrap_or(Cell::Empty),
                         bd.description
                             .map(|d| (d, Align::Left).into())
                             .unwrap_or(Cell::Empty),
@@ -810,7 +808,7 @@ fn adjust_account_to_match_balance<'a, 'd>(
 #[derive(Debug)]
 struct AccountBuilder<'a, 'd> {
     allowed_currencies: HashSet<&'a str>,
-    positions: LoaderPositions<'a>,
+    positions: Positions<'a>,
     opened: parser::Spanned<Element<'static>>,
     pad_idx: Option<usize>, // index in directives in Loader
     balance_diagnostics: Vec<BalanceDiagnostic<'a, 'd>>,
@@ -828,7 +826,7 @@ impl<'a, 'd> AccountBuilder<'a, 'd> {
     {
         AccountBuilder {
             allowed_currencies: allowed_currencies.collect(),
-            positions: LoaderPositions::default(),
+            positions: Positions::default(),
             opened,
             pad_idx: None,
             balance_diagnostics: Vec::default(),
@@ -861,20 +859,19 @@ impl<'a, 'd> AccountBuilder<'a, 'd> {
 struct BalanceDiagnostic<'a, 'd> {
     date: Date,
     description: Option<&'d str>,
-    amount: Option<LoaderAmount<'a>>,
-    positions: Option<LoaderPositions<'a>>,
+    amount: Option<Amount<'a>>,
+    positions: Option<Positions<'a>>,
 }
 
 const PAD_FLAG: &str = "'P";
 
-// TODO find a better home for LoaderAmount and change its name back when Amount is deleted from book
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub(crate) struct LoaderAmount<'a> {
-    pub(crate) number: Decimal,
-    pub(crate) currency: &'a str,
+struct Amount<'a> {
+    number: Decimal,
+    currency: &'a str,
 }
 
-impl<'a> From<(Decimal, &'a str)> for LoaderAmount<'a> {
+impl<'a> From<(Decimal, &'a str)> for Amount<'a> {
     fn from(value: (Decimal, &'a str)) -> Self {
         Self {
             number: value.0,
@@ -883,17 +880,17 @@ impl<'a> From<(Decimal, &'a str)> for LoaderAmount<'a> {
     }
 }
 
-impl<'a> From<&'a parser::Amount<'a>> for LoaderAmount<'a> {
+impl<'a> From<&'a parser::Amount<'a>> for Amount<'a> {
     fn from(value: &'a parser::Amount<'a>) -> Self {
-        LoaderAmount {
+        Amount {
             number: value.number().value(),
             currency: value.currency().item().into(),
         }
     }
 }
 
-impl<'a> From<LoaderAmount<'a>> for Cell<'static, 'static> {
-    fn from(value: LoaderAmount) -> Self {
+impl<'a> From<Amount<'a>> for Cell<'static, 'static> {
+    fn from(value: Amount) -> Self {
         Cell::Row(
             vec![
                 value.number.into(),
@@ -904,8 +901,8 @@ impl<'a> From<LoaderAmount<'a>> for Cell<'static, 'static> {
     }
 }
 
-impl<'a> From<&'_ LoaderAmount<'a>> for Cell<'a, 'static> {
-    fn from(value: &'_ LoaderAmount<'a>) -> Self {
+impl<'a> From<&'_ Amount<'a>> for Cell<'a, 'static> {
+    fn from(value: &'_ Amount<'a>) -> Self {
         Cell::Row(
             vec![value.number.into(), (value.currency, Align::Left).into()],
             GUTTER_MINOR,
@@ -913,23 +910,22 @@ impl<'a> From<&'_ LoaderAmount<'a>> for Cell<'a, 'static> {
     }
 }
 
-// TODO rename once Positions is deleted from book types
-type LoaderPositions<'a> =
-    limabean_booking::Positions<limabean_booking::LimaParserBookingTypes<'a>>;
+type Positions<'a> = limabean_booking::Positions<limabean_booking::LimaParserBookingTypes<'a>>;
+
 // should be From, but both types are third-party
-fn loader_positions_into_cell<'a>(positions: LoaderPositions<'a>) -> Cell<'a, 'static> {
+fn positions_into_cell<'a>(positions: Positions<'a>) -> Cell<'a, 'static> {
     Cell::Stack(
         positions
             .into_iter()
-            .map(loader_position_into_cell)
+            .map(position_into_cell)
             .collect::<Vec<_>>(),
     )
 }
 
-type LoaderPosition<'a> = limabean_booking::Position<limabean_booking::LimaParserBookingTypes<'a>>;
+type Position<'a> = limabean_booking::Position<limabean_booking::LimaParserBookingTypes<'a>>;
 
-fn loader_position_into_cell<'a>(position: LoaderPosition<'a>) -> Cell<'a, 'static> {
-    let LoaderPosition {
+fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static> {
+    let Position {
         units,
         currency,
         cost,
@@ -944,9 +940,9 @@ fn loader_position_into_cell<'a>(position: LoaderPosition<'a>) -> Cell<'a, 'stat
     Cell::Row(cells, GUTTER_MINOR)
 }
 
-type LoaderCost<'a> = limabean_booking::Cost<limabean_booking::LimaParserBookingTypes<'a>>;
-fn loader_cost_into_cell<'a>(cost: LoaderCost<'a>) -> Cell<'a, 'static> {
-    let LoaderCost {
+type Cost<'a> = limabean_booking::Cost<limabean_booking::LimaParserBookingTypes<'a>>;
+fn loader_cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
+    let Cost {
         date,
         per_unit,
         total: _total,
@@ -982,6 +978,5 @@ fn loader_cur_posting_cost_to_cost<'a>(
     }
 }
 
-// TODO find where this should go
 const GUTTER_MINOR: &str = " ";
 const GUTTER_MEDIUM: &str = "  ";
