@@ -1,15 +1,45 @@
 # Design and Rationale
 
+## Architecture
+
+`limabean` spawns a `limabean-pod` process using its `serve` command, and invokes its JSON-RPC methods.
+All invocations are initiated by `limabean`, as `limabean-pod` is simply a JSON-RPC server responding to method invocations.
+
+The arrows in the diagram below represent the direction of flow of information, rather than invocation.
+
+```mermaid
+sequenceDiagram
+  participant limabean
+  participant limabean-pod
+  participant beanfile
+
+limabean->>limabean-pod: serve
+beanfile->>limabean-pod: parse
+limabean-pod->>limabean: status
+limabean-pod->>limabean: plugins
+limabean-pod->>limabean: options
+limabean-pod->>limabean: raw-directives
+limabean-->>limabean: raw-plugins
+limabean->>limabean-pod: directives-to-book
+limabean-pod-->>limabean-pod: booking-algorithm
+limabean-pod->>limabean: booked-directives
+limabean-->>limabean: booked-plugins
+```
+
+## Rationale
+
+### Mixed Language Approach
+
 The ideas in `limabean` have been evolving since May 2023, with the [Rust parser](https://github.com/tesujimath/beancount-parser-lima) it uses.
 
 Following this, a proof-of-concept of a front-end was built in [Steel Scheme](https://github.com/mattwparas/steel).  This validated the approach of using an established functional programming language in place of [Beancount Query Language](https://beancount.github.io/docs/beancount_query_language.html), but proved to be insufficiently mature for a polished user experience, especially around developer tooling.  (Steel Scheme is nonetheless an impressive project!)  At this stage, `limabean` pivoted to Clojure, a more established language and environment.
 
-## Mixed language approach
-
 By the time Clojure was introduced, the Rust parser was well established, along with an implementation of the Beancount booking algorithm in Rust.  Abandoning these in favour of Clojure-native implementation was extremely unappealing.  My experiments with Steel Scheme had cooled my enthusiasm for an FFI approach to the mixed language model, hence the use of the Rust parser and booking algorithm via the external program `limabean-pod`.
 
+### JSON-RPC Server
+
 Initially `limabean-pod` was used by the Clojure code as a one-shot, passing its output on standard output in EDN format.  However, this was insufficiently flexible, and in particular failed to support Clojure plugins running in raw mode, which run before the booking algorithm.
-This was the reason for introducing `limabean-pod serve` which is a JSON-RPC server which replaces `limabean-pod book`, and is available for a number of queries on the same parsed data, or on raw directives passed as JSON.
+This was the reason for introducing `limabean-pod serve` which is a JSON-RPC server which replaces `limabean-pod book`, and is available for a number of queries on the same parsed data, or on raw directives passed as JSON.  That is, this approach enables the booking algorithm implemented in Rust to process wither the as-parsed directives, or the directives resulting from running any raw plugins.
 
 Notice how `limabean-pod` encapsulates all the complexities of the Beancount booking algorithm (in particular, reductions which involve matching of positions held at cost against cost specs).  Accumulating positions in the Clojure code is consequently simple and straightforward.
 
