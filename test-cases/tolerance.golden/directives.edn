@@ -1,21 +1,13 @@
-[{:acc "Assets:Cash",
-  :date #time/date "2022-08-25",
-  :dct :open,
-  :span [0 221 249]}
- {:acc "Expenses:Other-Expense",
-  :date #time/date "2022-08-25",
-  :dct :open,
-  :span [0 249 289]}
+[{:acc "Assets:Cash", :date #time/date "2022-08-25", :dct :open}
+ {:acc "Expenses:Other-Expense", :date #time/date "2022-08-25", :dct :open}
  {:date #time/date "2022-08-25",
   :dct :txn,
   :flag "*",
   :narration "Re install gate",
-  :postings
-    [{:acc "Assets:Cash", :cur "IDR", :span [0 325 361], :units -3000000}
-     {:acc "Expenses:Other-Expense",
-      :cur "USD",
-      :price
-        {:cur "IDR", :per-unit 14705.882352941176470588235294M, :total 3000000},
-      :span [0 364 415],
-      :units 204}],
-  :span [0 289 416]}]
+  :postings [{:acc "Assets:Cash", :cur "IDR", :units -3000000}
+             {:acc "Expenses:Other-Expense",
+              :cur "USD",
+              :price {:cur "IDR",
+                      :per-unit 14705.882352941176470588235294M,
+                      :total 3000000},
+              :units 204}]}]

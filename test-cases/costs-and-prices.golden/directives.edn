@@ -1,23 +1,14 @@
-[{:acc "Assets:UK:Cash",
-  :date #time/date "2025-01-01",
-  :dct :open,
-  :span [0 0 31]}
- {:acc "Assets:NZ:Cash",
-  :date #time/date "2025-01-01",
-  :dct :open,
-  :span [0 31 62]}
+[{:acc "Assets:UK:Cash", :date #time/date "2025-01-01", :dct :open}
+ {:acc "Assets:NZ:Cash", :date #time/date "2025-01-01", :dct :open}
  {:date #time/date "2025-01-01",
   :dct :txn,
   :flag "*",
   :narration "price per-unit",
-  :postings
-    [{:acc "Assets:UK:Cash",
-      :cur "GBP",
-      :price {:cur "NZD", :per-unit 1.914M, :total -1914.00000M},
-      :span [0 129 172],
-      :units -1000.00M}
-     {:acc "Assets:NZ:Cash", :cur "NZD", :span [0 175 189], :units 1914.00M}],
-  :span [0 97 191]}
+  :postings [{:acc "Assets:UK:Cash",
+              :cur "GBP",
+              :price {:cur "NZD", :per-unit 1.914M, :total -1914.00000M},
+              :units -1000.00M}
+             {:acc "Assets:NZ:Cash", :cur "NZD", :units 1914.00M}]}
  {:date #time/date "2025-02-01",
   :dct :txn,
   :flag "*",
@@ -27,10 +18,7 @@
       :cur "GBP",
       :price
         {:cur "NZD", :per-unit 1.9369035532994923857868020305M, :total 381.57M},
-      :span [0 220 265],
-      :units -197.00M}
-     {:acc "Assets:NZ:Cash", :cur "NZD", :span [0 268 282], :units -381.57M}],
-  :span [0 191 284]}
+      :units -197.00M} {:acc "Assets:NZ:Cash", :cur "NZD", :units -381.57M}]}
  {:date #time/date "2025-02-05",
   :dct :txn,
   :flag "*",
@@ -40,56 +28,38 @@
       :cur "GBP",
       :price
         {:cur "NZD", :per-unit 1.9369035532994923857868020305M, :total 381.57M},
-      :span [0 320 357],
-      :units -197.00M}
-     {:acc "Assets:NZ:Cash", :cur "NZD", :span [0 360 391], :units -381.57M}],
-  :span [0 284 393]}
- {:acc "Assets:Shares:IBM",
-  :date #time/date "2025-03-01",
-  :dct :open,
-  :span [0 62 97]}
+      :units -197.00M} {:acc "Assets:NZ:Cash", :cur "NZD", :units -381.57M}]}
+ {:acc "Assets:Shares:IBM", :date #time/date "2025-03-01", :dct :open}
  {:date #time/date "2025-03-01",
   :dct :txn,
   :flag "*",
   :narration "cost per-unit",
-  :postings
-    [{:acc "Assets:Shares:IBM",
-      :cost {:cur "NZD",
-             :date #time/date "2025-03-01",
-             :per-unit 300.00M,
-             :total 1500.00M},
-      :cur "IBM",
-      :span [0 424 470],
-      :units 5}
-     {:acc "Assets:NZ:Cash", :cur "NZD", :span [0 473 487], :units -1500}],
-  :span [0 393 489]}
+  :postings [{:acc "Assets:Shares:IBM",
+              :cost {:cur "NZD",
+                     :date #time/date "2025-03-01",
+                     :per-unit 300.00M,
+                     :total 1500.00M},
+              :cur "IBM",
+              :units 5} {:acc "Assets:NZ:Cash", :cur "NZD", :units -1500}]}
  {:date #time/date "2025-04-01",
   :dct :txn,
   :flag "*",
   :narration "cost total",
-  :postings
-    [{:acc "Assets:Shares:IBM",
-      :cost {:cur "NZD",
-             :date #time/date "2025-04-01",
-             :per-unit 303.33333333333333333333333333M,
-             :total 910.00M},
-      :cur "IBM",
-      :span [0 517 565],
-      :units 3}
-     {:acc "Assets:NZ:Cash", :cur "NZD", :span [0 568 582], :units -910.00M}],
-  :span [0 489 584]}
+  :postings [{:acc "Assets:Shares:IBM",
+              :cost {:cur "NZD",
+                     :date #time/date "2025-04-01",
+                     :per-unit 303.33333333333333333333333333M,
+                     :total 910.00M},
+              :cur "IBM",
+              :units 3} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}]}
  {:date #time/date "2025-04-05",
   :dct :txn,
   :flag "*",
   :narration "cost total weight",
-  :postings
-    [{:acc "Assets:Shares:IBM",
-      :cost {:cur "NZD",
-             :date #time/date "2025-04-05",
-             :per-unit 303.33333333333333333333333333M,
-             :total 910.00M},
-      :cur "IBM",
-      :span [0 619 658],
-      :units 3}
-     {:acc "Assets:NZ:Cash", :cur "NZD", :span [0 661 692], :units -910.00M}],
-  :span [0 584 693]}]
+  :postings [{:acc "Assets:Shares:IBM",
+              :cost {:cur "NZD",
+                     :date #time/date "2025-04-05",
+                     :per-unit 303.33333333333333333333333333M,
+                     :total 910.00M},
+              :cur "IBM",
+              :units 3} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}]}]

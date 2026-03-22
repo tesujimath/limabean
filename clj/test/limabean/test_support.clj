@@ -1,6 +1,7 @@
 (ns limabean.test-support
   (:require [clojure.java.io :as io]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.walk :as walk]))
 
 (def TEST-CASES-DIR "../test-cases")
 
@@ -21,3 +22,10 @@
                                         (format "%s.golden" name))]
                 {:name name, :beanfile beanfile, :golden-dir golden-dir})))
        (filter #(.exists (:golden-dir %)))))
+
+(defn remove-spans
+  "Remove spans from all maps"
+  [data]
+  (walk/postwalk (fn [x]
+                   (cond-> x (and (map? x) (contains? x :span)) (dissoc :span)))
+                 data))

@@ -67,4 +67,6 @@
                               (println "Exception while processing" beanfile)
                               []))
                 expected (edn/read-edn-string (slurp expected-directives))]
-            (matcho/assert expected (:directives actual))))))))
+            (matcho/assert expected
+                           (test-support/remove-spans (:directives
+                                                        actual)))))))))

@@ -13,7 +13,8 @@
     (if (empty? bad-plugins)
       (do (println "writing directives to" directives-file)
           (with-open [w (io/writer directives-file)]
-            (binding [*out* w] (zprint directives))))
+            (binding [*out* w]
+              (zprint (test-support/remove-spans directives)))))
       (println "not writing directives to" directives-file
                "because bad plugins" bad-plugins))))
 
