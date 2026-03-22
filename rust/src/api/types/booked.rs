@@ -99,6 +99,7 @@ pub(crate) struct Cost<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) label: Option<Cow<'a, str>>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
+    #[serde(default)]
     pub(crate) merge: bool,
 }
 
