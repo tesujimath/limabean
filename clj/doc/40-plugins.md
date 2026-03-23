@@ -50,13 +50,19 @@ As always, run with `limabean -v` to see what is going on with the Clojure invoc
 
 Note: it is not possible to load plugins when running in the standalone mode, which uses `java` rather than `clojure`.
 
+## Writing plugins
+
+The plugin development framework is a work-in-progress.  In particular, error handling and diagnostics are not yet addressed.
+
+However, both raw and booked plugins are supported, as per the examples below.
+
 ### Plugin namespaces
 
 A limabean plugin namespace is simply a [Clojure namespace](https://guide.clojure.style/#naming-ns-naming-schemas).  Please avoid defining your own plugins in the `limabean` namespace, although [limabean.contrib.plugins](https://github.com/tesujimath/limabean-contrib) is a good choice if you want to contribute your plugin there (please do!).  Otherwise, use your own domain.
 
-## Examples
+### Examples
 
-### Set narration
+#### Set narration
 
 The test plugin [set-narration](../test/limabean/test/plugins/set_narration.clj) is the simplest possible plugin example, which overrides the narration field of each transaction according to its configuration, as in [this example beancount file](../../test-cases/set-narration-plugin-with-config.beancount).
 
@@ -81,11 +87,11 @@ user=> (binding [*directives* *booked-directives*] (show (journal)))
 :ok
 ```
 
-### Auto accounts
+#### Auto accounts
 
 The original Beancount plugin `auto_accounts` has been implemented as a [raw plugin](../src/beancount/plugins/auto_accounts.clj).
 
-### Magic Money
+#### Magic Money
 
 The [magic-money example](https://github.com/tesujimath/limabean-contrib/blob/main/src/limabean/contrib/plugins/examples/magic_money.clj) is a more sophisticated plugin which inserts additional directives, namely a transaction after every `open` directive to add some money to the account, from a specified equity account.  It works as a [stateful transducer](https://clojure.org/reference/transducers#_transducers_with_reduction_state).
 
