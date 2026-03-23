@@ -1,0 +1,17 @@
+1970-01-01 commodity NZD
+1970-01-01 commodity GBP
+
+2016-03-01 open Assets:Bank:Current
+
+2016-03-01 open Income:Unknown
+
+2023-03-31 * "NZD income"
+  Assets:Bank:Current                   4.72 NZD
+  Income:Unknown
+
+2023-03-31 * "GBP income"
+  Assets:Bank:Current                   4.72 GBP
+  Income:Unknown
+
+2026-01-28 balance Assets:Bank:Current  4.72 NZD
+2026-01-28 balance Assets:Bank:Current  4.72 GBP

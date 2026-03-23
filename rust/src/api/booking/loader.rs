@@ -156,7 +156,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             RDV::Open(open) => self.open(open, date, &element).map(|x| (x, None)),
             RDV::Close(close) => self.close(close, date, &element).map(|x| (x, None)),
             RDV::Commodity(commodity) => Ok((BDV::Commodity(commodity.clone()), None)),
-            RDV::Pad(pad) => self.pad(pad, date, idx, &element, &booked_directives),
+            RDV::Pad(pad) => self.pad(pad, date, idx, &element, booked_directives),
             RDV::Document(document) => Ok((BDV::Document(document.clone()), None)),
             RDV::Note(note) => Ok((BDV::Note(note.clone()), None)),
             RDV::Event(event) => Ok((BDV::Event(event.clone()), None)),
@@ -424,17 +424,17 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         }
     }
 
-    // base account is known
-    fn rollup_units(&self, base_account_name: &str) -> hashbrown::HashMap<&'a str, Decimal> {
+    // get the total units for given currency in an account
+    fn total_units_for_currency(&self, account_name: &str, currency: &str) -> Decimal {
         self.accounts
-            .get(base_account_name)
+            .get(account_name)
             .map(|account| {
                 account
                     .positions
                     .units()
                     .iter()
-                    .map(|(cur, number)| (**cur, *number))
-                    .collect::<hashbrown::HashMap<_, _>>()
+                    .filter_map(|(cur, number)| (**cur == currency).then_some(*number))
+                    .sum()
             })
             .unwrap_or_default()
         // }
@@ -453,9 +453,8 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
     {
         let margin = calculate_balance_margin(
             balance.units,
-            balance.cur,
             balance.tolerance.unwrap_or(Decimal::ZERO),
-            self.rollup_units(balance.acc),
+            self.total_units_for_currency(balance.acc, balance.cur),
         );
 
         let account = self.get_mut_valid_account(balance.acc, element)?;
@@ -463,7 +462,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         // pad can't last beyond balance
         let pad_idx = account.pad_idx.take();
 
-        if margin.is_empty() {
+        if margin.is_none() {
             // balance assertion is correct, and we already cleared the pad, so:
 
             account.balance_diagnostics.clear();
@@ -479,22 +478,26 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                 return Ok(booked::DirectiveVariant::Balance(balance.clone()));
             }
         }
+        let margin = margin.unwrap();
 
         if pad_idx.is_none() {
             // balance assertion is incorrect and we have no pad to take up the slack, so:
 
             let err = Err(construct_balance_error_and_clear_diagnostics(
-                account, &margin, element,
+                account,
+                balance.cur,
+                margin,
+                element,
             ));
 
             // even though we have a balance error, we adjust the account to match, in order to localise balance failures
-            adjust_account_to_match_balance(account, &margin, Adjustment::Add);
+            adjust_account_to_match_balance(account, balance.cur, margin, Adjustment::Add);
 
             return err;
         }
         let pad_idx = pad_idx.unwrap();
 
-        adjust_account_to_match_balance(account, &margin, Adjustment::Add);
+        adjust_account_to_match_balance(account, balance.cur, margin, Adjustment::Add);
         account.balance_diagnostics.clear();
 
         // initialize balance diagnostics according to balance assertion
@@ -525,11 +528,16 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
             );
         };
 
-        txn.postings =
-            calculate_balance_pad_postings(&margin, balance.acc, pad_source, element.span().into());
+        txn.postings = calculate_balance_pad_postings(
+            balance.cur,
+            margin,
+            balance.acc,
+            pad_source,
+            element.span().into(),
+        );
 
         let pad_account = self.accounts.get_mut(pad_source).unwrap();
-        adjust_account_to_match_balance(pad_account, &margin, Adjustment::Subtract);
+        adjust_account_to_match_balance(pad_account, balance.cur, margin, Adjustment::Subtract);
 
         Ok(booked::DirectiveVariant::Balance(balance.clone()))
     }
@@ -683,94 +691,66 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
     }
 }
 
-fn calculate_balance_margin<'a>(
+fn calculate_balance_margin(
     balance_units: Decimal,
-    balance_currency: &'a str,
     balance_tolerance: Decimal,
-    account_rollup: hashbrown::HashMap<&'a str, Decimal>,
-) -> HashMap<&'a str, Decimal> {
+    account_units: Decimal,
+) -> Option<Decimal> {
     // what's the gap between what we have and what the balance says we should have?
-    let mut inventory_has_balance_currency = false;
-    let mut margin = account_rollup
-        .into_iter()
-        .map(|(cur, number)| {
-            if balance_currency == cur {
-                inventory_has_balance_currency = true;
-                (cur, balance_units - Into::<Decimal>::into(number))
-            } else {
-                (cur, -(Into::<Decimal>::into(number)))
-            }
-        })
-        .filter_map(|(cur, number)| {
-            // discard anything below the tolerance
-            (number.abs() > balance_tolerance).then_some((cur, number))
-        })
-        .collect::<HashMap<_, _>>();
-
-    // cope with the case of balance currency wasn't in inventory
-    if !inventory_has_balance_currency && (balance_units.abs() > balance_tolerance) {
-        margin.insert(balance_currency, balance_units);
-    }
-
-    margin
+    let margin = balance_units - account_units;
+    (margin.abs() > balance_tolerance).then_some(margin)
 }
 
 fn calculate_balance_pad_postings<'a>(
-    margin: &HashMap<&'a str, Decimal>,
+    cur: &'a str,
+    margin: Decimal,
     balance_account: &'a str,
     pad_source: &'a str,
     pad_span: raw::Span,
 ) -> Vec<booked::Posting<'a>> {
-    margin
-        .iter()
-        .flat_map(|(cur, number)| {
-            vec![
-                booked::Posting {
-                    span: pad_span,
-                    flag: Some(Cow::Borrowed(PAD_FLAG)),
-                    acc: balance_account,
-                    units: *number,
-                    cur,
-                    cost: None,
-                    price: None,
-                    tags: None,
-                    links: None,
-                    metadata: None,
-                },
-                booked::Posting {
-                    span: pad_span,
-                    flag: Some(Cow::Borrowed(PAD_FLAG)),
-                    acc: pad_source,
-                    units: -*number,
-                    cur,
-                    cost: None,
-                    price: None,
-                    tags: None,
-                    links: None,
-                    metadata: None,
-                },
-            ]
-        })
-        .collect::<Vec<_>>()
+    vec![
+        booked::Posting {
+            span: pad_span,
+            flag: Some(Cow::Borrowed(PAD_FLAG)),
+            acc: balance_account,
+            units: margin,
+            cur,
+            cost: None,
+            price: None,
+            tags: None,
+            links: None,
+            metadata: None,
+        },
+        booked::Posting {
+            span: pad_span,
+            flag: Some(Cow::Borrowed(PAD_FLAG)),
+            acc: pad_source,
+            units: -margin,
+            cur,
+            cost: None,
+            price: None,
+            tags: None,
+            links: None,
+            metadata: None,
+        },
+    ]
 }
 
 fn construct_balance_error_and_clear_diagnostics<'a, 'd>(
     account: &mut AccountBuilder<'a, 'd>,
-    margin: &HashMap<&'a str, Decimal>,
+    cur: &'a str,
+    margin: Decimal,
     element: &parser::Spanned<Element<'static>>,
 ) -> parser::AnnotatedError {
     let reason = format!(
-        "accumulated {}, error {}",
+        "accumulated {}, error {} {}",
         if account.positions.is_empty() {
             "zero".to_string()
         } else {
             account.positions.to_string()
         },
-        margin
-            .iter()
-            .map(|(cur, number)| format!("{number} {cur}"))
-            .collect::<Vec<String>>()
-            .join(", ")
+        margin,
+        cur,
     );
 
     // determine context for error by collating postings since last balance
@@ -807,21 +787,20 @@ enum Adjustment {
 
 fn adjust_account_to_match_balance<'a, 'd>(
     account: &mut AccountBuilder<'a, 'd>,
-    margin: &HashMap<&'a str, Decimal>,
+    cur: &'a str,
+    units: Decimal,
     adjustment: Adjustment,
 ) {
     use Adjustment::*;
 
     // reset accumulated balance to what was asserted, to localise errors
-    for (cur, units) in margin.iter() {
-        account.positions.accumulate(
-            if adjustment == Add { *units } else { -*units },
-            *cur,
-            None,
-            Booking::default(),
-        );
-        // booking method doesn't matter if no cost
-    }
+    account.positions.accumulate(
+        if adjustment == Add { units } else { -units },
+        cur,
+        None,
+        Booking::default(),
+    );
+    // booking method doesn't matter if no cost
 }
 
 #[derive(Debug)]
