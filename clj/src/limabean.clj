@@ -13,12 +13,14 @@
             [limabean.core.rollup :as rollup]
             [limabean.adapter.pod :as pod]))
 
+(def ^:dynamic *beans*
+  "An aggregate of all the dynamic variables for the current beanfile.
+
+  Useful in case of failed plugins, for inspecting partial state."
+  nil)
 (def ^:dynamic *pod* "The pod for the current beanfile." nil)
 (def ^:dynamic *directives*
   "Vector of all directives form the beanfile after running plugins."
-  nil)
-(def ^:dynamic *booked-directives*
-  "Vector of all directives form the beanfile after booking and before plugins."
   nil)
 (def ^:dynamic *options* "Map of options from the beanfile." nil)
 (def ^:dynamic *plugins* "Map of plugins from the beanfile." nil)
@@ -30,12 +32,11 @@
   [beans]
   (let [pod (get beans :pod)
         directives (get beans :directives [])
-        booked-directives (get beans :booked-directives [])
         options (get beans :options {})
         plugins (get beans :plugins {})]
+    (alter-var-root #'*beans* (constantly beans))
     (alter-var-root #'*pod* (constantly pod))
     (alter-var-root #'*directives* (constantly directives))
-    (alter-var-root #'*booked-directives* (constantly booked-directives))
     (alter-var-root #'*options* (constantly options))
     (alter-var-root #'*plugins* (constantly plugins))
     (alter-var-root #'*registry*

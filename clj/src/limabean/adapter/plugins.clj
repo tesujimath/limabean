@@ -53,13 +53,26 @@
   [resolved-plugins]
   (boolean (seq (keep :raw-xf resolved-plugins))))
 
+(defn- plugin-error
+  "Construct a plugin error from ex-info"
+  [e sel]
+  (let [exd (ex-data e)
+        span (get-in exd [:dct :span])
+        sel-str (case sel
+                  :raw-xf "raw"
+                  :booked-xf "booked")]
+    (cond-> (merge {:message (if (:plugin exd)
+                               (str sel-str " plugin " (:plugin exd) " failed")
+                               (str "unknown " sel-str " plugin failed"))}
+                   (select-keys exd [:reason :dct]))
+      span (assoc :span span))))
+
 (defn run-xf
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
   [directives resolved-plugins sel]
-  (try {:directives
-          (into [] (compose-resolved-xf resolved-plugins sel) directives)}
+  (try {:ok (into [] (compose-resolved-xf resolved-plugins sel) directives)}
+       (catch clojure.lang.ExceptionInfo e {:err (plugin-error e sel)})
        (catch Exception e
-         {:directives directives,
-          :err (str "ERROR running plugin pipeline, all plugins ignored: "
-                    (.getMessage e)
-                    "\nPlugin diagnostics coming soon")})))
+         {:err {:message (str "Plugin pipeline failed unexpectedly: "
+                              (.getMessage e)
+                              "\nPlugin diagnostics coming soon")}})))
