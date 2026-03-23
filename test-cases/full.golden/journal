@@ -40,3 +40,12 @@
                                                                                                                        957.40 USD
 2023-06-10  Assets:Bank:Savings                                   Transfer                              100.00  NZD  -1395.43 CAD
                                                                                                                        957.40 USD
+2024-02-16  Assets:US:ETrade:IBM                                  Buying some IBM                        10     IBM  -1395.43 CAD
+                                                                                                                        10    IBM
+                                                                                                                       957.40 USD
+2024-02-16  Assets:US:ETrade:Cash                                 Buying some IBM                     -1609.95  USD  -1395.43 CAD
+                                                                                                                        10    IBM
+                                                                                                                      -652.55 USD
+2024-02-16  Expenses:Financial:Commissions                        Buying some IBM                         9.95  USD  -1395.43 CAD
+                                                                                                                        10    IBM
+                                                                                                                      -642.60 USD

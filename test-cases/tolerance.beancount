@@ -4,7 +4,8 @@ option "inferred_tolerance_default" "IDR:0"
 option "inferred_tolerance_default" "USD:0.02"
 option "inferred_tolerance_default" "*:0.001"
 
-plugin "beancount.plugins.auto_accounts"
+2022-08-25 open Assets:Cash
+2022-08-25 open Expenses:Other-Expense
 
 2022-08-25 * "" "Re install gate"
   Assets:Cash             -3000000 IDR

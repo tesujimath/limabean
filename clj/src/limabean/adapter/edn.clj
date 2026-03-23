@@ -1,7 +1,6 @@
-(ns limabean.adapter.beanfile
+(ns limabean.adapter.edn
   (:require [clojure.edn :as edn]
-            [java-time.api :as jt]
-            [limabean.adapter.shell :as shell]))
+            [java-time.api :as jt]))
 
 (def readers {'time/date #(jt/local-date %)})
 
@@ -14,9 +13,3 @@
 (defmethod print-method java.time.LocalDate
   [v w]
   (.write w (str "#time/date \"" v "\"")))
-
-(defn book
-  "Read EDN from limabean-pod book and return or throw"
-  [beancount-path]
-  (let [booked (shell/try-sh "limabean-pod" "book" "-f" "edn" beancount-path)]
-    (read-edn-string booked)))

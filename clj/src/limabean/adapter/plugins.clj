@@ -38,24 +38,21 @@
                         (catch Exception e {:err (.getMessage e)}))]
       (merge plugin resolved))))
 
-(defn resolve-external
-  "Resolve external plugins, returning as an updated map"
+(defn resolve-symbols
+  "Resolve plugin symbols, returning as an updated map"
   [beans]
-  (update-in beans
-             [:plugins :external]
-             #(mapv (resolve-xfs-with-config (:options beans)) %)))
+  (update beans :plugins #(mapv (resolve-xfs-with-config (:options beans)) %)))
 
-(defn- compose-resolved-external-booked-xf
-  "Compose the transducers in the external plugins"
+(defn- compose-resolved-booked-xf
+  "Compose the transducers in the plugins"
   [resolved-plugins]
-  (apply comp (keep :booked-xf (:external resolved-plugins))))
+  (apply comp (keep :booked-xf resolved-plugins)))
 
 (defn run-booked-xf
-  "Run the non-error external plugins"
+  "Run the non-error plugins"
   [directives resolved-plugins]
-  (try {:directives (into []
-                          (compose-resolved-external-booked-xf resolved-plugins)
-                          directives)}
+  (try {:directives
+          (into [] (compose-resolved-booked-xf resolved-plugins) directives)}
        (catch Exception e
          {:directives directives,
           :err (str "ERROR running plugin pipeline, all plugins ignored: "

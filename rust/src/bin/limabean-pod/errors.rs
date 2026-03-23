@@ -1,10 +1,8 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub(crate) enum Error {
-    FatalAndAlreadyExplained,
     Unexpected(Box<dyn std::error::Error>),
-    CannotReadFile(PathBuf, std::io::Error),
     JsonDecode(serde_json::Error, String),
 }
 
@@ -13,11 +11,7 @@ impl Display for Error {
         use Error::*;
 
         match &self {
-            FatalAndAlreadyExplained => Ok(()),
             Unexpected(msg) => write!(f, "unexpected error {}", &msg),
-            CannotReadFile(path, e) => {
-                write!(f, "cannot read file {}: {}", path.to_string_lossy(), e)
-            }
             JsonDecode(e, input) => write!(f, "JSON decode error: {}\n{}", &e, &input),
         }
     }

@@ -17,37 +17,52 @@ name = "limabean-pod"
 path = "src/bin/limabean-pod/main.rs"
 
 [dependencies]
-limabean-booking = { version = "0.9.1", features = [
+limabean-booking = { version = "0.10.1", features = [
   "lima-parser-types",
   "rust-decimal",
 ] }
-# limabean-booking = { path = "../../limabean-booking", version = "0.9.1", features = [
+# limabean-booking = { path = "../../limabean-booking", version = "0.10.1", features = [
 #   "lima-parser-types",
 #   "rust-decimal",
 # ] }
-beancount-parser-lima = "0.14.6"
-# beancount-parser-lima = { version = "0.14.6", path = "../../beancount-parser-lima" }
-rust_decimal = "1.37.2"
+beancount-parser-lima = "0.15.1"
+# beancount-parser-lima = { version = "0.15.1", path = "../../beancount-parser-lima" }
+tabulator = { version = "0.6.0", features = [
+  "bin",
+  "num-bigint",
+  "rust_decimal",
+] }
+# tabulator = { version = "0.6.0", path = "../../tabulator", features = [
+#   "bin",
+#   "num-bigint",
+#   "rust_decimal",
+# ] }
+rust_decimal = { version = "1.37.2", features = [
+  "serde-float",
+  "serde-arbitrary-precision",
+] }
 hashbrown = "0.15.4"
-time = { version = "0.3.41", features = ["local-offset", "parsing"] }
+time = { version = "0.3.41", features = [
+  "local-offset",
+  "formatting",
+  "macros",
+  "parsing",
+  "serde",
+] }
 clap = { version = "4.5.42", features = ["derive"] }
 csv = "1.3.1"
+itertools = "0.14.0"
 slugify = "0.1.0"
 sgmlish = "0.2.0"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = { version = "1.0.145" }
+serde_json = "1.0.145"
 regex = "1.11.1"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 strum = "0.27.2"
 strum_macros = "0.27.2"
 joinery = "3.1.0"
-tabulator = { version = "0.5.0", features = [
-  "bin",
-  "num-bigint",
-  "rust_decimal",
-] }
-itertools = "0.14.0"
+tracing-appender = "0.2.4"
 # tabulator = { path = "../../../tabulator", features = [
 #   "bin",
 #   "num-bigint",
@@ -57,7 +72,6 @@ itertools = "0.14.0"
 [dev-dependencies]
 rstest = "0.26.1"
 rust_decimal_macros = "1.37.2"
-time = { version = "0.3.41", features = ["macros"] }
 
 [build-dependencies]
 build-deps = "0.1.4"

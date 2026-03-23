@@ -1,0 +1,6 @@
+2010-01-02  Assets:Bank                                100     NZD  100    NZD
+2010-01-02  Equity:Opening-Balances                   -100     NZD            
+2010-03-01  Assets:Bank                Buy something   -10.00  NZD  -10.00 NZD
+2010-03-01  Expenses:Other             Buy something    10.00  NZD            
+2010-03-02  Assets:Bank                                -40.00  NZD  -40.00 NZD
+2010-03-02  Equity:Opening-Balances                     40.00  NZD            

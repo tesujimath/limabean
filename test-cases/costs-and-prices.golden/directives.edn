@@ -1,5 +1,5 @@
-[{:acc "Assets:NZ:Cash", :date #time/date "2025-01-01", :dct :open}
- {:acc "Assets:UK:Cash", :date #time/date "2025-01-01", :dct :open}
+[{:acc "Assets:UK:Cash", :date #time/date "2025-01-01", :dct :open}
+ {:acc "Assets:NZ:Cash", :date #time/date "2025-01-01", :dct :open}
  {:date #time/date "2025-01-01",
   :dct :txn,
   :flag "*",
@@ -8,7 +8,7 @@
               :cur "GBP",
               :price {:cur "NZD", :per-unit 1.914M, :total -1914.00000M},
               :units -1000.00M}
-             {:acc "Assets:NZ:Cash", :cur "NZD", :units 1914.00000M}]}
+             {:acc "Assets:NZ:Cash", :cur "NZD", :units 1914.00M}]}
  {:date #time/date "2025-02-01",
   :dct :txn,
   :flag "*",
@@ -40,7 +40,7 @@
                      :per-unit 300.00M,
                      :total 1500.00M},
               :cur "IBM",
-              :units 5M} {:acc "Assets:NZ:Cash", :cur "NZD", :units -1500.00M}]}
+              :units 5} {:acc "Assets:NZ:Cash", :cur "NZD", :units -1500}]}
  {:date #time/date "2025-04-01",
   :dct :txn,
   :flag "*",
@@ -51,7 +51,7 @@
                      :per-unit 303.33333333333333333333333333M,
                      :total 910.00M},
               :cur "IBM",
-              :units 3M} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}]}
+              :units 3} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}]}
  {:date #time/date "2025-04-05",
   :dct :txn,
   :flag "*",
@@ -62,4 +62,4 @@
                      :per-unit 303.33333333333333333333333333M,
                      :total 910.00M},
               :cur "IBM",
-              :units 3M} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}]}]
+              :units 3} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}]}]

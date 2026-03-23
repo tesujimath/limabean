@@ -1,32 +1,13 @@
 (ns limabean.app-test
   (:require [limabean.app :as sut]
-            [limabean.adapter.beanfile :as beanfile]
+            [limabean.adapter.edn :as edn]
             [limabean.adapter.loader :as loader]
+            [limabean.test-support :as test-support]
             [clojure.java.io :as io]
             [clojure.java.shell :as shell]
-            [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]
             [matcho.core :as matcho])
   (:import [java.nio.file Files]))
-
-(def TEST-CASES-DIR "../test-cases")
-
-(defn- sorted-dir-entries
-  "Return a sorted list of files in `dir`, an `io/file`"
-  [dir]
-  (let [unsorted (.list dir)] (sort (vec unsorted))))
-
-(defn get-tests
-  "Look for beancount files in test-cases to generate test base paths"
-  []
-  (->> (sorted-dir-entries (io/file TEST-CASES-DIR))
-       (filter #(str/ends-with? % ".beancount"))
-       (mapv (fn [beanfile-name]
-               (let [name (str/replace beanfile-name ".beancount" "")
-                     beanfile (.getPath (io/file TEST-CASES-DIR beanfile-name))
-                     golden-dir (io/file TEST-CASES-DIR
-                                         (format "%s.golden" name))]
-                 {:name name, :beanfile beanfile, :golden-dir golden-dir})))))
 
 (defn temp-file-path
   [prefix ext]
@@ -61,7 +42,7 @@
       true)))
 
 (deftest app-tests
-  (doseq [{:keys [name beanfile golden-dir]} (get-tests)]
+  (doseq [{:keys [name beanfile golden-dir]} (test-support/get-tests)]
     (testing name
       (doseq [query ["inventory" "rollup" "journal"]]
         (let [actual (temp-file-path name query)
@@ -76,10 +57,16 @@
                         (.getPath expected)))))))))
 
 (deftest beanfile-tests
-  (doseq [{:keys [name beanfile golden-dir]} (get-tests)]
+  (doseq [{:keys [name beanfile golden-dir]} (test-support/get-tests)]
     (testing name
       (let [expected-directives (io/file golden-dir "directives.edn")]
         (when (.exists expected-directives)
-          (let [actual (loader/load-beanfile beanfile)
-                expected (beanfile/read-edn-string (slurp expected-directives))]
-            (matcho/assert expected (:directives actual))))))))
+          (let [actual (try (println "loading" beanfile "to check directives")
+                            (loader/load-beanfile beanfile)
+                            (catch Exception e
+                              (println "Exception while processing" beanfile)
+                              []))
+                expected (edn/read-edn-string (slurp expected-directives))]
+            (matcho/assert expected
+                           (test-support/remove-spans (:directives
+                                                        actual)))))))))
