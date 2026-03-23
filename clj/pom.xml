@@ -18,14 +18,9 @@
       <version>1.1.230</version>
     </dependency>
     <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline-terminal-jni</artifactId>
-      <version>3.30.0</version>
-    </dependency>
-    <dependency>
-      <groupId>dev.weavejester</groupId>
-      <artifactId>cljfmt</artifactId>
-      <version>0.13.0</version>
+      <groupId>com.bhauman</groupId>
+      <artifactId>rebel-readline</artifactId>
+      <version>0.1.7</version>
     </dependency>
     <dependency>
       <groupId>clojure.java-time</groupId>
@@ -41,21 +36,6 @@
       <groupId>cheshire</groupId>
       <artifactId>cheshire</artifactId>
       <version>6.1.0</version>
-    </dependency>
-    <dependency>
-      <groupId>compliment</groupId>
-      <artifactId>compliment</artifactId>
-      <version>0.6.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline-terminal</artifactId>
-      <version>3.30.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jline</groupId>
-      <artifactId>jline-reader</artifactId>
-      <version>3.30.0</version>
     </dependency>
     <dependency>
       <groupId>io.forward</groupId>
