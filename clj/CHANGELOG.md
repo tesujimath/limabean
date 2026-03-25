@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Added
+
+- support for running raw plugins, with auto_accounts as an example
+
 ### Changed
 
 - limabean-pod provides JSON-RPC server instead of one-shot book command

@@ -40,19 +40,24 @@
 
 (defn resolve-symbols
   "Resolve plugin symbols, returning as an updated map"
-  [beans]
-  (update beans :plugins #(mapv (resolve-xfs-with-config (:options beans)) %)))
+  [plugins options]
+  (mapv (resolve-xfs-with-config options) plugins))
 
-(defn- compose-resolved-booked-xf
+(defn- compose-resolved-xf
   "Compose the transducers in the plugins"
-  [resolved-plugins]
-  (apply comp (keep :booked-xf resolved-plugins)))
+  [resolved-plugins sel]
+  (apply comp (keep sel resolved-plugins)))
 
-(defn run-booked-xf
-  "Run the non-error plugins"
-  [directives resolved-plugins]
+(defn has-raw?
+  "Return whether there are raw plugins to run"
+  [resolved-plugins]
+  (boolean (seq (keep :raw-xf resolved-plugins))))
+
+(defn run-xf
+  "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
+  [directives resolved-plugins sel]
   (try {:directives
-          (into [] (compose-resolved-booked-xf resolved-plugins) directives)}
+          (into [] (compose-resolved-xf resolved-plugins sel) directives)}
        (catch Exception e
          {:directives directives,
           :err (str "ERROR running plugin pipeline, all plugins ignored: "

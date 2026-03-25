@@ -1,10 +1,10 @@
 # Plugins and user-supplied code
 
-Plugins in `limabean` are [Clojure transducers](https://clojure.org/reference/transducers).  Currently, they run on fully booked directives.  Running on raw directives before validation is planned but not yet implemented, see [issue #46](https://github.com/tesujimath/limabean/issues/46).
+Plugins in `limabean` are [Clojure transducers](https://clojure.org/reference/transducers), which may run early on raw directives before the booking algorithm, or later on fully booked directives.
 
 In addition, arbitrary user-provided code may be loaded into the REPL (below).
 
-In anticipation of support for raw plugins, the previous internal plugins have been removed.
+With the newly added support for raw plugins, the previous internal plugins have been removed.
 
 Plugins are referenced in the Beanfile by their namespace, e.g.
 
@@ -20,8 +20,7 @@ plugin "limabean.contrib.plugins.examples.magic-money" "{:units 1000.00M :cur \"
 
 In fact, any Clojure value may be supplied, not necessarily a map.  But it must match what the particular plugin is expecting.
 
-The Clojure namespace must define a function `booked-xf`, which is a Clojure transducer on booked directives.
-Soon (but not yet) it will be possible to define a function `raw-xf`, a Clojure transducer on raw directives, which runs before validation.
+The Clojure namespace must define one or both of the functions `raw-xf` and `booked-xf`, each of which is a function returning a Clojure transducer on raw or booked directives respectively.
 
 ## Running plugins
 
@@ -51,13 +50,19 @@ As always, run with `limabean -v` to see what is going on with the Clojure invoc
 
 Note: it is not possible to load plugins when running in the standalone mode, which uses `java` rather than `clojure`.
 
+## Writing plugins
+
+The plugin development framework is a work-in-progress.  In particular, error handling and diagnostics are not yet addressed.
+
+However, both raw and booked plugins are supported, as per the examples below.
+
 ### Plugin namespaces
 
 A limabean plugin namespace is simply a [Clojure namespace](https://guide.clojure.style/#naming-ns-naming-schemas).  Please avoid defining your own plugins in the `limabean` namespace, although [limabean.contrib.plugins](https://github.com/tesujimath/limabean-contrib) is a good choice if you want to contribute your plugin there (please do!).  Otherwise, use your own domain.
 
-## Examples
+### Examples
 
-### Set narration
+#### Set narration
 
 The test plugin [set-narration](../test/limabean/test/plugins/set_narration.clj) is the simplest possible plugin example, which overrides the narration field of each transaction according to its configuration, as in [this example beancount file](../../test-cases/set-narration-plugin-with-config.beancount).
 
@@ -82,7 +87,33 @@ user=> (binding [*directives* *booked-directives*] (show (journal)))
 :ok
 ```
 
-### Running plugins manually
+#### Auto accounts
+
+The original Beancount plugin `auto_accounts` has been implemented as a [raw plugin](../src/beancount/plugins/auto_accounts.clj).
+
+#### Magic Money
+
+The [magic-money example](https://github.com/tesujimath/limabean-contrib/blob/main/src/limabean/contrib/plugins/examples/magic_money.clj) is a more sophisticated plugin which inserts additional directives, namely a transaction after every `open` directive to add some money to the account, from a specified equity account.  It works as a [stateful transducer](https://clojure.org/reference/transducers#_transducers_with_reduction_state).
+
+```
+kiri> limabean --beanfile ../examples/beancount/magic-money-plugin.beancount
+[Rebel readline] Type :repl/help for online help info
+[limabean] 4 directives loaded from ../examples/beancount/magic-money-plugin.beancount
+[limabean] 7 directives resulting from running plugins
+
+user=> (show (journal))
+2016-03-01  Equity:Rich-American-Uncle                        -1000.00  USD  -1000.00 USD
+2016-03-01  Assets:Bank:Current         magical benefactor     1000.00  USD
+2016-03-01  Equity:Rich-American-Uncle                        -1000.00  USD  -1000.00 USD
+2016-03-01  Expenses:Groceries          magical benefactor     1000.00  USD
+2023-05-29  Expenses:Groceries          New World                10.00  NZD     10.00 NZD
+2023-05-29  Assets:Bank:Current         New World               -10.00  NZD
+2023-05-30  Expenses:Groceries          Countdown                17.50  NZD     17.50 NZD
+2023-05-30  Assets:Bank:Current         Countdown               -17.50  NZD
+:ok
+```
+
+## Running plugins manually
 
 The resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
 
@@ -104,28 +135,6 @@ user=> (into [] set-narration-xf *booked-directives*)
  {:date #object[java.time.LocalDate 0x1c0b38af "2023-05-30"], :dct :txn, :flag "*", :payee "Countdown",
   :postings [{:acc "Expenses:Groceries", :units 17.50M, :cur "NZD"}
              {:acc "Assets:Bank:Current", :units -17.50M, :cur "NZD"}], :narration "Plugins rule ok!"}]
-```
-
-### Magic Money
-
-The [magic-money example](https://github.com/tesujimath/limabean-contrib/blob/main/src/limabean/contrib/plugins/examples/magic_money.clj) is a more sophisticated plugin which inserts additional directives, namely a transaction after every `open` directive to add some money to the account, from a specified equity account.  It works as a [stateful transducer](https://clojure.org/reference/transducers#_transducers_with_reduction_state).
-
-```
-kiri> limabean --beanfile ../examples/beancount/magic-money-plugin.beancount
-[Rebel readline] Type :repl/help for online help info
-[limabean] 4 directives loaded from ../examples/beancount/magic-money-plugin.beancount
-[limabean] 7 directives resulting from running plugins
-
-user=> (show (journal))
-2016-03-01  Equity:Rich-American-Uncle                        -1000.00  USD  -1000.00 USD
-2016-03-01  Assets:Bank:Current         magical benefactor     1000.00  USD
-2016-03-01  Equity:Rich-American-Uncle                        -1000.00  USD  -1000.00 USD
-2016-03-01  Expenses:Groceries          magical benefactor     1000.00  USD
-2023-05-29  Expenses:Groceries          New World                10.00  NZD     10.00 NZD
-2023-05-29  Assets:Bank:Current         New World               -10.00  NZD
-2023-05-30  Expenses:Groceries          Countdown                17.50  NZD     17.50 NZD
-2023-05-30  Assets:Bank:Current         Countdown               -17.50  NZD
-:ok
 ```
 
 ## User-provided code
