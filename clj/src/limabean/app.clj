@@ -34,7 +34,8 @@
        (catch Exception e
          (binding [*out* *err*]
            (println "Error:" expr-str)
-           (print-causes e)))))
+           (print-causes e)
+           (System/exit 1)))))
 
 (defn run
   "Run the REPL or evaluate an expression and exit"
