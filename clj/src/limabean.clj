@@ -65,7 +65,7 @@
   (logging/initialize)
   (let [beans (loader/load-beanfile path)]
     (binding [*out* *err*]
-      (println "[limabean]" (count (:booked-directives beans))
+      (println "[limabean]" (count (:raw-directives beans))
                "directives loaded from" path)
       (let [bad-plugins (filter :err (:plugins beans))]
         (doseq [plugin bad-plugins]

@@ -596,7 +596,7 @@ checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
 
 [[package]]
 name = "limabean"
-version = "0.3.2"
+version = "0.4.0-SNAPSHOT"
 dependencies = [
  "beancount-parser-lima",
  "build-deps",
