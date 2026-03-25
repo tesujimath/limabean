@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Fixed
+
+- fix count of raw directives printed on startup
+- exit 1 if eval fails
+
 ### Added
 
 - support for running raw plugins, with auto_accounts as an example
