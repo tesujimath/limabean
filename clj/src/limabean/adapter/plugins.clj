@@ -14,7 +14,7 @@
            (if (seq xfs)
              xfs
              {:err "Failed to find either booked-xf or raw-xf in plugin"}))
-         (catch Exception e {:err "could not load namespace for plugin"}))))
+         (catch Exception _ {:err "could not load namespace for plugin"}))))
 
 (defn- resolve-xfs-with-config'
   "Resolve a plugin and apply config and options"
@@ -48,31 +48,15 @@
   [resolved-plugins sel]
   (apply comp (keep sel resolved-plugins)))
 
-(defn has-raw?
-  "Return whether there are raw plugins to run"
-  [resolved-plugins]
-  (boolean (seq (keep :raw-xf resolved-plugins))))
-
-(defn- plugin-error
-  "Construct a plugin error from ex-info"
-  [e sel]
-  (let [exd (ex-data e)
-        span (get-in exd [:dct :span])
-        sel-str (case sel
-                  :raw-xf "raw"
-                  :booked-xf "booked")]
-    (cond-> (merge {:message (if (:plugin exd)
-                               (str sel-str " plugin " (:plugin exd) " failed")
-                               (str "unknown " sel-str " plugin failed"))}
-                   (select-keys exd [:reason :dct]))
-      span (assoc :span span))))
+(defn has-specified-plugins?
+  "Return whether there are plugins of the given kind to run"
+  [resolved-plugins sel]
+  (boolean (seq (keep sel resolved-plugins))))
 
 (defn run-xf
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
   [directives resolved-plugins sel]
-  (try {:ok (into [] (compose-resolved-xf resolved-plugins sel) directives)}
-       (catch clojure.lang.ExceptionInfo e {:err (plugin-error e sel)})
-       (catch Exception e
-         {:err {:message (str "Plugin pipeline failed unexpectedly: "
-                              (.getMessage e)
-                              "\nPlugin diagnostics coming soon")}})))
+  ;; TODO actually separate out directives and errors with plugin
+  ;; transducers wrapper
+  {:directives (into [] (compose-resolved-xf resolved-plugins sel) directives),
+   :errors []})

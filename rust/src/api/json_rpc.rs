@@ -74,11 +74,24 @@ pub(crate) enum ResultData<'a, 'b> {
     Ok,
     Plugins(&'b [Plugin<'a>]),
     #[serde(borrow)]
-    RawDirectives(Vec<Directive<'a>>),
+    RawDirectives(RawDirectives<'a>),
     Report(Cow<'b, str>),
     ResolvedSpan(SpannedSource<'a>),
     // TODO also return warnings with booked
-    Booked(Vec<booked::Directive<'a>>),
+    BookedDirectives(BookedDirectives<'a>),
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct RawDirectives<'a> {
+    pub(crate) directives: Vec<Directive<'a>>,
+    pub(crate) warnings: Option<Vec<Report<'a>>>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct BookedDirectives<'a> {
+    pub(crate) directives: Vec<booked::Directive<'a>>,
 }
 
 #[derive(Serialize, Clone, Debug)]

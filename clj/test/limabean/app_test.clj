@@ -64,7 +64,9 @@
           (let [actual (try (println "loading" beanfile "to check directives")
                             (loader/load-beanfile beanfile)
                             (catch Exception e
-                              (println "Exception while processing" beanfile)
+                              (println "Exception while processing"
+                                       beanfile
+                                       (.getMessage e))
                               []))
                 expected (edn/read-edn-string (slurp expected-directives))]
             (matcho/assert expected

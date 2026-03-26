@@ -214,12 +214,13 @@ impl<'a> HealthyServer<'a> {
             Ok(Parsed { directives, .. }) => {
                 let response = ResultResponse::new(
                     id,
-                    ResultData::RawDirectives(
-                        directives
+                    ResultData::RawDirectives(RawDirectives {
+                        directives: directives
                             .iter()
                             .map(Into::<Directive>::into)
                             .collect::<Vec<_>>(),
-                    ),
+                        warnings: None,
+                    }),
                 );
 
                 write_response(&response, w)
@@ -309,7 +310,10 @@ impl<'a> HealthyServer<'a> {
                         warnings: _,
                     }) => {
                         // TODO warnings
-                        let response = ResultResponse::new(id, ResultData::Booked(directives));
+                        let response = ResultResponse::new(
+                            id,
+                            ResultData::BookedDirectives(BookedDirectives { directives }),
+                        );
                         write_response(&response, w)
                     }
 

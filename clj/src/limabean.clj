@@ -7,40 +7,33 @@
             [limabean.adapter.show :as show]
             [limabean.core.filters :as f]
             [limabean.core.inventory :as inventory]
-            [limabean.core.registry :as registry]
             [limabean.core.xf :as xf]
             [limabean.core.journal :as journal]
+            [limabean.core.registry :as registry]
             [limabean.core.rollup :as rollup]
             [limabean.adapter.pod :as pod]))
 
 (def ^:dynamic *beans*
-  "An aggregate of all the dynamic variables for the current beanfile.
+  "An aggregate of the elements which were used in deriving the directives for the current beanfile.
 
   Useful in case of failed plugins, for inspecting partial state."
   nil)
-(def ^:dynamic *pod* "The pod for the current beanfile." nil)
 (def ^:dynamic *directives*
   "Vector of all directives form the beanfile after running plugins."
   nil)
 (def ^:dynamic *options* "Map of options from the beanfile." nil)
-(def ^:dynamic *plugins* "Map of plugins from the beanfile." nil)
 (def ^:dynamic *registry*
   "Map of attributes derived from directives and options, e.g. booking method for account."
   nil)
 
 (defn- assign-limabean-globals
   [beans]
-  (let [pod (get beans :pod)
-        directives (get beans :directives [])
-        options (get beans :options {})
-        plugins (get beans :plugins {})]
+  (let [directives (get beans :directives [])
+        options (get beans :options {})]
     (alter-var-root #'*beans* (constantly beans))
-    (alter-var-root #'*pod* (constantly pod))
     (alter-var-root #'*directives* (constantly directives))
     (alter-var-root #'*options* (constantly options))
-    (alter-var-root #'*plugins* (constantly plugins))
-    (alter-var-root #'*registry*
-                    (constantly (registry/build directives options)))))
+    (alter-var-root #'*registry* (constantly (:registry beans)))))
 
 (defn- split-args-and-opts
   "Return a list of args and hashmap of opts, by splitting on the first keyword."
@@ -61,7 +54,7 @@
 
 (defn load-beanfile
   [path]
-  (when *pod* (pod/stop *pod*))
+  (when (:pod *beans*) (pod/stop (:pod *beans*)))
   (assign-limabean-globals {})
   (logging/initialize)
   (let [beans (loader/load-beanfile path)]

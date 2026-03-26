@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file. This change
 
 - limabean-pod provides JSON-RPC server instead of one-shot book command
 - at least Clojure 1.12 required
+- remove dynamic variables *plugins* and *booked-directives* in favour of *beans* aggregate
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.3.2...HEAD
 
