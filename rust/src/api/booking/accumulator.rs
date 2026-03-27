@@ -12,27 +12,27 @@ use std::{
 use tabulator::{Align, Cell};
 use time::Date;
 
-use crate::api::types::{Element, booked, raw};
+use crate::api::types::{IndexedElement, IndexedErrorOrWarning, booked, raw};
 
 #[derive(Debug)]
 pub(crate) struct Accumulator<'a, 'd, 't> {
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
-    open_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
-    closed_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
+    open_accounts: hashbrown::HashMap<&'a str, IndexedElement>,
+    closed_accounts: hashbrown::HashMap<&'a str, IndexedElement>,
     accounts: HashMap<&'a str, AccountBuilder<'a, 'd>>,
     currency_usage: hashbrown::HashMap<&'a str, i32>,
     default_booking: Booking,
     tolerance: &'t LimaTolerance<'a>,
-    warnings: Vec<parser::AnnotatedWarning>,
+    warnings: Vec<IndexedErrorOrWarning>,
 }
 
 pub(crate) struct BookingSuccess<'a> {
     pub(crate) directives: Vec<booked::Directive<'a>>,
-    pub(crate) warnings: Vec<parser::AnnotatedWarning>,
+    pub(crate) warnings: Vec<IndexedErrorOrWarning>,
 }
 
 pub(crate) struct BookingFailure {
-    pub(crate) errors: Vec<parser::AnnotatedError>,
+    pub(crate) errors: Vec<IndexedErrorOrWarning>,
 }
 
 impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
@@ -52,7 +52,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     fn validate<'b>(
         self,
         directives: Vec<booked::Directive<'b>>,
-        mut errors: Vec<parser::AnnotatedError>,
+        mut errors: Vec<IndexedErrorOrWarning>,
     ) -> Result<BookingSuccess<'b>, BookingFailure>
     where
         'a: 'b,
@@ -63,11 +63,10 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
 
         // check for unused pad directives
         for account in accounts.values() {
-            if let Some(pad_idx) = &account.pad_idx {
+            if let Some(pad) = &account.pad {
                 errors.push(
-                    Into::<parser::Spanned<Element>>::into(&directives[*pad_idx])
-                        .error("unused, no balance directive")
-                        .into(),
+                    Into::<IndexedElement>::into(&directives[pad.0])
+                        .error_or_warning("unused, no balance directive"),
                 )
             }
         }
@@ -94,11 +93,16 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let mut errors = Vec::default();
         let mut booked_directives = Vec::default();
 
-        for raw in directives {
-            match self.directive(raw, booked_directives.len(), &mut booked_directives) {
+        for (raw_idx, raw) in directives.into_iter().enumerate() {
+            match self.directive(
+                raw,
+                (raw, raw_idx).into(),
+                booked_directives.len(),
+                &mut booked_directives,
+            ) {
                 Ok((booked_variant, pad_txn)) => {
                     booked_directives.push(booked::Directive {
-                        span: raw.span,
+                        raw_idx,
                         date: raw.date,
                         tags: raw.tags.clone(),
                         links: raw.links.clone(),
@@ -108,7 +112,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
 
                     if let Some(pad_txn) = pad_txn {
                         booked_directives.push(booked::Directive {
-                            span: raw.span,
+                            raw_idx,
                             date: raw.date,
                             tags: raw.tags.clone(),
                             links: raw.links.clone(),
@@ -129,14 +133,15 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     fn directive<'r, 'b>(
         &mut self,
         directive: &'r raw::Directive<'a>,
-        idx: usize,
+        element: IndexedElement,
+        booked_idx: usize,
         booked_directives: &mut Vec<booked::Directive<'b>>,
     ) -> Result<
         (
             booked::DirectiveVariant<'b>,
             Option<booked::DirectiveVariant<'b>>,
         ),
-        parser::AnnotatedError,
+        IndexedErrorOrWarning,
     >
     where
         'a: 'r + 'b + 'd,
@@ -146,20 +151,19 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         use raw::DirectiveVariant as RDV;
 
         let date = directive.date;
-        let element = directive.into();
 
         match &directive.variant {
             RDV::Transaction(transaction) => self
-                .transaction(transaction, date, &element)
+                .transaction(transaction, date, element)
                 .map(|x| (x, None)),
             RDV::Price(price) => Ok((BDV::Price(price.clone()), None)),
             RDV::Balance(balance) => self
-                .balance(balance, date, &element, booked_directives)
+                .balance(balance, date, element, booked_directives)
                 .map(|x| (x, None)),
-            RDV::Open(open) => self.open(open, date, &element).map(|x| (x, None)),
-            RDV::Close(close) => self.close(close, date, &element).map(|x| (x, None)),
+            RDV::Open(open) => self.open(open, date, element).map(|x| (x, None)),
+            RDV::Close(close) => self.close(close, date, element).map(|x| (x, None)),
             RDV::Commodity(commodity) => Ok((BDV::Commodity(commodity.clone()), None)),
-            RDV::Pad(pad) => self.pad(pad, date, idx, &element, booked_directives),
+            RDV::Pad(pad) => self.pad(pad, date, booked_idx, element, booked_directives),
             RDV::Document(document) => Ok((BDV::Document(document.clone()), None)),
             RDV::Note(note) => Ok((BDV::Note(note.clone()), None)),
             RDV::Event(event) => Ok((BDV::Event(event.clone()), None)),
@@ -172,8 +176,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &mut self,
         transaction: &'r raw::Transaction<'a>,
         date: Date,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
+        element: IndexedElement,
+    ) -> Result<booked::DirectiveVariant<'b>, IndexedErrorOrWarning>
     where
         'a: 'r + 'b + 'd,
         'r: 'b + 'd,
@@ -206,8 +210,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         date: Date,
         postings: &'r [raw::PostingSpec<'a>],
         description: &'d str,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<Vec<booked::Posting<'a>>, parser::AnnotatedError>
+        element: IndexedElement,
+    ) -> Result<Vec<booked::Posting<'a>>, IndexedErrorOrWarning>
     where
         'a: 'r + 'b + 'd,
         'r: 'b + 'd,
@@ -236,12 +240,13 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                 if let Some(error) = interpolated_postings
                     .iter()
                     .zip(&postings)
-                    .filter_map(|(interpolated, posting)| {
-                        let posting_element = (*posting).into();
+                    .enumerate()
+                    .filter_map(|(posting_idx, (interpolated, posting))| {
+                        let posting_element = (element, posting_idx).into();
                         self.validate_account_and_currency(
                             posting.acc,
                             interpolated.currency,
-                            &posting_element,
+                            posting_element,
                         )
                         .map_or_else(Some, |_| None)
                     })
@@ -255,7 +260,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                 let booked_postings = interpolated_postings
                     .into_iter()
                     .zip(&postings)
-                    .flat_map(|(interpolated, posting)| {
+                    .enumerate()
+                    .flat_map(|(posting_idx, (interpolated, posting))| {
                         let account = posting.acc;
                         let Interpolated {
                             units,
@@ -269,7 +275,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                             costs
                                 .into_currency_costs()
                                 .map(|(cost_cur, cost)| booked::Posting {
-                                    span: posting.span,
+                                    raw_idx: Some(posting_idx),
                                     flag: posting.flag.clone(),
                                     acc: account,
                                     units: cost.units,
@@ -283,7 +289,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                                 .collect::<Vec<_>>()
                         } else {
                             vec![booked::Posting {
-                                span: posting.span,
+                                raw_idx: Some(posting_idx),
                                 flag: posting.flag.clone(),
                                 acc: account,
                                 units,
@@ -356,12 +362,12 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                 use limabean_booking::BookingError::*;
 
                 match &e {
-                    Transaction(e) => Err(element.error(e.to_string()).into()),
+                    Transaction(e) => Err(element.error_or_warning(e.to_string())),
                     Posting(idx, e) => {
                         // TODO attach posting error to actual posting
                         // let bad_posting = postings[*idx];
                         // bad_posting.error(e.to_string()).into()
-                        Err(element.error(format!("{e} on posting {idx}")).into())
+                        Err(element.error_or_warning(format!("{e} on posting {idx}")))
                     }
                 }
             }
@@ -371,25 +377,24 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     fn validate_account(
         &self,
         account_name: &'a str,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<(), parser::AnnotatedError> {
+        element: IndexedElement,
+    ) -> Result<(), IndexedErrorOrWarning> {
         if self.open_accounts.contains_key(account_name) {
             Ok(())
         } else if let Some(closed) = self.closed_accounts.get(account_name) {
             Err(element
-                .error("account was closed")
-                .related_to(closed)
-                .into())
+                .error_or_warning("account was closed")
+                .related_to(closed))
         } else {
-            Err(element.error("account not open").into())
+            Err(element.error_or_warning("account not open"))
         }
     }
 
     fn get_valid_account(
         &self,
         account_name: &'a str,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<&AccountBuilder<'a, 'd>, parser::AnnotatedError> {
+        element: IndexedElement,
+    ) -> Result<&AccountBuilder<'a, 'd>, IndexedErrorOrWarning> {
         self.validate_account(account_name, element)?;
         Ok(self.accounts.get(account_name).unwrap())
     }
@@ -397,8 +402,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     fn get_mut_valid_account(
         &mut self,
         account_name: &'a str,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<&mut AccountBuilder<'a, 'd>, parser::AnnotatedError> {
+        element: IndexedElement,
+    ) -> Result<&mut AccountBuilder<'a, 'd>, IndexedErrorOrWarning> {
         self.validate_account(account_name, element)?;
         Ok(self.accounts.get_mut(account_name).unwrap())
     }
@@ -407,8 +412,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &self,
         account_name: &'a str,
         currency: &'a str,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<(), parser::AnnotatedError> {
+        element: IndexedElement,
+    ) -> Result<(), IndexedErrorOrWarning> {
         let account = self.get_valid_account(account_name, element)?;
         account.validate_currency(currency, element)
     }
@@ -447,9 +452,9 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &mut self,
         balance: &'r raw::Balance<'a>,
         date: Date,
-        element: &parser::Spanned<Element<'static>>,
+        element: IndexedElement,
         booked_directives: &mut [booked::Directive<'b>],
-    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
+    ) -> Result<booked::DirectiveVariant<'b>, IndexedErrorOrWarning>
     where
         'a: 'r + 'b,
         'r: 'b,
@@ -463,7 +468,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let account = self.get_mut_valid_account(balance.acc, element)?;
         account.validate_currency(balance.cur, element)?;
         // pad can't last beyond balance
-        let pad_idx = account.pad_idx.take();
+        let pad_element = account.pad.take();
 
         if margin.is_none() {
             // balance assertion is correct, and we already cleared the pad, so:
@@ -471,19 +476,16 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             account.balance_diagnostics.clear();
 
             // but if there was a pad directive, we ought to have used it, so:
-            if let Some(pad_idx) = pad_idx {
-                return Err(
-                    Into::<parser::Spanned<Element>>::into(&booked_directives[pad_idx])
-                        .error("unused, no balance adjustment required")
-                        .into(),
-                );
+            if let Some(pad) = pad_element {
+                return Err(Into::<IndexedElement>::into(&booked_directives[pad.0])
+                    .error_or_warning("unused, no balance adjustment required"));
             } else {
                 return Ok(booked::DirectiveVariant::Balance(balance.clone()));
             }
         }
         let margin = margin.unwrap();
 
-        if pad_idx.is_none() {
+        if pad_element.is_none() {
             // balance assertion is incorrect and we have no pad to take up the slack, so:
 
             let err = Err(construct_balance_error_and_clear_diagnostics(
@@ -498,7 +500,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
 
             return err;
         }
-        let pad_idx = pad_idx.unwrap();
+        let (pad_idx, _) = pad_element.unwrap();
 
         adjust_account_to_match_balance(account, balance.cur, margin, Adjustment::Add);
         account.balance_diagnostics.clear();
@@ -515,8 +517,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
 
         let booked::DirectiveVariant::Pad(pad) = &booked_directives[pad_idx].variant else {
             panic!(
-                "directive at pad_idx {pad_idx} is not a pad, is {:?}",
-                &booked_directives[pad_idx]
+                "directive at pad_idx {} is not a pad, is {:?}",
+                pad_idx, &booked_directives[pad_idx]
             );
         };
         let pad_source = pad.source;
@@ -531,13 +533,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             );
         };
 
-        txn.postings = calculate_balance_pad_postings(
-            balance.cur,
-            margin,
-            balance.acc,
-            pad_source,
-            element.span().into(),
-        );
+        txn.postings = calculate_balance_pad_postings(balance.cur, margin, balance.acc, pad_source);
 
         let pad_account = self.accounts.get_mut(pad_source).unwrap();
         adjust_account_to_match_balance(pad_account, balance.cur, margin, Adjustment::Subtract);
@@ -549,8 +545,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &mut self,
         open: &'r raw::Open<'a>,
         _date: Date,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
+        element: IndexedElement,
+    ) -> Result<booked::DirectiveVariant<'b>, IndexedErrorOrWarning>
     where
         'a: 'r + 'b,
         'r: 'b,
@@ -559,19 +555,17 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         match self.open_accounts.entry(open.acc) {
             Occupied(open_entry) => {
                 return Err(element
-                    .error("account already opened")
-                    .related_to(open_entry.get())
-                    .into());
+                    .error_or_warning("account already opened")
+                    .related_to(open_entry.get()));
             }
             Vacant(open_entry) => {
-                open_entry.insert(*element);
+                open_entry.insert(element);
 
                 // cannot reopen a closed account
                 if let Some(closed) = self.closed_accounts.get(open.acc) {
                     return Err(element
-                        .error("account was closed")
-                        .related_to(closed)
-                        .into());
+                        .error_or_warning("account was closed")
+                        .related_to(closed));
                 } else {
                     let mut booking = open
                         .booking
@@ -581,7 +575,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                     if !is_supported_method(booking) {
                         let default_booking = Booking::default();
                         self.warnings.push(
-                            element .warning(format!( "booking method {booking} unsupported, falling back to default {default_booking}" )) .into(),
+                            element.error_or_warning(format!( "booking method {booking} unsupported, falling back to default {default_booking}" )),
                         );
                         booking = default_booking;
                     }
@@ -591,7 +585,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                         AccountBuilder::new(
                             open.currencies.iter().flatten().copied(),
                             booking,
-                            *element,
+                            element,
                         ),
                     );
                 }
@@ -601,11 +595,10 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         if let Some(booking) = open.booking {
             if is_supported_method(booking.into()) {
             } else {
-                self.warnings.push(
-                    element
-                        .warning("booking method {} unsupported, falling back to default")
-                        .into(),
-                );
+                self.warnings
+                    .push(element.error_or_warning(
+                        "booking method {} unsupported, falling back to default",
+                    ));
             }
         }
 
@@ -616,8 +609,8 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &mut self,
         close: &'r raw::Close<'a>,
         _date: Date,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<booked::DirectiveVariant<'b>, parser::AnnotatedError>
+        element: IndexedElement,
+    ) -> Result<booked::DirectiveVariant<'b>, IndexedErrorOrWarning>
     where
         'a: 'r + 'b,
         'r: 'b,
@@ -629,18 +622,17 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                     Occupied(closed_entry) => {
                         // cannot reclose a closed account
                         return Err(element
-                            .error("account was already closed")
-                            .related_to(closed_entry.get())
-                            .into());
+                            .error_or_warning("account was already closed")
+                            .related_to(closed_entry.get()));
                     }
                     Vacant(closed_entry) => {
                         open_entry.remove_entry();
-                        closed_entry.insert(*element);
+                        closed_entry.insert(element);
                     }
                 }
             }
             Vacant(_) => {
-                return Err(element.error("account not open").into());
+                return Err(element.error_or_warning("account not open"));
             }
         }
 
@@ -652,14 +644,14 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         pad: &'r raw::Pad<'a>,
         _date: Date,
         idx: usize,
-        element: &parser::Spanned<Element<'static>>,
+        element: IndexedElement,
         booked_directives: &[booked::Directive<'b>],
     ) -> Result<
         (
             booked::DirectiveVariant<'b>,
             Option<booked::DirectiveVariant<'b>>,
         ),
-        parser::AnnotatedError,
+        IndexedErrorOrWarning,
     >
     where
         'a: 'r + 'b,
@@ -667,20 +659,19 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     {
         let account = self.get_mut_valid_account(pad.acc, element)?;
 
-        let unused_pad_idx = account.pad_idx.take();
+        let unused_pad = account.pad.take();
 
         // unused pad directives are errors
         // https://beancount.github.io/docs/beancount_language_syntax.html#unused-pad-directives
-        if let Some(unused_pad_idx) = unused_pad_idx {
+        if let Some(unused_pad) = unused_pad {
             return Err(
-                Into::<parser::Spanned<Element>>::into(&booked_directives[unused_pad_idx])
-                    .error("unused, second pad encountered")
-                    .related_to(element)
-                    .into(),
+                Into::<IndexedElement>::into(&booked_directives[unused_pad.0])
+                    .error_or_warning("unused, second pad encountered")
+                    .related_to(&element),
             );
         }
 
-        account.pad_idx = Some(idx);
+        account.pad = Some((idx, element));
 
         Ok((
             booked::DirectiveVariant::Pad(pad.clone()),
@@ -709,11 +700,10 @@ fn calculate_balance_pad_postings<'a>(
     margin: Decimal,
     balance_account: &'a str,
     pad_source: &'a str,
-    pad_span: raw::Span,
 ) -> Vec<booked::Posting<'a>> {
     vec![
         booked::Posting {
-            span: pad_span,
+            raw_idx: None,
             flag: Some(Cow::Borrowed(PAD_FLAG)),
             acc: balance_account,
             units: margin,
@@ -725,7 +715,7 @@ fn calculate_balance_pad_postings<'a>(
             metadata: None,
         },
         booked::Posting {
-            span: pad_span,
+            raw_idx: None,
             flag: Some(Cow::Borrowed(PAD_FLAG)),
             acc: pad_source,
             units: -margin,
@@ -743,8 +733,8 @@ fn construct_balance_error_and_clear_diagnostics<'a, 'd>(
     account: &mut AccountBuilder<'a, 'd>,
     cur: &'a str,
     margin: Decimal,
-    element: &parser::Spanned<Element<'static>>,
-) -> parser::AnnotatedError {
+    element: IndexedElement,
+) -> IndexedErrorOrWarning {
     let reason = format!(
         "accumulated {}, error {} {}",
         if account.positions.is_empty() {
@@ -778,7 +768,7 @@ fn construct_balance_error_and_clear_diagnostics<'a, 'd>(
     );
 
     element
-        .error(reason)
+        .error_or_warning(reason)
         .with_annotation(annotation.to_string())
 }
 
@@ -810,18 +800,14 @@ fn adjust_account_to_match_balance<'a, 'd>(
 struct AccountBuilder<'a, 'd> {
     allowed_currencies: HashSet<&'a str>,
     positions: Positions<'a>,
-    opened: parser::Spanned<Element<'static>>,
-    pad_idx: Option<usize>, // index in directives
+    opened: IndexedElement,
+    pad: Option<(usize, IndexedElement)>, // index in booked directives
     balance_diagnostics: Vec<BalanceDiagnostic<'a, 'd>>,
     booking: Booking,
 }
 
 impl<'a, 'd> AccountBuilder<'a, 'd> {
-    fn new<I>(
-        allowed_currencies: I,
-        booking: Booking,
-        opened: parser::Spanned<Element<'static>>,
-    ) -> Self
+    fn new<I>(allowed_currencies: I, booking: Booking, opened: IndexedElement) -> Self
     where
         I: Iterator<Item = &'a str>,
     {
@@ -829,7 +815,7 @@ impl<'a, 'd> AccountBuilder<'a, 'd> {
             allowed_currencies: allowed_currencies.collect(),
             positions: Positions::default(),
             opened,
-            pad_idx: None,
+            pad: None,
             balance_diagnostics: Vec::default(),
             booking,
         }
@@ -843,15 +829,14 @@ impl<'a, 'd> AccountBuilder<'a, 'd> {
     fn validate_currency(
         &self,
         currency: &'a str,
-        element: &parser::Spanned<Element<'static>>,
-    ) -> Result<(), parser::AnnotatedError> {
+        element: IndexedElement,
+    ) -> Result<(), IndexedErrorOrWarning> {
         if self.is_currency_valid(currency) {
             Ok(())
         } else {
             Err(element
-                .error("currency incompatible with account")
-                .related_to(&self.opened)
-                .into())
+                .error_or_warning("currency incompatible with account")
+                .related_to(&self.opened))
         }
     }
 }

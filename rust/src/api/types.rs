@@ -1,4 +1,3 @@
-use beancount_parser_lima as parser;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use time::Date;
@@ -30,48 +29,120 @@ pub struct Report<'a> {
     pub(crate) annotation: Option<Cow<'a, str>>,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub(crate) struct Element<'a> {
-    element_type: &'a str,
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct IndexedErrorOrWarning {
+    pub(crate) reason: String,
+    pub(crate) element: IndexedElement,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) related: Option<Vec<IndexedElement>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) annotation: Option<String>,
 }
 
-impl<'a> parser::ElementType<'a> for Element<'a> {
-    fn element_type(&self) -> &'a str {
-        self.element_type
+impl IndexedErrorOrWarning {
+    pub(crate) fn related_to(mut self, element: &IndexedElement) -> Self {
+        self.related.get_or_insert(Vec::default()).push(*element);
+        self
+    }
+
+    pub(crate) fn with_annotation<S>(mut self, annotation: S) -> Self
+    where
+        S: Into<String>,
+    {
+        self.annotation = Some(annotation.into());
+        self
     }
 }
 
-impl<'a> From<&raw::Directive<'a>> for parser::Spanned<Element<'static>> {
-    fn from(value: &raw::Directive<'a>) -> Self {
-        parser::spanned(
-            Element {
-                element_type: (&value.variant).into(),
-            },
-            value.span.into(),
-        )
+#[derive(Serialize, Copy, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct IndexedElement {
+    #[serde(rename = "type")]
+    pub(crate) element_type: &'static str,
+    pub(crate) raw_idx: ElementIdx,
+}
+
+impl IndexedElement {
+    pub(crate) fn error_or_warning<S>(self, reason: S) -> IndexedErrorOrWarning
+    where
+        S: Into<String>,
+    {
+        IndexedErrorOrWarning {
+            reason: reason.into(),
+            element: self,
+            related: None,
+            annotation: None,
+        }
+    }
+
+    fn dct_idx(self) -> usize {
+        self.raw_idx.dct_idx()
     }
 }
 
-impl<'a> From<&booked::Directive<'a>> for parser::Spanned<Element<'static>> {
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum ElementIdx {
+    Directive(usize),
+    Posting(usize, usize),
+}
+
+impl ElementIdx {
+    fn dct_idx(self) -> usize {
+        use ElementIdx::*;
+
+        match self {
+            Directive(idx) => idx,
+            Posting(idx, _) => idx,
+        }
+    }
+}
+
+impl From<usize> for ElementIdx {
+    fn from(value: usize) -> Self {
+        ElementIdx::Directive(value)
+    }
+}
+
+impl From<(usize, usize)> for ElementIdx {
+    fn from(value: (usize, usize)) -> Self {
+        ElementIdx::Posting(value.0, value.1)
+    }
+}
+
+impl<'a> From<(&raw::Directive<'a>, usize)> for IndexedElement {
+    fn from(value: (&raw::Directive<'a>, usize)) -> Self {
+        IndexedElement {
+            element_type: (&value.0.variant).into(),
+            raw_idx: value.1.into(),
+        }
+    }
+}
+
+impl<'a> From<&booked::Directive<'a>> for IndexedElement {
     fn from(value: &booked::Directive<'a>) -> Self {
-        parser::spanned(
-            Element {
-                element_type: (&value.variant).into(),
-            },
-            value.span.into(),
-        )
+        IndexedElement {
+            element_type: (&value.variant).into(),
+            raw_idx: value.raw_idx.into(),
+        }
     }
 }
 
-impl<'a> From<&raw::PostingSpec<'a>> for parser::Spanned<Element<'static>> {
-    fn from(value: &raw::PostingSpec<'a>) -> Self {
-        parser::spanned(
-            Element {
-                element_type: "posting",
-            },
-            value.span.into(),
-        )
+impl From<(IndexedElement, usize)> for IndexedElement {
+    fn from(value: (IndexedElement, usize)) -> Self {
+        IndexedElement {
+            element_type: "posting",
+            raw_idx: (value.0.dct_idx(), value.1).into(),
+        }
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct SpannedElement {
+    pub(crate) element_type: &'static str,
+    pub(crate) span: Span,
+    pub(crate) context: Option<(&'static str, Span)>,
 }
 
 /// Format a date as ISO8601

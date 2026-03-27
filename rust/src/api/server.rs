@@ -12,7 +12,7 @@ use crate::api::{
     json_rpc::*,
     types::{
         Report,
-        parser_type_conversions::{from_annotated_errors_or_warnings, from_errors_or_warnings},
+        parser_type_conversions::{from_errors_or_warnings, resolve_indexed_errors_or_warnings},
         raw::*,
     },
 };
@@ -318,8 +318,13 @@ impl<'a> HealthyServer<'a> {
                     }
 
                     Err(BookingFailure { errors, .. }) => {
-                        let reports = from_annotated_errors_or_warnings(&errors);
-                        write_error_reports(None, reports, w)
+                        if let Some(reports) =
+                            resolve_indexed_errors_or_warnings(&errors, directives_to_book)
+                        {
+                            write_error_reports(None, reports, w)
+                        } else {
+                            todo!("missing spans, need to synthesize all booked directive spans ")
+                        }
                     }
                 }
             }

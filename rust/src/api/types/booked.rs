@@ -13,7 +13,7 @@ use crate::api::types::{iso8601date, raw};
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Directive<'a> {
-    pub(crate) span: raw::Span,
+    pub(crate) raw_idx: usize,
     #[serde(with = "iso8601date")]
     pub(crate) date: Date,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,7 +65,8 @@ pub struct Transaction<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Posting<'a> {
-    pub(crate) span: raw::Span,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) raw_idx: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) flag: Option<Cow<'static, str>>,
     pub(crate) acc: &'a str,
