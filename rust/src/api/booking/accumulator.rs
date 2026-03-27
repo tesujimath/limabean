@@ -15,7 +15,7 @@ use time::Date;
 use crate::api::types::{Element, booked, raw};
 
 #[derive(Debug)]
-pub(crate) struct Loader<'a, 'd, 't> {
+pub(crate) struct Accumulator<'a, 'd, 't> {
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
     open_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
     closed_accounts: hashbrown::HashMap<&'a str, parser::Spanned<Element<'static>>>,
@@ -26,16 +26,16 @@ pub(crate) struct Loader<'a, 'd, 't> {
     warnings: Vec<parser::AnnotatedWarning>,
 }
 
-pub(crate) struct LoadSuccess<'a> {
+pub(crate) struct BookingSuccess<'a> {
     pub(crate) directives: Vec<booked::Directive<'a>>,
     pub(crate) warnings: Vec<parser::AnnotatedWarning>,
 }
 
-pub(crate) struct LoadError {
+pub(crate) struct BookingFailure {
     pub(crate) errors: Vec<parser::AnnotatedError>,
 }
 
-impl<'a, 'd, 't> Loader<'a, 'd, 't> {
+impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     pub(crate) fn new(default_booking: Booking, tolerance: &'t LimaTolerance<'a>) -> Self {
         Self {
             open_accounts: hashbrown::HashMap::default(),
@@ -53,7 +53,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         self,
         directives: Vec<booked::Directive<'b>>,
         mut errors: Vec<parser::AnnotatedError>,
-    ) -> Result<LoadSuccess<'b>, LoadError>
+    ) -> Result<BookingSuccess<'b>, BookingFailure>
     where
         'a: 'b,
     {
@@ -73,16 +73,19 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
         }
 
         if errors.is_empty() {
-            Ok(LoadSuccess {
+            Ok(BookingSuccess {
                 directives,
                 warnings,
             })
         } else {
-            Err(LoadError { errors })
+            Err(BookingFailure { errors })
         }
     }
 
-    pub(crate) fn collect<'r, 'b, I>(mut self, directives: I) -> Result<LoadSuccess<'b>, LoadError>
+    pub(crate) fn collect<'r, 'b, I>(
+        mut self,
+        directives: I,
+    ) -> Result<BookingSuccess<'b>, BookingFailure>
     where
         'a: 'r + 'b + 'd,
         'r: 'b + 'd,
@@ -271,7 +274,7 @@ impl<'a, 'd, 't> Loader<'a, 'd, 't> {
                                     acc: account,
                                     units: cost.units,
                                     cur: currency,
-                                    cost: Some(loader_cur_posting_cost_to_cost(cost_cur, cost)),
+                                    cost: Some(cur_posting_cost_to_cost(cost_cur, cost)),
                                     price: None,
                                     tags: posting.tags.clone(),
                                     links: posting.links.clone(),
@@ -808,7 +811,7 @@ struct AccountBuilder<'a, 'd> {
     allowed_currencies: HashSet<&'a str>,
     positions: Positions<'a>,
     opened: parser::Spanned<Element<'static>>,
-    pad_idx: Option<usize>, // index in directives in Loader
+    pad_idx: Option<usize>, // index in directives
     balance_diagnostics: Vec<BalanceDiagnostic<'a, 'd>>,
     booking: Booking,
 }
@@ -933,13 +936,13 @@ fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static> {
         (Into::<&str>::into(currency), Align::Left).into(),
     ];
     if let Some(cost) = cost {
-        cells.push(loader_cost_into_cell(cost))
+        cells.push(cost_into_cell(cost))
     }
     Cell::Row(cells, GUTTER_MINOR)
 }
 
 type Cost<'a> = limabean_booking::Cost<limabean_booking::LimaParserBookingTypes<'a>>;
-fn loader_cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
+fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
     let Cost {
         date,
         per_unit,
@@ -962,7 +965,7 @@ fn loader_cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
     Cell::Row(cells, GUTTER_MINOR)
 }
 
-fn loader_cur_posting_cost_to_cost<'a>(
+fn cur_posting_cost_to_cost<'a>(
     currency: &'a str,
     cost: limabean_booking::PostingCost<LimaParserBookingTypes<'a>>,
 ) -> booked::Cost<'a> {

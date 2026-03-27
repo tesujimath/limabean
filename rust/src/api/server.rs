@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::api::{
-    booking::{self, LoadError},
+    booking::{self, BookingFailure},
     json_rpc::*,
     types::{
         Report,
@@ -305,7 +305,7 @@ impl<'a> HealthyServer<'a> {
                 };
 
                 match booking::book(directives_to_book, options) {
-                    Ok(booking::LoadSuccess {
+                    Ok(booking::BookingSuccess {
                         directives,
                         warnings: _,
                     }) => {
@@ -317,7 +317,7 @@ impl<'a> HealthyServer<'a> {
                         write_response(&response, w)
                     }
 
-                    Err(LoadError { errors, .. }) => {
+                    Err(BookingFailure { errors, .. }) => {
                         let reports = from_annotated_errors_or_warnings(&errors);
                         write_error_reports(None, reports, w)
                     }

@@ -3,7 +3,7 @@ use beancount_parser_lima as parser;
 pub(crate) fn book<'a, 'r, 'b>(
     directives: &'r [Directive<'a>],
     options: &parser::Options<'a>,
-) -> Result<LoadSuccess<'b>, LoadError>
+) -> Result<BookingSuccess<'b>, BookingFailure>
 where
     'a: 'b,
     'r: 'b,
@@ -26,12 +26,12 @@ where
 
     let tolerance = options.into();
 
-    Loader::new(default_booking_option, &tolerance).collect(directives)
+    Accumulator::new(default_booking_option, &tolerance).collect(directives)
 }
 
-mod loader;
+mod accumulator;
 
 mod types;
 
-pub(crate) use crate::api::booking::loader::{LoadError, LoadSuccess, Loader};
+pub(crate) use crate::api::booking::accumulator::{Accumulator, BookingFailure, BookingSuccess};
 use crate::api::types::raw::Directive;
