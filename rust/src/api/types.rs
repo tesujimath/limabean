@@ -12,6 +12,14 @@ pub(crate) struct Plugin<'a> {
     pub(crate) config: Option<&'a str>,
 }
 
+/// A synthetic span is a named content fragment we can subsequently reference as a span
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct SyntheticSpan<'a> {
+    pub(crate) name: Cow<'a, str>,
+    pub(crate) content: Cow<'a, str>,
+}
+
 /// A report for formatting in the context of the source files
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]

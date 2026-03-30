@@ -11,7 +11,7 @@ use crate::api::{
     booking::{self, BookingFailure},
     json_rpc::*,
     types::{
-        Report,
+        Report, SyntheticSpan,
         parser_type_conversions::{from_errors_or_warnings, resolve_indexed_errors_or_warnings},
         raw::*,
     },
@@ -21,8 +21,9 @@ pub fn serve(path: &Path) {
     match BeancountSources::try_from(path) {
         Ok(sources) => {
             let parser = BeancountParser::new(&sources);
+            let mut sources = parser::SyntheticSources::new(&sources);
 
-            Server(Ok(HealthyServer::new(&sources, &parser))).serve(&stdin(), &mut stdout());
+            Server(Ok(HealthyServer::new(&mut sources, &parser))).serve(&stdin(), &mut stdout());
         }
         Err(e) => Server(Err(format!(
             "Can't read {}: {}",
@@ -36,7 +37,7 @@ pub fn serve(path: &Path) {
 struct Server<'a>(Result<HealthyServer<'a>, String>);
 
 struct HealthyServer<'a> {
-    sources: &'a BeancountSources,
+    sources: &'a mut parser::SyntheticSources<'a>,
     _parser: &'a BeancountParser<'a>,
     parsed: Result<Parsed<'a>, Vec<parser::Error>>,
 }
@@ -49,7 +50,7 @@ struct Parsed<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn new(sources: &'a BeancountSources, parser: &'a BeancountParser<'a>) -> Self {
+    fn new(sources: &'a mut parser::SyntheticSources<'a>, parser: &'a BeancountParser<'a>) -> Self {
         let parsed = match parser.parse() {
             Ok(ParseSuccess {
                 directives,
@@ -74,7 +75,7 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> Server<'a> {
-    fn serve<R, W>(&self, r: R, w: &mut W)
+    fn serve<R, W>(&mut self, r: R, w: &mut W)
     where
         R: Read,
         W: Write,
@@ -109,7 +110,7 @@ impl<'a> Server<'a> {
         }
     }
 
-    fn dispatch<W>(&self, request: &str, w: &mut W)
+    fn dispatch<W>(&mut self, request: &str, w: &mut W)
     where
         W: Write,
     {
@@ -132,7 +133,7 @@ impl<'a> Server<'a> {
                     )
                     .unwrap()
                 } else {
-                    match (&self.0, method) {
+                    match (&mut self.0, method) {
                         (Ok(healthy), Method::Status) => healthy.status(id, w).unwrap(),
 
                         (Ok(healthy), Method::ParserPlugins) => {
@@ -153,6 +154,12 @@ impl<'a> Server<'a> {
 
                         (Ok(healthy), Method::ParserResolveSpan(Params { params })) => {
                             healthy.parser_resolve_span(id, &params, w).unwrap()
+                        }
+
+                        (Ok(healthy), Method::ParserCreateSyntheticSpans(Params { params })) => {
+                            healthy
+                                .parser_create_synthetic_spans(id, &params, w)
+                                .unwrap()
                         }
 
                         (Ok(healthy), Method::Book(optional)) => {
@@ -232,10 +239,10 @@ impl<'a> HealthyServer<'a> {
         }
     }
 
-    fn parser_format_report<K, W>(
+    fn parser_format_report<'r, K, W>(
         &self,
         id: Option<Id>,
-        reports: &[Report<'a>],
+        reports: &[Report<'r>],
         w: &mut W,
     ) -> io::Result<()>
     where
@@ -270,6 +277,29 @@ impl<'a> HealthyServer<'a> {
         let span = span.into();
         let spanned_source = self.sources.resolve_span(&span);
         let response = ResultResponse::new(id, ResultData::ResolvedSpan(spanned_source.into()));
+        write_response(&response, w)
+    }
+
+    fn parser_create_synthetic_spans<W>(
+        &mut self,
+        id: Option<Id>,
+        synthetic_spans: &[SyntheticSpan],
+        w: &mut W,
+    ) -> io::Result<()>
+    where
+        W: Write,
+    {
+        let mut spans = Vec::default();
+
+        for s in synthetic_spans {
+            spans.push(
+                self.sources
+                    .create_synthetic_span(s.name.as_ref(), s.content.as_ref())
+                    .into(),
+            )
+        }
+
+        let response = ResultResponse::new(id, ResultData::Spans(spans));
         write_response(&response, w)
     }
 

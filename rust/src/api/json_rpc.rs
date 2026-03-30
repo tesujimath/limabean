@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-use crate::api::types::booked;
+use crate::api::types::{SyntheticSpan, booked};
 
 use super::types::{Plugin, Report, raw::*};
 
@@ -32,6 +32,8 @@ pub(crate) enum RequestMethod<'a> {
     ParserFormatWarnings(Params<Vec<Report<'a>>>),
     #[serde(rename = "parser.resolve-span")]
     ParserResolveSpan(Params<Span>),
+    #[serde(rename = "parser.create-synthetic-spans")]
+    ParserCreateSyntheticSpans(Params<Vec<SyntheticSpan<'a>>>),
     #[serde(borrow)]
     Book(OptionalParams<Vec<Directive<'a>>>),
 }
@@ -77,6 +79,7 @@ pub(crate) enum ResultData<'a, 'b> {
     RawDirectives(RawDirectives<'a>),
     Report(Cow<'b, str>),
     ResolvedSpan(SpannedSource<'a>),
+    Spans(Vec<Span>),
     // TODO also return warnings with booked
     BookedDirectives(BookedDirectives<'a>),
 }
