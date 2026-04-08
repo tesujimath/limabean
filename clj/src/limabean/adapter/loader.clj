@@ -23,10 +23,8 @@
                                                     :raw-xf)]
                   (cond-> (assoc m :raw-xf-directives directives)
                     (seq errors) (assoc :raw-xf-errors errors))))
-      true (as-> m (let [directives-to-book (or (:raw-xf-directives m)
-                                                (:raw-directives m))
-                         {:keys [directives warnings]}
-                           (pod/book pod directives-to-book)]
+      true (as-> m (let [{:keys [directives warnings]}
+                           (pod/book pod (:raw-xf-directives m))]
                      (cond-> (assoc m :booked-directives directives)
                        (seq warnings) (assoc :booked-warnings warnings))))
       (plugins/has-specified-plugins? resolved-plugins :booked-xf)

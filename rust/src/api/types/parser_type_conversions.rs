@@ -4,7 +4,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use crate::api::types::Plugin;
+use crate::api::types::{ElementIdx, IndexedReport, Plugin, raw};
 
 use super::{Report, raw::*};
 
@@ -402,7 +402,7 @@ where
     }
 }
 
-pub(crate) fn create_reports<'a, K>(
+pub(crate) fn create_reports_from_parser_errors<'a, K>(
     errors_or_warnings: &'a [parser::ErrorOrWarning<K>],
 ) -> Vec<Report<'a>>
 where
@@ -412,6 +412,70 @@ where
         .iter()
         .map(|eow| from_error_or_warning(eow, None))
         .collect::<Vec<_>>()
+}
+
+/// Resolve indexed errors using the spans in their indexed element.
+/// Missing spans cause panic, so this is only safe to call on parsed directives, not parameter ones.
+pub(crate) fn create_reports_from_booking_errors<'a, 'b, 'c>(
+    indexed_reports: Vec<IndexedReport>,
+    directives: &[raw::Directive<'a>],
+) -> Vec<Report<'c>>
+where
+    'a: 'c,
+    'b: 'c,
+{
+    indexed_reports
+        .into_iter()
+        .map(|indexed| {
+            let (element_type, span) = resolve_indexed_element(indexed.idx, directives);
+
+            Report {
+                message: Cow::Owned(format!("invalid {}", element_type)),
+                reason: Cow::Owned(indexed.reason),
+                span,
+                contexts: indexed.idx.posting.map(|_| {
+                    vec![resolve_indexed_element(
+                        ElementIdx {
+                            directive: indexed.idx.directive,
+                            posting: None,
+                        },
+                        directives,
+                    )]
+                }),
+                related: indexed.related.map(|related| {
+                    related
+                        .into_iter()
+                        .map(|related_idx| resolve_indexed_element(related_idx, directives))
+                        .collect::<Vec<_>>()
+                }),
+                annotation: indexed.annotation.map(Cow::Owned),
+            }
+        })
+        .collect::<Vec<_>>()
+}
+
+fn resolve_indexed_element(
+    idx: ElementIdx,
+    directives: &[raw::Directive<'_>],
+) -> (Cow<'static, str>, Span) {
+    let directive = &directives[idx.directive];
+
+    if let (raw::DirectiveVariant::Transaction(txn), Some(posting_idx)) =
+        (&directive.variant, idx.posting)
+    {
+        (
+            Cow::Borrowed("posting"),
+            txn.postings
+                .get(posting_idx)
+                .map(|posting| posting.span.unwrap())
+                .unwrap(),
+        )
+    } else {
+        (
+            Cow::Borrowed((&directive.variant).into()),
+            directive.span.unwrap(),
+        )
+    }
 }
 
 impl<'a> From<parser::SpannedSource<'a>> for SpannedSource<'a> {

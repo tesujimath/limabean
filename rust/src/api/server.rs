@@ -12,7 +12,11 @@ use crate::api::{
     booking::{self, BookingFailure},
     json_rpc::*,
     types::{
-        IndexedReport, Report, SyntheticSpan, parser_type_conversions::create_reports, raw::*,
+        IndexedReport, Report, SyntheticSpan,
+        parser_type_conversions::{
+            create_reports_from_booking_errors, create_reports_from_parser_errors,
+        },
+        raw::*,
     },
 };
 
@@ -206,7 +210,7 @@ impl<'a> HealthyServer<'a> {
                 write_response(&response, w)
             }
             Err(errors) => {
-                let reports = create_reports(errors);
+                let reports = create_reports_from_parser_errors(errors);
                 write_error_reports(None, reports, w)
             }
         }
@@ -232,7 +236,7 @@ impl<'a> HealthyServer<'a> {
                 write_response(&response, w)
             }
             Err(errors) => {
-                let reports = create_reports(errors);
+                let reports = create_reports_from_parser_errors(errors);
                 write_error_reports(None, reports, w)
             }
         }
@@ -327,11 +331,12 @@ impl<'a> HealthyServer<'a> {
                 } else {
                     None
                 };
-                let directives_to_book = match (param_directives, raw_parsed_directives.as_ref()) {
-                    (Some(param_directives), _) => param_directives,
-                    (None, Some(raw_parsed_directives)) => raw_parsed_directives,
-                    _ => panic!("impossible"),
-                };
+                let (directives_to_book, convert_to_spans) =
+                    match (param_directives, raw_parsed_directives.as_ref()) {
+                        (Some(param_directives), _) => (param_directives, false),
+                        (None, Some(raw_parsed_directives)) => (raw_parsed_directives, true),
+                        _ => panic!("impossible"),
+                    };
 
                 match booking::book(directives_to_book, options) {
                     Ok(booking::BookingSuccess {
@@ -347,12 +352,20 @@ impl<'a> HealthyServer<'a> {
                     }
 
                     Err(BookingFailure { errors, .. }) => {
-                        write_indexed_error_reports(None, errors, w)
+                        if convert_to_spans {
+                            write_error_reports(
+                                id,
+                                create_reports_from_booking_errors(errors, directives_to_book),
+                                w,
+                            )
+                        } else {
+                            write_indexed_error_reports(id, errors, w)
+                        }
                     }
                 }
             }
             Err(errors) => {
-                let reports = create_reports(errors);
+                let reports = create_reports_from_parser_errors(errors);
                 write_error_reports(id, reports, w)
             }
         }
