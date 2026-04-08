@@ -70,5 +70,5 @@
                               []))
                 expected (edn/read-edn-string (slurp expected-directives))]
             (matcho/assert expected
-                           (test-support/remove-spans (:directives
-                                                        actual)))))))))
+                           (test-support/remove-spans-and-indexes
+                             (:directives actual)))))))))
