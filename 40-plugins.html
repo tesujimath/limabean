@@ -13,9 +13,9 @@
 <p>In fact, any Clojure value may be supplied, not necessarily a map.  But it must match what the particular plugin is expecting.</p>
 <p>The Clojure namespace must define one or both of the functions <code>raw-xf</code> and <code>booked-xf</code>, each of which is a function returning a Clojure transducer on raw or booked directives respectively.</p>
 <h2><a href="#running-plugins" id="running-plugins"></a>Running plugins</h2>
-<p>Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin will cause that plugin to be disabled (with an error message).  See <code>*plugins*</code> to see what has been applied and what has not.</p>
-<p>The original directives loaded from the file are available in the REPL as <code>*booked-directives*</code>, with the post-plugin ones available as <code>*directives*</code>.  See the <code>set-narration</code> example below for how to use the original <code>*booked-directives*</code> instead of the post-plugin ones.</p>
-<p>Any errors in actually running any plugin cause the whole pipeline to be discarded with an error message, in which case <code>*directives*</code> will be the same as <code>*booked-directived*</code>.</p>
+<p>Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin will cause that plugin to be disabled (with an error message).  See <code>(:plugins *beans*)</code> to see what has been applied and what has not.</p>
+<p>The original directives loaded from the file are available in the REPL as <code>(:raw-directives *beans*)</code>, with the post-plugin raw directives available as <code>(:raw-xf-directives *beans*)</code>, booked directives as <code>(:booked-directives *beans*)</code>, and post-plugin booked directives as <code>(:booked-xf-directives *beans*)</code>.  See the <code>set-narration</code> example below for how to use the original booked directives instead of the post-plugin ones.</p>
+<p>Any errors in actually running any plugin cause the whole pipeline to be discarded with an error message.</p>
 <h3><a href="#configuration-required-to-resolve-plugins" id="configuration-required-to-resolve-plugins"></a>Configuration required to resolve plugins</h3>
 <p>Plugins are Clojure code, so they must be on the Java class-path in order to be resolvable at runtime.  The <code>limabean</code> launcher supports running the clojure command line with the <a href="https://clojure.org/guides/deps_and_cli#command_line_deps"><code>-Sdeps</code> option to pass the required dependencies</a>.</p>
 <p>The Clojure package containing the desired namespace should be passed in the environment variable <code>LIMABEAN_CLJ_DEPS</code>, as e.g. <code>io.github.tesujimath/limabean-contrib {:mvn/version "0.1.0"}</code>.  This environment variable comprises a space-separated list of package name, co-ordinate pairs, that is without the <code>{:deps {...} }</code> wrapper.</p>
@@ -46,7 +46,7 @@ user=&gt; (show (journal))
 2023-05-30  Assets:Bank:Current  Countdown  Plugins rule ok!  -17.50  NZD
 :ok
 
-user=&gt; (binding [*directives* *booked-directives*] (show (journal)))
+user=&gt; (binding [*directives* (:booked-directives *beans*)] (show (journal)))
 2023-05-29  Expenses:Groceries   New World     10.00  NZD  10.00 NZD
 2023-05-29  Assets:Bank:Current  New World    -10.00  NZD
 2023-05-30  Expenses:Groceries   Countdown     17.50  NZD  17.50 NZD
@@ -74,16 +74,16 @@ user=&gt; (show (journal))
 :ok
 </code></pre>
 <h2><a href="#running-plugins-manually" id="running-plugins-manually"></a>Running plugins manually</h2>
-<p>The resolved plugins are readily available in the <code>*plugins*</code> map, so may be applied manually.</p>
-<pre><code>user=&gt; *plugins*
+<p>The resolved plugins are readily available in <code>(:plugins *beans*)</code>, so may be applied manually.</p>
+<pre><code>user=&gt; (:plugins *beans*)
 [{:name "limabean.contrib.plugins.examples.set-narration",
   :config "{:narration \"Plugins rule ok!\"}",
   :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
                     "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]
 
-user=&gt; (def set-narration-xf (get-in *plugins* [0 :booked-xf]))
+user=&gt; (def set-narration-xf (get-in (:plugins *beans*) [0 :booked-xf]))
 
-user=&gt; (into [] set-narration-xf *booked-directives*)
+user=&gt; (into [] set-narration-xf (:booked-directives *beans*))
 [{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :dct :open, :acc "Assets:Bank:Current"}
  {:date #object[java.time.LocalDate 0x63190b1 "2016-03-01"], :dct :open, :acc "Expenses:Groceries"}
  {:date #object[java.time.LocalDate 0x4325de9e "2023-05-29"], :dct :txn, :flag "*", :payee "New World",
