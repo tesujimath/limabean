@@ -272,5 +272,3 @@ pub(crate) struct Span {
     pub(crate) start: usize,
     pub(crate) end: usize,
 }
-
-mod serializers;

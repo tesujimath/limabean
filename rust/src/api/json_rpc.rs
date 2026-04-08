@@ -99,18 +99,24 @@ pub(crate) struct BookedDirectives<'a> {
 
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-pub(crate) struct ErrorResponse<'a, 'b> {
+pub(crate) struct ErrorResponse<'a, 'b, T>
+where
+    T: Serialize,
+{
     pub(crate) jsonrpc: &'static str,
     pub(crate) id: Option<Id<'a>>,
-    pub(crate) error: ErrorData<'b>,
+    pub(crate) error: ErrorData<'b, T>,
 }
 
-impl<'a, 'b> ErrorResponse<'a, 'b> {
+impl<'a, 'b, T> ErrorResponse<'a, 'b, T>
+where
+    T: Serialize,
+{
     pub(crate) fn new(
         id: Option<Id<'a>>,
         code: ErrorCode,
         message: Cow<'b, str>,
-        data: Option<Vec<Report<'b>>>,
+        data: Option<T>,
     ) -> Self {
         ErrorResponse {
             jsonrpc: JSONRPC_VERSION,
@@ -125,11 +131,14 @@ impl<'a, 'b> ErrorResponse<'a, 'b> {
 }
 
 #[derive(Serialize, Clone, Debug)]
-pub(crate) struct ErrorData<'a> {
+pub(crate) struct ErrorData<'a, T>
+where
+    T: Serialize,
+{
     code: i32,
     message: Cow<'a, str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    data: Option<Vec<Report<'a>>>,
+    data: Option<T>,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
@@ -146,6 +155,7 @@ pub(crate) const JSONRPC_VERSION: &str = "2.0";
 pub(crate) type ErrorCode = i32;
 pub(crate) const ERROR_BEANFILE_IO_ERROR: ErrorCode = 1;
 pub(crate) const ERROR_REPORT: ErrorCode = 2;
+pub(crate) const ERROR_INDEXED_REPORT: ErrorCode = 3;
 pub(crate) const ERROR_PARSE: ErrorCode = -32700;
 pub(crate) const ERROR_INVALID_REQUEST: ErrorCode = -32600;
 pub(crate) const ERROR_INTERNAL: ErrorCode = -32603;

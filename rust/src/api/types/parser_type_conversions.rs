@@ -4,7 +4,7 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
-use crate::api::types::{IndexedElement, IndexedErrorOrWarning, Plugin, SpannedElement};
+use crate::api::types::Plugin;
 
 use super::{Report, raw::*};
 
@@ -402,7 +402,7 @@ where
     }
 }
 
-pub(crate) fn from_errors_or_warnings<'a, K>(
+pub(crate) fn create_reports<'a, K>(
     errors_or_warnings: &'a [parser::ErrorOrWarning<K>],
 ) -> Vec<Report<'a>>
 where
@@ -412,72 +412,6 @@ where
         .iter()
         .map(|eow| from_error_or_warning(eow, None))
         .collect::<Vec<_>>()
-}
-
-/// Resolve indexed errors using the spans in their indexed element if possible,
-/// otherwise we must be dealing with synthetic directives from plugins,
-/// so we will need to create synthetic spans.
-pub(crate) fn resolve_indexed_errors_or_warnings<'a, I>(
-    indexed_errors_or_warnings: I,
-    directives: &Vec<Directive>,
-) -> Option<Vec<Report<'a>>>
-where
-    I: IntoIterator<Item = &'a IndexedErrorOrWarning>,
-{
-    indexed_errors_or_warnings
-        .into_iter()
-        .map(|eow| {
-            resolve_indexed_element(&eow.element, directives).map(|spanned_element| Report {
-                message: Cow::Owned(format!("invalid {}", spanned_element.element_type)),
-                reason: Cow::Borrowed(&eow.reason),
-                span: spanned_element.span,
-                contexts: spanned_element
-                    .context
-                    .as_ref()
-                    .map(|(element_type, span)| vec![(Cow::Borrowed(*element_type), *span)]),
-                related: eow.related.as_ref().map(|related| {
-                    related
-                        .iter()
-                        .filter_map(|indexed| {
-                            resolve_indexed_element(indexed, directives)
-                                .map(|related| (Cow::Borrowed(related.element_type), related.span))
-                        })
-                        .collect::<Vec<_>>()
-                }),
-                annotation: eow.annotation.as_ref().map(|s| Cow::Borrowed(s.as_str())),
-            })
-        })
-        .collect::<Option<Vec<_>>>()
-}
-
-pub(crate) fn resolve_indexed_element(
-    indexed_element: &IndexedElement,
-    directives: &Vec<Directive>,
-) -> Option<SpannedElement> {
-    use super::ElementIdx;
-
-    match indexed_element.raw_idx {
-        ElementIdx::Directive(dct_idx) => directives.get(dct_idx).and_then(|dct| {
-            dct.span.map(|span| SpannedElement {
-                element_type: indexed_element.element_type,
-                span,
-                context: None,
-            })
-        }),
-        ElementIdx::Posting(dct_idx, posting_idx) => directives.get(dct_idx).and_then(|dct| {
-            if let (Some(dct_span), DirectiveVariant::Transaction(txn)) = (dct.span, &dct.variant) {
-                txn.postings.get(posting_idx).and_then(|posting| {
-                    posting.span.map(|posting_span| SpannedElement {
-                        element_type: indexed_element.element_type,
-                        span: posting_span,
-                        context: Some(((&dct.variant).into(), dct_span)),
-                    })
-                })
-            } else {
-                None
-            }
-        }),
-    }
 }
 
 impl<'a> From<parser::SpannedSource<'a>> for SpannedSource<'a> {

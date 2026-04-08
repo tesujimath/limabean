@@ -1,6 +1,7 @@
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess,
 };
+use serde::Serialize;
 use std::{
     borrow::Cow,
     io::{self, BufRead, BufReader, Read, Write, stdin, stdout},
@@ -11,9 +12,7 @@ use crate::api::{
     booking::{self, BookingFailure},
     json_rpc::*,
     types::{
-        Report, SyntheticSpan,
-        parser_type_conversions::{from_errors_or_warnings, resolve_indexed_errors_or_warnings},
-        raw::*,
+        IndexedReport, Report, SyntheticSpan, parser_type_conversions::create_reports, raw::*,
     },
 };
 
@@ -207,7 +206,7 @@ impl<'a> HealthyServer<'a> {
                 write_response(&response, w)
             }
             Err(errors) => {
-                let reports = from_errors_or_warnings(errors);
+                let reports = create_reports(errors);
                 write_error_reports(None, reports, w)
             }
         }
@@ -233,7 +232,7 @@ impl<'a> HealthyServer<'a> {
                 write_response(&response, w)
             }
             Err(errors) => {
-                let reports = from_errors_or_warnings(errors);
+                let reports = create_reports(errors);
                 write_error_reports(None, reports, w)
             }
         }
@@ -348,18 +347,12 @@ impl<'a> HealthyServer<'a> {
                     }
 
                     Err(BookingFailure { errors, .. }) => {
-                        if let Some(reports) =
-                            resolve_indexed_errors_or_warnings(&errors, directives_to_book)
-                        {
-                            write_error_reports(None, reports, w)
-                        } else {
-                            todo!("missing spans, need to synthesize all booked directive spans ")
-                        }
+                        write_indexed_error_reports(None, errors, w)
                     }
                 }
             }
             Err(errors) => {
-                let reports = from_errors_or_warnings(errors);
+                let reports = create_reports(errors);
                 write_error_reports(id, reports, w)
             }
         }
@@ -383,7 +376,7 @@ where
                     "while writing JSON",
                 ))
             } else {
-                write_error(
+                write_error::<Report, W>(
                     response.id,
                     ERROR_INTERNAL,
                     Cow::Owned(e.to_string()),
@@ -412,6 +405,23 @@ where
     )
 }
 
+fn write_indexed_error_reports<'a, W>(
+    id: Option<Id<'a>>,
+    reports: Vec<IndexedReport>,
+    w: &mut W,
+) -> io::Result<()>
+where
+    W: Write,
+{
+    write_error(
+        id,
+        ERROR_INDEXED_REPORT,
+        Cow::Borrowed("Error reports"),
+        Some(reports),
+        w,
+    )
+}
+
 fn write_other_error<'a, 'b, W>(
     id: Option<Id<'a>>,
     code: ErrorCode,
@@ -421,17 +431,18 @@ fn write_other_error<'a, 'b, W>(
 where
     W: Write,
 {
-    write_error(id, code, message, None, w)
+    write_error::<Report, W>(id, code, message, None, w)
 }
 
-fn write_error<'a, 'b, W>(
+fn write_error<'a, 'b, T, W>(
     id: Option<Id<'a>>,
     code: ErrorCode,
     message: Cow<'b, str>,
-    data: Option<Vec<Report<'a>>>,
+    data: Option<T>,
     w: &mut W,
 ) -> io::Result<()>
 where
+    T: Serialize,
     W: Write,
 {
     let response = ErrorResponse::new(id, code, message, data);
