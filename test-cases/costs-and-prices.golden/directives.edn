@@ -1,52 +1,35 @@
-[{:acc "Assets:UK:Cash",
-  :date #time/date "2025-01-01",
-  :raw-idx 0,
-  :type :limabean/open}
- {:acc "Assets:NZ:Cash",
-  :date #time/date "2025-01-01",
-  :raw-idx 1,
-  :type :limabean/open}
+[{:acc "Assets:UK:Cash", :date #time/date "2025-01-01", :type :limabean/open}
+ {:acc "Assets:NZ:Cash", :date #time/date "2025-01-01", :type :limabean/open}
  {:date #time/date "2025-01-01",
   :flag "*",
   :narration "price per-unit",
   :postings [{:acc "Assets:UK:Cash",
               :cur "GBP",
               :price {:cur "NZD", :per-unit 1.914M, :total -1914.00000M},
-              :raw-idx 0,
               :units -1000.00M}
-             {:acc "Assets:NZ:Cash", :cur "NZD", :raw-idx 1, :units 1914.00M}],
-  :raw-idx 2,
+             {:acc "Assets:NZ:Cash", :cur "NZD", :units 1914.00M}],
   :type :limabean/txn}
  {:date #time/date "2025-02-01",
   :flag "*",
   :narration "price total",
-  :postings [{:acc "Assets:UK:Cash",
-              :cur "GBP",
-              :price {:cur "NZD",
-                      :per-unit 1.9369035532994923857868020305M,
-                      :total 381.57M},
-              :raw-idx 0,
-              :units -197.00M}
-             {:acc "Assets:NZ:Cash", :cur "NZD", :raw-idx 1, :units -381.57M}],
-  :raw-idx 3,
+  :postings
+    [{:acc "Assets:UK:Cash",
+      :cur "GBP",
+      :price
+        {:cur "NZD", :per-unit 1.9369035532994923857868020305M, :total 381.57M},
+      :units -197.00M} {:acc "Assets:NZ:Cash", :cur "NZD", :units -381.57M}],
   :type :limabean/txn}
  {:date #time/date "2025-02-05",
   :flag "*",
   :narration "price total weight",
-  :postings [{:acc "Assets:UK:Cash",
-              :cur "GBP",
-              :price {:cur "NZD",
-                      :per-unit 1.9369035532994923857868020305M,
-                      :total 381.57M},
-              :raw-idx 0,
-              :units -197.00M}
-             {:acc "Assets:NZ:Cash", :cur "NZD", :raw-idx 1, :units -381.57M}],
-  :raw-idx 4,
+  :postings
+    [{:acc "Assets:UK:Cash",
+      :cur "GBP",
+      :price
+        {:cur "NZD", :per-unit 1.9369035532994923857868020305M, :total 381.57M},
+      :units -197.00M} {:acc "Assets:NZ:Cash", :cur "NZD", :units -381.57M}],
   :type :limabean/txn}
- {:acc "Assets:Shares:IBM",
-  :date #time/date "2025-03-01",
-  :raw-idx 5,
-  :type :limabean/open}
+ {:acc "Assets:Shares:IBM", :date #time/date "2025-03-01", :type :limabean/open}
  {:date #time/date "2025-03-01",
   :flag "*",
   :narration "cost per-unit",
@@ -56,10 +39,7 @@
                      :per-unit 300.00M,
                      :total 1500.00M},
               :cur "IBM",
-              :raw-idx 0,
-              :units 5}
-             {:acc "Assets:NZ:Cash", :cur "NZD", :raw-idx 1, :units -1500}],
-  :raw-idx 6,
+              :units 5} {:acc "Assets:NZ:Cash", :cur "NZD", :units -1500}],
   :type :limabean/txn}
  {:date #time/date "2025-04-01",
   :flag "*",
@@ -70,10 +50,7 @@
                      :per-unit 303.33333333333333333333333333M,
                      :total 910.00M},
               :cur "IBM",
-              :raw-idx 0,
-              :units 3}
-             {:acc "Assets:NZ:Cash", :cur "NZD", :raw-idx 1, :units -910.00M}],
-  :raw-idx 7,
+              :units 3} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}],
   :type :limabean/txn}
  {:date #time/date "2025-04-05",
   :flag "*",
@@ -84,8 +61,5 @@
                      :per-unit 303.33333333333333333333333333M,
                      :total 910.00M},
               :cur "IBM",
-              :raw-idx 0,
-              :units 3}
-             {:acc "Assets:NZ:Cash", :cur "NZD", :raw-idx 1, :units -910.00M}],
-  :raw-idx 8,
+              :units 3} {:acc "Assets:NZ:Cash", :cur "NZD", :units -910.00M}],
   :type :limabean/txn}]

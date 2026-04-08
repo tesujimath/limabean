@@ -15,7 +15,7 @@
       (do (println "writing directives to" directives-file)
           (with-open [w (io/writer directives-file)]
             (binding [*out* w]
-              (zprint (test-support/remove-spans directives)))))
+              (zprint (test-support/remove-spans-and-indexes directives)))))
       (println "not writing directives to" directives-file
                "because bad plugins" bad-plugins))))
 

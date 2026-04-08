@@ -1,21 +1,15 @@
-[{:acc "Assets:Cash",
-  :date #time/date "2022-08-25",
-  :raw-idx 0,
-  :type :limabean/open}
+[{:acc "Assets:Cash", :date #time/date "2022-08-25", :type :limabean/open}
  {:acc "Expenses:Other-Expense",
   :date #time/date "2022-08-25",
-  :raw-idx 1,
   :type :limabean/open}
  {:date #time/date "2022-08-25",
   :flag "*",
   :narration "Re install gate",
-  :postings [{:acc "Assets:Cash", :cur "IDR", :raw-idx 0, :units -3000000}
+  :postings [{:acc "Assets:Cash", :cur "IDR", :units -3000000}
              {:acc "Expenses:Other-Expense",
               :cur "USD",
               :price {:cur "IDR",
                       :per-unit 14705.882352941176470588235294M,
                       :total 3000000},
-              :raw-idx 1,
               :units 204}],
-  :raw-idx 2,
   :type :limabean/txn}]
