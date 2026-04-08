@@ -1,9 +1,9 @@
 (ns limabean
   "Top-level limabean functions for use from the REPL."
   (:require [clojure.java.io :as io]
-            [limabean.adapter.edn] ;; edn is for print-method only
             [limabean.adapter.loader :as loader]
             [limabean.adapter.logging :as logging]
+            [limabean.adapter.print]
             [limabean.adapter.show :as show]
             [limabean.core.filters :as f]
             [limabean.core.inventory :as inventory]
