@@ -494,7 +494,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
 
             return err;
         }
-        let (_, pad_idx) = pad.unwrap();
+        let (booked_pad_idx, _) = pad.unwrap();
 
         adjust_account_to_match_balance(account, balance.cur, margin, Adjustment::Add);
         account.balance_diagnostics.clear();
@@ -509,22 +509,21 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             positions: Some(positions),
         });
 
-        let booked::DirectiveVariant::Pad(pad) = &booked_directives[pad_idx.directive].variant
-        else {
+        let booked::DirectiveVariant::Pad(pad) = &booked_directives[booked_pad_idx].variant else {
             panic!(
                 "directive at pad_idx {} is not a pad, is {:?}",
-                pad_idx.directive, &booked_directives[pad_idx.directive]
+                booked_pad_idx, &booked_directives[booked_pad_idx]
             );
         };
         let pad_source = pad.source;
 
         let booked::DirectiveVariant::Transaction(txn) =
-            &mut booked_directives[pad_idx.directive + 1].variant
+            &mut booked_directives[booked_pad_idx + 1].variant
         else {
             panic!(
                 "directive at pad_idx {} is not a pad, is {:?}",
-                pad_idx.directive + 1,
-                &booked_directives[pad_idx.directive + 1]
+                booked_pad_idx + 1,
+                &booked_directives[booked_pad_idx + 1]
             );
         };
 
