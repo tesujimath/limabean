@@ -15,4 +15,5 @@
         ;; step
         ([result dct]
          (rf result
-             (cond-> dct (= (:dct dct) :txn) (assoc :narration narration))))))))
+             (cond-> dct
+               (= (:type dct) :limabean/txn) (assoc :narration narration))))))))

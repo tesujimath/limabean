@@ -1,16 +1,31 @@
-[{:acc "Assets:Bank:Current", :date #time/date "2020-01-01", :dct :open}
- {:acc "Expenses:Donations", :date #time/date "2023-04-10", :dct :open}
+[{:acc "Assets:Bank:Current",
+  :date #time/date "2020-01-01",
+  :raw-idx 0,
+  :type :limabean/open}
+ {:acc "Expenses:Donations",
+  :date #time/date "2023-04-10",
+  :metadata {:auto nil},
+  :raw-idx 1,
+  :type :limabean/open}
  {:date #time/date "2023-04-10",
-  :dct :txn,
   :flag "*",
   :narration "WIKIMEDIA ;",
   :payee "WIKIMEDIA",
-  :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -10.00M}
-             {:acc "Expenses:Donations", :cur "NZD", :units 10.00M}]}
- {:acc "Expenses:Donations:Other", :date #time/date "2023-04-12", :dct :open}
+  :postings
+    [{:acc "Assets:Bank:Current", :cur "NZD", :raw-idx 0, :units -10.00M}
+     {:acc "Expenses:Donations", :cur "NZD", :raw-idx 1, :units 10.00M}],
+  :raw-idx 2,
+  :type :limabean/txn}
+ {:acc "Expenses:Donations:Other",
+  :date #time/date "2023-04-12",
+  :metadata {:auto nil},
+  :raw-idx 3,
+  :type :limabean/open}
  {:date #time/date "2023-04-12",
-  :dct :txn,
   :flag "*",
   :payee "Tear Fund",
-  :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -20.00M}
-             {:acc "Expenses:Donations:Other", :cur "NZD", :units 20.00M}]}]
+  :postings
+    [{:acc "Assets:Bank:Current", :cur "NZD", :raw-idx 0, :units -20.00M}
+     {:acc "Expenses:Donations:Other", :cur "NZD", :raw-idx 1, :units 20.00M}],
+  :raw-idx 4,
+  :type :limabean/txn}]

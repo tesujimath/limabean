@@ -30,22 +30,33 @@ pub struct Directive<'a> {
 /// A Beancount directive, without the fields common to all, which belong to [Directive].
 #[derive(Serialize, Deserialize, PartialEq, Eq, strum_macros::IntoStaticStr, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-#[serde(tag = "dct")]
+#[serde(tag = "type")]
 #[strum(serialize_all = "kebab-case")]
 pub enum DirectiveVariant<'a> {
-    #[serde(rename = "txn")]
+    #[serde(rename = "limabean/txn")]
     Transaction(Transaction<'a>),
+    #[serde(rename = "limabean/price")]
     Price(raw::PriceDct<'a>),
+    #[serde(rename = "limabean/balance")]
     Balance(raw::Balance<'a>),
     #[serde(borrow)]
+    #[serde(rename = "limabean/open")]
     Open(raw::Open<'a>),
+    #[serde(rename = "limabean/close")]
     Close(raw::Close<'a>),
+    #[serde(rename = "limabean/commodity")]
     Commodity(raw::Commodity<'a>),
+    #[serde(rename = "limabean/pad")]
     Pad(raw::Pad<'a>),
+    #[serde(rename = "limabean/document")]
     Document(raw::Document<'a>),
+    #[serde(rename = "limabean/note")]
     Note(raw::Note<'a>),
+    #[serde(rename = "limabean/event")]
     Event(raw::Event<'a>),
+    #[serde(rename = "limabean/query")]
     Query(raw::Query<'a>),
+    #[serde(rename = "limabean/custom")]
     Custom(raw::Custom<'a>),
 }
 

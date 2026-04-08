@@ -1,24 +1,26 @@
-[{:acc "Assets:Bank:Current", :date #time/date "2020-01-01", :dct :open}
- {:acc "Assets:ETrade:IBM", :date #time/date "2020-01-01", :dct :open}
+[{:acc "Assets:Bank:Current",
+  :date #time/date "2020-01-01",
+  :type :limabean/open}
+ {:acc "Assets:ETrade:IBM", :date #time/date "2020-01-01", :type :limabean/open}
  {:acc "Expenses:Financial:Commissions",
   :date #time/date "2020-01-01",
-  :dct :open} {:acc "Expenses:Food", :date #time/date "2020-01-01", :dct :open}
- {:acc "Expenses:News", :date #time/date "2020-01-01", :dct :open}
+  :type :limabean/open}
+ {:acc "Expenses:Food", :date #time/date "2020-01-01", :type :limabean/open}
+ {:acc "Expenses:News", :date #time/date "2020-01-01", :type :limabean/open}
  {:date #time/date "2023-04-10",
-  :dct :txn,
   :flag "*",
   :payee "KFC",
   :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -22.00M}
              {:acc "Expenses:Food",
               :cur "GBP",
               :price {:cur "NZD", :per-unit 2.2M, :total 22.000M},
-              :units 10.00M}]}
+              :units 10.00M}],
+  :type :limabean/txn}
  {:cur "GBP",
   :date #time/date "2023-04-10",
-  :dct :price,
-  :price {:cur "NZD", :per-unit 2.2M}}
+  :price {:cur "NZD", :per-unit 2.2M},
+  :type :limabean/price}
  {:date #time/date "2023-04-12",
-  :dct :txn,
   :flag "*",
   :narration "Various",
   :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -22.90M}
@@ -29,17 +31,17 @@
              {:acc "Expenses:Food",
               :cur "GBP",
               :price {:cur "NZD", :per-unit 2.15M, :total 17.2000M},
-              :units 8.00M}]}
+              :units 8.00M}],
+  :type :limabean/txn}
  {:cur "EUR",
   :date #time/date "2023-04-12",
-  :dct :price,
-  :price {:cur "NZD", :per-unit 1.9M}}
+  :price {:cur "NZD", :per-unit 1.9M},
+  :type :limabean/price}
  {:cur "GBP",
   :date #time/date "2023-04-12",
-  :dct :price,
-  :price {:cur "NZD", :per-unit 2.15M}}
+  :price {:cur "NZD", :per-unit 2.15M},
+  :type :limabean/price}
  {:date #time/date "2023-05-01",
-  :dct :txn,
   :flag "*",
   :narration "Buy some IBM",
   :postings
@@ -50,8 +52,9 @@
              :total 3000.00M},
       :cur "IBM",
       :units 10M} {:acc "Assets:Bank:Current", :cur "NZD", :units -3020.00M}
-     {:acc "Expenses:Financial:Commissions", :cur "NZD", :units 20.00M}]}
+     {:acc "Expenses:Financial:Commissions", :cur "NZD", :units 20.00M}],
+  :type :limabean/txn}
  {:cur "IBM",
   :date #time/date "2023-05-01",
-  :dct :price,
-  :price {:cur "NZD", :per-unit 300.00M}}]
+  :price {:cur "NZD", :per-unit 300.00M},
+  :type :limabean/price}]

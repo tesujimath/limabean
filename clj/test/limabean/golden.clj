@@ -1,7 +1,8 @@
 (ns limabean.golden
   (:require [clojure.java.io :as io]
-            [limabean.adapter.edn] ;; for print-method java.time.LocalDate
+            [limabean.adapter.json-encoders]
             [limabean.adapter.loader :as loader]
+            [limabean.adapter.print-methods]
             [limabean.test-support :as test-support]
             [zprint.core :refer [zprint]]))
 

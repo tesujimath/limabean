@@ -127,12 +127,12 @@ user=> (:plugins *beans*)
 user=> (def set-narration-xf (get-in (:plugins *beans*) [0 :booked-xf]))
 
 user=> (into [] set-narration-xf (:booked-directives *beans*))
-[{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :dct :open, :acc "Assets:Bank:Current"}
- {:date #object[java.time.LocalDate 0x63190b1 "2016-03-01"], :dct :open, :acc "Expenses:Groceries"}
- {:date #object[java.time.LocalDate 0x4325de9e "2023-05-29"], :dct :txn, :flag "*", :payee "New World",
+[{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :type :limabean/open, :acc "Assets:Bank:Current"}
+ {:date #object[java.time.LocalDate 0x63190b1 "2016-03-01"], :type :limabean/open, :acc "Expenses:Groceries"}
+ {:date #object[java.time.LocalDate 0x4325de9e "2023-05-29"], :type :limabean/txn, :flag "*", :payee "New World",
   :postings [{:acc "Expenses:Groceries", :units 10.00M, :cur "NZD"}
              {:acc "Assets:Bank:Current", :units -10.00M, :cur "NZD"}], :narration "Plugins rule ok!"}
- {:date #object[java.time.LocalDate 0x1c0b38af "2023-05-30"], :dct :txn, :flag "*", :payee "Countdown",
+ {:date #object[java.time.LocalDate 0x1c0b38af "2023-05-30"], :type :limabean/txn, :flag "*", :payee "Countdown",
   :postings [{:acc "Expenses:Groceries", :units 17.50M, :cur "NZD"}
              {:acc "Assets:Bank:Current", :units -17.50M, :cur "NZD"}], :narration "Plugins rule ok!"}]
 ```
