@@ -117,11 +117,10 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "beancount-parser-lima"
-version = "0.15.1"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d786bdabeffc3f42fae61bb976d877c1d7e60edca0abf3a65603ea8cffc645a6"
+checksum = "a95165830db648496b6ad00d27cab18d51f3524346eea6e6389613169167b269"
 dependencies = [
- "anyhow",
  "ariadne",
  "chumsky",
  "either",
@@ -129,7 +128,6 @@ dependencies = [
  "itertools",
  "lazy_format",
  "logos",
- "protobuf",
  "protobuf-codegen",
  "rust_decimal",
  "strum",
@@ -625,9 +623,9 @@ dependencies = [
 
 [[package]]
 name = "limabean-booking"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fec7ab4ba345d68c6fbcc6f76be2f317bb4852fcc645ae1cd0f1e23fff14c161"
+checksum = "a85d3d46b092432209856e87fbc2a834b7923c2f25b6baa69733d5ac926e70e5"
 dependencies = [
  "beancount-parser-lima",
  "hashbrown 0.15.5",

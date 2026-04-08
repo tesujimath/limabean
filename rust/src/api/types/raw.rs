@@ -13,7 +13,8 @@ use super::iso8601date;
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Directive<'a> {
-    pub(crate) span: Span,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) span: Option<Span>,
     #[serde(with = "iso8601date")]
     pub(crate) date: Date,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -159,7 +160,8 @@ pub struct Custom<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct PostingSpec<'a> {
-    pub(crate) span: Span,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) span: Option<Span>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) flag: Option<Cow<'static, str>>,
     pub(crate) acc: &'a str,
@@ -270,5 +272,3 @@ pub(crate) struct Span {
     pub(crate) start: usize,
     pub(crate) end: usize,
 }
-
-mod serializers;

@@ -24,11 +24,11 @@ The Clojure namespace must define one or both of the functions `raw-xf` and `boo
 
 ## Running plugins
 
-Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin will cause that plugin to be disabled (with an error message).  See `*plugins*` to see what has been applied and what has not.
+Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin will cause that plugin to be disabled (with an error message).  See `(:plugins *beans*)` to see what has been applied and what has not.
 
-The original directives loaded from the file are available in the REPL as `*booked-directives*`, with the post-plugin ones available as `*directives*`.  See the `set-narration` example below for how to use the original `*booked-directives*` instead of the post-plugin ones.
+The original directives loaded from the file are available in the REPL as `(:raw-directives *beans*)`, with the post-plugin raw directives available as `(:raw-xf-directives *beans*)`, booked directives as `(:booked-directives *beans*)`, and post-plugin booked directives as `(:booked-xf-directives *beans*)`.  See the `set-narration` example below for how to use the original booked directives instead of the post-plugin ones.
 
-Any errors in actually running any plugin cause the whole pipeline to be discarded with an error message, in which case `*directives*` will be the same as `*booked-directived*`.
+Any errors in actually running any plugin cause the whole pipeline to be discarded with an error message.
 
 ### Configuration required to resolve plugins
 
@@ -79,7 +79,7 @@ user=> (show (journal))
 2023-05-30  Assets:Bank:Current  Countdown  Plugins rule ok!  -17.50  NZD
 :ok
 
-user=> (binding [*directives* *booked-directives*] (show (journal)))
+user=> (binding [*directives* (:booked-directives *beans*)] (show (journal)))
 2023-05-29  Expenses:Groceries   New World     10.00  NZD  10.00 NZD
 2023-05-29  Assets:Bank:Current  New World    -10.00  NZD
 2023-05-30  Expenses:Groceries   Countdown     17.50  NZD  17.50 NZD
@@ -115,18 +115,18 @@ user=> (show (journal))
 
 ## Running plugins manually
 
-The resolved plugins are readily available in the `*plugins*` map, so may be applied manually.
+The resolved plugins are readily available in `(:plugins *beans*)`, so may be applied manually.
 
 ```
-user=> *plugins*
+user=> (:plugins *beans*)
 [{:name "limabean.contrib.plugins.examples.set-narration",
   :config "{:narration \"Plugins rule ok!\"}",
   :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
                     "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]
 
-user=> (def set-narration-xf (get-in *plugins* [0 :booked-xf]))
+user=> (def set-narration-xf (get-in (:plugins *beans*) [0 :booked-xf]))
 
-user=> (into [] set-narration-xf *booked-directives*)
+user=> (into [] set-narration-xf (:booked-directives *beans*))
 [{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :dct :open, :acc "Assets:Bank:Current"}
  {:date #object[java.time.LocalDate 0x63190b1 "2016-03-01"], :dct :open, :acc "Expenses:Groceries"}
  {:date #object[java.time.LocalDate 0x4325de9e "2023-05-29"], :dct :txn, :flag "*", :payee "New World",

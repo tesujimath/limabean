@@ -1,6 +1,7 @@
 use beancount_parser_lima::{
     self as parser, BeancountParser, BeancountSources, ParseError, ParseSuccess,
 };
+use serde::Serialize;
 use std::{
     borrow::Cow,
     io::{self, BufRead, BufReader, Read, Write, stdin, stdout},
@@ -8,11 +9,13 @@ use std::{
 };
 
 use crate::api::{
-    booking::{self, LoadError},
+    booking::{self, BookingFailure},
     json_rpc::*,
     types::{
-        Report,
-        parser_type_conversions::{from_annotated_errors_or_warnings, from_errors_or_warnings},
+        IndexedReport, Report, SyntheticSpan,
+        parser_type_conversions::{
+            create_reports_from_booking_errors, create_reports_from_parser_errors,
+        },
         raw::*,
     },
 };
@@ -21,8 +24,9 @@ pub fn serve(path: &Path) {
     match BeancountSources::try_from(path) {
         Ok(sources) => {
             let parser = BeancountParser::new(&sources);
+            let mut sources = parser::SyntheticSources::new(&sources);
 
-            Server(Ok(HealthyServer::new(&sources, &parser))).serve(&stdin(), &mut stdout());
+            Server(Ok(HealthyServer::new(&mut sources, &parser))).serve(&stdin(), &mut stdout());
         }
         Err(e) => Server(Err(format!(
             "Can't read {}: {}",
@@ -36,7 +40,7 @@ pub fn serve(path: &Path) {
 struct Server<'a>(Result<HealthyServer<'a>, String>);
 
 struct HealthyServer<'a> {
-    sources: &'a BeancountSources,
+    sources: &'a mut parser::SyntheticSources<'a>,
     _parser: &'a BeancountParser<'a>,
     parsed: Result<Parsed<'a>, Vec<parser::Error>>,
 }
@@ -49,7 +53,7 @@ struct Parsed<'a> {
 }
 
 impl<'a> HealthyServer<'a> {
-    fn new(sources: &'a BeancountSources, parser: &'a BeancountParser<'a>) -> Self {
+    fn new(sources: &'a mut parser::SyntheticSources<'a>, parser: &'a BeancountParser<'a>) -> Self {
         let parsed = match parser.parse() {
             Ok(ParseSuccess {
                 directives,
@@ -74,7 +78,7 @@ impl<'a> HealthyServer<'a> {
 }
 
 impl<'a> Server<'a> {
-    fn serve<R, W>(&self, r: R, w: &mut W)
+    fn serve<R, W>(&mut self, r: R, w: &mut W)
     where
         R: Read,
         W: Write,
@@ -109,7 +113,7 @@ impl<'a> Server<'a> {
         }
     }
 
-    fn dispatch<W>(&self, request: &str, w: &mut W)
+    fn dispatch<W>(&mut self, request: &str, w: &mut W)
     where
         W: Write,
     {
@@ -132,7 +136,7 @@ impl<'a> Server<'a> {
                     )
                     .unwrap()
                 } else {
-                    match (&self.0, method) {
+                    match (&mut self.0, method) {
                         (Ok(healthy), Method::Status) => healthy.status(id, w).unwrap(),
 
                         (Ok(healthy), Method::ParserPlugins) => {
@@ -153,6 +157,12 @@ impl<'a> Server<'a> {
 
                         (Ok(healthy), Method::ParserResolveSpan(Params { params })) => {
                             healthy.parser_resolve_span(id, &params, w).unwrap()
+                        }
+
+                        (Ok(healthy), Method::ParserCreateSyntheticSpans(Params { params })) => {
+                            healthy
+                                .parser_create_synthetic_spans(id, &params, w)
+                                .unwrap()
                         }
 
                         (Ok(healthy), Method::Book(optional)) => {
@@ -200,7 +210,7 @@ impl<'a> HealthyServer<'a> {
                 write_response(&response, w)
             }
             Err(errors) => {
-                let reports = from_errors_or_warnings(errors);
+                let reports = create_reports_from_parser_errors(errors);
                 write_error_reports(None, reports, w)
             }
         }
@@ -214,27 +224,28 @@ impl<'a> HealthyServer<'a> {
             Ok(Parsed { directives, .. }) => {
                 let response = ResultResponse::new(
                     id,
-                    ResultData::RawDirectives(
-                        directives
+                    ResultData::RawDirectives(RawDirectives {
+                        directives: directives
                             .iter()
                             .map(Into::<Directive>::into)
                             .collect::<Vec<_>>(),
-                    ),
+                        warnings: None,
+                    }),
                 );
 
                 write_response(&response, w)
             }
             Err(errors) => {
-                let reports = from_errors_or_warnings(errors);
+                let reports = create_reports_from_parser_errors(errors);
                 write_error_reports(None, reports, w)
             }
         }
     }
 
-    fn parser_format_report<K, W>(
+    fn parser_format_report<'r, K, W>(
         &self,
         id: Option<Id>,
-        reports: &[Report<'a>],
+        reports: &[Report<'r>],
         w: &mut W,
     ) -> io::Result<()>
     where
@@ -272,6 +283,29 @@ impl<'a> HealthyServer<'a> {
         write_response(&response, w)
     }
 
+    fn parser_create_synthetic_spans<W>(
+        &mut self,
+        id: Option<Id>,
+        synthetic_spans: &[SyntheticSpan],
+        w: &mut W,
+    ) -> io::Result<()>
+    where
+        W: Write,
+    {
+        let mut spans = Vec::default();
+
+        for s in synthetic_spans {
+            spans.push(
+                self.sources
+                    .create_synthetic_span(s.name.as_ref(), s.content.as_ref())
+                    .into(),
+            )
+        }
+
+        let response = ResultResponse::new(id, ResultData::Spans(spans));
+        write_response(&response, w)
+    }
+
     fn book<W>(
         &self,
         id: Option<Id>,
@@ -297,30 +331,41 @@ impl<'a> HealthyServer<'a> {
                 } else {
                     None
                 };
-                let directives_to_book = match (param_directives, raw_parsed_directives.as_ref()) {
-                    (Some(param_directives), _) => param_directives,
-                    (None, Some(raw_parsed_directives)) => raw_parsed_directives,
-                    _ => panic!("impossible"),
-                };
+                let (directives_to_book, convert_to_spans) =
+                    match (param_directives, raw_parsed_directives.as_ref()) {
+                        (Some(param_directives), _) => (param_directives, false),
+                        (None, Some(raw_parsed_directives)) => (raw_parsed_directives, true),
+                        _ => panic!("impossible"),
+                    };
 
                 match booking::book(directives_to_book, options) {
-                    Ok(booking::LoadSuccess {
+                    Ok(booking::BookingSuccess {
                         directives,
                         warnings: _,
                     }) => {
                         // TODO warnings
-                        let response = ResultResponse::new(id, ResultData::Booked(directives));
+                        let response = ResultResponse::new(
+                            id,
+                            ResultData::BookedDirectives(BookedDirectives { directives }),
+                        );
                         write_response(&response, w)
                     }
 
-                    Err(LoadError { errors, .. }) => {
-                        let reports = from_annotated_errors_or_warnings(&errors);
-                        write_error_reports(None, reports, w)
+                    Err(BookingFailure { errors, .. }) => {
+                        if convert_to_spans {
+                            write_error_reports(
+                                id,
+                                create_reports_from_booking_errors(errors, directives_to_book),
+                                w,
+                            )
+                        } else {
+                            write_indexed_error_reports(id, errors, w)
+                        }
                     }
                 }
             }
             Err(errors) => {
-                let reports = from_errors_or_warnings(errors);
+                let reports = create_reports_from_parser_errors(errors);
                 write_error_reports(id, reports, w)
             }
         }
@@ -344,7 +389,7 @@ where
                     "while writing JSON",
                 ))
             } else {
-                write_error(
+                write_error::<Report, W>(
                     response.id,
                     ERROR_INTERNAL,
                     Cow::Owned(e.to_string()),
@@ -373,6 +418,23 @@ where
     )
 }
 
+fn write_indexed_error_reports<'a, W>(
+    id: Option<Id<'a>>,
+    reports: Vec<IndexedReport>,
+    w: &mut W,
+) -> io::Result<()>
+where
+    W: Write,
+{
+    write_error(
+        id,
+        ERROR_INDEXED_REPORT,
+        Cow::Borrowed("Error reports"),
+        Some(reports),
+        w,
+    )
+}
+
 fn write_other_error<'a, 'b, W>(
     id: Option<Id<'a>>,
     code: ErrorCode,
@@ -382,17 +444,18 @@ fn write_other_error<'a, 'b, W>(
 where
     W: Write,
 {
-    write_error(id, code, message, None, w)
+    write_error::<Report, W>(id, code, message, None, w)
 }
 
-fn write_error<'a, 'b, W>(
+fn write_error<'a, 'b, T, W>(
     id: Option<Id<'a>>,
     code: ErrorCode,
     message: Cow<'b, str>,
-    data: Option<Vec<Report<'a>>>,
+    data: Option<T>,
     w: &mut W,
 ) -> io::Result<()>
 where
+    T: Serialize,
     W: Write,
 {
     let response = ErrorResponse::new(id, code, message, data);

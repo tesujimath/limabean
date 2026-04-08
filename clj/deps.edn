@@ -48,6 +48,7 @@
         com.fasterxml.jackson.datatype/jackson-datatype-jsr310 {:mvn/version
                                                                   "2.18.4"},
         com.taoensso/telemere {:mvn/version "1.2.1"},
+        dev.weavejester/medley {:mvn/version "1.9.0"},
         io.forward/yaml {:mvn/version "1.0.11"},
         org.clojure/clojure {:mvn/version "1.12.4"},
         org.clojure/data.csv {:mvn/version "1.1.0"},

@@ -14,7 +14,7 @@
            (if (seq xfs)
              xfs
              {:err "Failed to find either booked-xf or raw-xf in plugin"}))
-         (catch Exception e {:err "could not load namespace for plugin"}))))
+         (catch Exception _ {:err "could not load namespace for plugin"}))))
 
 (defn- resolve-xfs-with-config'
   "Resolve a plugin and apply config and options"
@@ -48,18 +48,15 @@
   [resolved-plugins sel]
   (apply comp (keep sel resolved-plugins)))
 
-(defn has-raw?
-  "Return whether there are raw plugins to run"
-  [resolved-plugins]
-  (boolean (seq (keep :raw-xf resolved-plugins))))
+(defn has-specified-plugins?
+  "Return whether there are plugins of the given kind to run"
+  [resolved-plugins sel]
+  (boolean (seq (keep sel resolved-plugins))))
 
 (defn run-xf
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
   [directives resolved-plugins sel]
-  (try {:directives
-          (into [] (compose-resolved-xf resolved-plugins sel) directives)}
-       (catch Exception e
-         {:directives directives,
-          :err (str "ERROR running plugin pipeline, all plugins ignored: "
-                    (.getMessage e)
-                    "\nPlugin diagnostics coming soon")})))
+  ;; TODO actually separate out directives and errors with plugin
+  ;; transducers wrapper
+  {:directives (into [] (compose-resolved-xf resolved-plugins sel) directives),
+   :errors []})

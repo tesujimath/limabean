@@ -1,3 +1,4 @@
+use rust_decimal::Decimal;
 use serde::{
     Deserialize, Serialize,
     de::Visitor,
@@ -8,12 +9,12 @@ use crate::api::types::{fmt_iso8601date, parse_iso8601date};
 
 use super::*;
 
-impl<'a> Serialize for MetaValue<'a> {
+impl<'a> Serialize for raw::MetaValue<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        use MetaValue::*;
+        use raw::MetaValue::*;
 
         if let Null = self {
             serializer.serialize_none()
@@ -41,7 +42,7 @@ impl<'a> Serialize for MetaValue<'a> {
     }
 }
 
-impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
+impl<'de: 'a, 'a> Deserialize<'de> for raw::MetaValue<'a> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -49,7 +50,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
         struct MetaValueVisitor;
 
         impl<'de> Visitor<'de> for MetaValueVisitor {
-            type Value = MetaValue<'de>;
+            type Value = raw::MetaValue<'de>;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("a map with a single key indicating the MetaValue variant")
@@ -75,7 +76,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
                             ));
                         }
                         let cur: &'de str = map.next_value()?;
-                        MetaValue::Amount(units, cur)
+                        raw::MetaValue::Amount(units, cur)
                     }
                     MetaKey::Currency => {
                         let cur: &'de str = map.next_value()?;
@@ -84,9 +85,9 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
                         match next_key {
                             Some(MetaKey::Units) => {
                                 let units: Decimal = map.next_value()?;
-                                MetaValue::Amount(units, cur)
+                                raw::MetaValue::Amount(units, cur)
                             }
-                            None => MetaValue::Currency(cur),
+                            None => raw::MetaValue::Currency(cur),
                             Some(other) => {
                                 return Err(serde::de::Error::custom(format!(
                                     "unexpected key {:?} after currency",
@@ -95,16 +96,16 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
                             }
                         }
                     }
-                    MetaKey::String => MetaValue::String(map.next_value()?),
-                    MetaKey::Account => MetaValue::Account(map.next_value()?),
-                    MetaKey::Tag => MetaValue::Tag(map.next_value()?),
-                    MetaKey::Link => MetaValue::Link(map.next_value()?),
-                    MetaKey::Date => MetaValue::Date(
+                    MetaKey::String => raw::MetaValue::String(map.next_value()?),
+                    MetaKey::Account => raw::MetaValue::Account(map.next_value()?),
+                    MetaKey::Tag => raw::MetaValue::Tag(map.next_value()?),
+                    MetaKey::Link => raw::MetaValue::Link(map.next_value()?),
+                    MetaKey::Date => raw::MetaValue::Date(
                         parse_iso8601date(map.next_value()?)
                             .map_err(|e| serde::de::Error::custom(format!("bad date: {}", &e)))?,
                     ),
-                    MetaKey::Bool => MetaValue::Bool(map.next_value()?),
-                    MetaKey::Number => MetaValue::Number(map.next_value()?),
+                    MetaKey::Bool => raw::MetaValue::Bool(map.next_value()?),
+                    MetaKey::Number => raw::MetaValue::Number(map.next_value()?),
                     MetaKey::Null => Err(serde::de::Error::custom(
                         "can't have metavalue map with null key",
                     ))?,
@@ -117,7 +118,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for MetaValue<'a> {
             where
                 E: serde::de::Error,
             {
-                Ok(MetaValue::Null)
+                Ok(raw::MetaValue::Null)
             }
         }
 
@@ -175,6 +176,20 @@ impl<'de> Deserialize<'de> for Span {
         }
 
         deserializer.deserialize_tuple(3, SourceVisitor)
+    }
+}
+
+impl Serialize for ElementIdx {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(if self.posting.is_some() { 2 } else { 1 })?;
+        seq.serialize_element(&self.directive)?;
+        if let Some(posting) = &self.posting {
+            seq.serialize_element(posting)?;
+        }
+        seq.end()
     }
 }
 

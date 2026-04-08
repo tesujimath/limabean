@@ -1,4 +1,3 @@
-use beancount_parser_lima as parser;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use time::Date;
@@ -11,6 +10,14 @@ use raw::Span;
 pub(crate) struct Plugin<'a> {
     pub(crate) name: &'a str,
     pub(crate) config: Option<&'a str>,
+}
+
+/// A synthetic span is a named content fragment we can subsequently reference as a span
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct SyntheticSpan<'a> {
+    pub(crate) name: Cow<'a, str>,
+    pub(crate) content: Cow<'a, str>,
 }
 
 /// A report for formatting in the context of the source files
@@ -30,47 +37,68 @@ pub struct Report<'a> {
     pub(crate) annotation: Option<Cow<'a, str>>,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub(crate) struct Element<'a> {
-    element_type: &'a str,
+/// A report with elements identified by index rather than span.
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct IndexedReport {
+    pub(crate) reason: String,
+    pub(crate) idx: ElementIdx,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) related: Option<Vec<ElementIdx>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) annotation: Option<String>,
 }
 
-impl<'a> parser::ElementType<'a> for Element<'a> {
-    fn element_type(&self) -> &'a str {
-        self.element_type
+impl IndexedReport {
+    pub(crate) fn related_to(mut self, element: ElementIdx) -> Self {
+        self.related.get_or_insert(Vec::default()).push(element);
+        self
+    }
+
+    pub(crate) fn with_annotation<S>(mut self, annotation: S) -> Self
+    where
+        S: Into<String>,
+    {
+        self.annotation = Some(annotation.into());
+        self
     }
 }
 
-impl<'a> From<&raw::Directive<'a>> for parser::Spanned<Element<'static>> {
-    fn from(value: &raw::Directive<'a>) -> Self {
-        parser::spanned(
-            Element {
-                element_type: (&value.variant).into(),
-            },
-            value.span.into(),
-        )
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub(crate) struct ElementIdx {
+    pub(crate) directive: usize,
+    pub(crate) posting: Option<usize>,
+}
+
+impl ElementIdx {
+    pub(crate) fn report<S>(self, reason: S) -> IndexedReport
+    where
+        S: Into<String>,
+    {
+        IndexedReport {
+            reason: reason.into(),
+            idx: self,
+            related: None,
+            annotation: None,
+        }
     }
 }
 
-impl<'a> From<&booked::Directive<'a>> for parser::Spanned<Element<'static>> {
-    fn from(value: &booked::Directive<'a>) -> Self {
-        parser::spanned(
-            Element {
-                element_type: (&value.variant).into(),
-            },
-            value.span.into(),
-        )
+impl From<usize> for ElementIdx {
+    fn from(value: usize) -> Self {
+        ElementIdx {
+            directive: value,
+            posting: None,
+        }
     }
 }
 
-impl<'a> From<&raw::PostingSpec<'a>> for parser::Spanned<Element<'static>> {
-    fn from(value: &raw::PostingSpec<'a>) -> Self {
-        parser::spanned(
-            Element {
-                element_type: "posting",
-            },
-            value.span.into(),
-        )
+impl From<(ElementIdx, usize)> for ElementIdx {
+    fn from(value: (ElementIdx, usize)) -> Self {
+        ElementIdx {
+            directive: value.0.directive,
+            posting: Some(value.1),
+        }
     }
 }
 
@@ -92,3 +120,4 @@ pub(crate) mod booked;
 pub(crate) mod booking_type_conversions;
 pub(crate) mod parser_type_conversions;
 pub(crate) mod raw;
+mod serializers;
