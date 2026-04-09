@@ -13,11 +13,11 @@
         ([result] (rf result))
         ;; step
         ([result dct]
-         (cond (= (:type dct) :limabean/open) (do (vreset! opened-accounts
-                                                          (conj @opened-accounts
-                                                                (:acc dct)))
-                                                 (rf result dct))
-               (= (:type dct) :limabean/txn)
+         (cond (= (:dct dct) :open) (do (vreset! opened-accounts
+                                                 (conj @opened-accounts
+                                                       (:acc dct)))
+                                        (rf result dct))
+               (= (:dct dct) :txn)
                  (let [txn-accs (into #{} (map :acc) (:postings dct))
                        new-accs (sort (vec (set/difference txn-accs
                                                            @opened-accounts)))]
@@ -27,7 +27,7 @@
                      (reduce (fn [result acc]
                                (let [auto-open (merge
                                                  (select-keys dct [:date :span])
-                                                 {:type :limabean/open,
+                                                 {:dct :open,
                                                   :acc acc,
                                                   :metadata {:auto nil}})]
                                  (rf result auto-open)))

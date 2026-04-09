@@ -1,8 +1,7 @@
 (ns limabean.golden
   (:require [clojure.java.io :as io]
-            [limabean.adapter.json-encoders]
+            [limabean.adapter.edn] ;; for print-method java.time.LocalDate
             [limabean.adapter.loader :as loader]
-            [limabean.adapter.print-methods]
             [limabean.test-support :as test-support]
             [zprint.core :refer [zprint]]))
 
@@ -15,7 +14,7 @@
       (do (println "writing directives to" directives-file)
           (with-open [w (io/writer directives-file)]
             (binding [*out* w]
-              (zprint (test-support/remove-spans-and-indexes directives)))))
+              (zprint (test-support/remove-spans directives)))))
       (println "not writing directives to" directives-file
                "because bad plugins" bad-plugins))))
 

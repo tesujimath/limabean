@@ -15,7 +15,6 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 
-- **BREAKING** directives use :type field instead of :dct, and type names have :limabean prefix
 - limabean-pod provides JSON-RPC server instead of one-shot book command
 - at least Clojure 1.12 required
 - remove dynamic variables *plugins* and *booked-directives* in favour of *beans* aggregate

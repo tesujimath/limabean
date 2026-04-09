@@ -8,7 +8,7 @@
 (defn postings
   "Transducer to extract postings from directives, with date et al from the parent transaction."
   []
-  (comp (filter #(= :limabean/txn (:type %)))
+  (comp (filter #(= :txn (:dct %)))
         (mapcat #(map (fn [p]
                         (merge (select-keys % [:date :payee :narration]) p))
                    (:postings %)))))

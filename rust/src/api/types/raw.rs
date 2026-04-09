@@ -31,33 +31,22 @@ pub struct Directive<'a> {
 /// A Beancount directive, without the fields common to all, which belong to [Directive].
 #[derive(Serialize, Deserialize, PartialEq, Eq, strum_macros::IntoStaticStr, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
-#[serde(tag = "type")]
+#[serde(tag = "dct")]
 #[strum(serialize_all = "kebab-case")]
 pub enum DirectiveVariant<'a> {
-    #[serde(rename = "limabean/txn")]
+    #[serde(rename = "txn")]
     Transaction(Transaction<'a>),
-    #[serde(rename = "limabean/price")]
     Price(PriceDct<'a>),
-    #[serde(rename = "limabean/balance")]
     Balance(Balance<'a>),
     #[serde(borrow)]
-    #[serde(rename = "limabean/open")]
     Open(Open<'a>),
-    #[serde(rename = "limabean/close")]
     Close(Close<'a>),
-    #[serde(rename = "limabean/commodity")]
     Commodity(Commodity<'a>),
-    #[serde(rename = "limabean/pad")]
     Pad(Pad<'a>),
-    #[serde(rename = "limabean/document")]
     Document(Document<'a>),
-    #[serde(rename = "limabean/note")]
     Note(Note<'a>),
-    #[serde(rename = "limabean/event")]
     Event(Event<'a>),
-    #[serde(rename = "limabean/query")]
     Query(Query<'a>),
-    #[serde(rename = "limabean/custom")]
     Custom(Custom<'a>),
 }
 

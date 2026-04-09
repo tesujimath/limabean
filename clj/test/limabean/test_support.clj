@@ -23,11 +23,9 @@
                 {:name name, :beanfile beanfile, :golden-dir golden-dir})))
        (filter #(.exists (:golden-dir %)))))
 
-(defn remove-spans-and-indexes
-  "Remove spans and indexes from all maps"
+(defn remove-spans
+  "Remove spans from all maps"
   [data]
   (walk/postwalk (fn [x]
-                   (cond-> x
-                     (and (map? x) (contains? x :span)) (dissoc :span)
-                     (and (map? x) (contains? x :raw-idx)) (dissoc :raw-idx)))
+                   (cond-> x (and (map? x) (contains? x :span)) (dissoc :span)))
                  data))

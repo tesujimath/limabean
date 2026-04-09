@@ -10,15 +10,14 @@
         init (transient {:acc-booking (transient {}), :cur-freq (transient {})})
         result
           (reduce (fn [result d]
-                    (case (:type d)
-                      :limabean/open (if-let [booking (get d :booking)]
-                                       (assoc! result
-                                               :acc-booking
-                                               (assoc! (:acc-booking result)
-                                                       (:acc d)
-                                                       booking))
-                                       result)
-                      :limabean/txn
+                    (case (:dct d)
+                      :open (if-let [booking (get d :booking)]
+                              (assoc!
+                                result
+                                :acc-booking
+                                (assoc! (:acc-booking result) (:acc d) booking))
+                              result)
+                      :txn
                         ;; bump currency frequency for each posting
                         (reduce (fn [result p]
                                   (let [cur-freq (:cur-freq result)
