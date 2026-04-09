@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 - support for running raw plugins, with auto_accounts as an example
+- pass custom meta values through to Clojure
 
 ### Changed
 
