@@ -111,6 +111,7 @@
               export LIMABEAN_BEANFILE="$(pwd)/test-cases/full.beancount"
               export LIMABEAN_LOG="$(pwd)/limabean.log"
               export LIMABEAN_POD_LOG="$(pwd)/limabean-pod.log"
+              export LIMABEAN_DEBUG_DIR="$(pwd)/debug"
             '';
           };
 

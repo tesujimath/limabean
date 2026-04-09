@@ -3,7 +3,7 @@
 
 (defn- dct-type
   [dct]
-  (let [type (:dct dct)] (if (= type :txn) (:flag dct) (name type))))
+  (let [type (:dct dct)] (if (= type :txn) (or (:flag dct) "txn") (name type))))
 
 (defn- double-quote
   "Double quote a string, otherwise nil"
