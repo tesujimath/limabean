@@ -1,5 +1,8 @@
 [{:acc "Assets:Bank:Current", :date #time/date "2020-01-01", :dct :open}
- {:acc "Expenses:Donations", :date #time/date "2023-04-10", :dct :open}
+ {:acc "Expenses:Donations",
+  :date #time/date "2023-04-10",
+  :dct :open,
+  :metadata {:auto nil}}
  {:date #time/date "2023-04-10",
   :dct :txn,
   :flag "*",
@@ -7,7 +10,10 @@
   :payee "WIKIMEDIA",
   :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -10.00M}
              {:acc "Expenses:Donations", :cur "NZD", :units 10.00M}]}
- {:acc "Expenses:Donations:Other", :date #time/date "2023-04-12", :dct :open}
+ {:acc "Expenses:Donations:Other",
+  :date #time/date "2023-04-12",
+  :dct :open,
+  :metadata {:auto nil}}
  {:date #time/date "2023-04-12",
   :dct :txn,
   :flag "*",

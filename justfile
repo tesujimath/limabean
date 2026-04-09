@@ -36,3 +36,7 @@ test-clj-offline: build-clj build-rust
         echo "Validating $golden"
         limabean -v --beanfile "$beanfile" --eval "(show ($query))" | diff - $golden
     done
+
+[working-directory: 'clj']
+refresh-golden-test-output:
+    clojure -X:gen-golden '{:refresh true}'
