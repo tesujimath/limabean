@@ -54,6 +54,32 @@
                        (if v " " "")
                        (meta-value->str v))))))
 
+(defn- cost->str
+  "Convert cost or cost-spec to string"
+  [cost]
+  (let [bare-cost-str
+          (with-out-str
+            ;; print at most one of per-unit and total, preferring per-unit
+            (if-let [per-unit (:per-unit cost)]
+              (print (str per-unit))
+              (when-let [total (:total cost)] (print "#" (str total))))
+            (when-let [cur (:cur cost)] (print "" cur))
+            (when-let [date (:date cost)] (print "," (str date)))
+            (when-let [label (double-quote (:label cost))] (print "," label))
+            (when (:merge cost) (print ", *")))]
+    (str "{" (str/replace-first bare-cost-str #"^,? " "") "}")))
+
+(defn- price->str
+  "Convert price or price-spec to string"
+  [price]
+  (with-out-str (print "@")
+                ;; print at most one of per-unit and total, preferring
+                ;; per-unit
+                (if-let [per-unit (:per-unit price)]
+                  (print "" (str per-unit))
+                  (when-let [total (:total price)] (print " #" (str total))))
+                (when-let [cur (:cur price)] (print "" cur))))
+
 (defn directive->str
   "Convert directive to string"
   [dct]
@@ -102,9 +128,13 @@
         (print "" (:acc posting))
         (when-let [units (:units posting)] (print "" (str units)))
         (when-let [cur (:cur posting)] (print "" cur))
-        ;; TODO cost/cost-spec
-        ;; TODO price/price-spec
-        (print-tags-and-links-inline (:tags posting) (:links posting))
+        (when-let [cost (or (:cost posting) (:cost-spec posting))]
+          (print "" (cost->str cost)))
+        (when-let [price (or (:price posting) (:price-spec posting))]
+          (print "" (price->str price)))
         (println)
+        (print-tags-and-links-on-separate-lines "  "
+                                                (:tags posting)
+                                                (:links posting))
         (when-let [metadata (:metadata posting)]
           (print-meta-key-values-on-separate-lines "  " metadata))))))
