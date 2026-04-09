@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 - support for running raw plugins, with auto_accounts as an example
+- pass custom meta values through to Clojure
+- if LIMABEAN_DEBUG_DIR is defined, dump intermediate beanfiles into that directory
+- print method for directives
 
 ### Changed
 

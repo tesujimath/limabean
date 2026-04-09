@@ -152,8 +152,10 @@ pub struct Query<'a> {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Custom<'a> {
+    #[serde(rename = "type")]
     pub(crate) type_: Cow<'a, str>,
-    // TODO custom meta values
+    #[serde(borrow)]
+    pub(crate) values: Vec<MetaValue<'a>>,
 }
 
 /// A potentially incomplete posting-specification.

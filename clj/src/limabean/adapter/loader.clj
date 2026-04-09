@@ -2,7 +2,27 @@
   "Load from beanfile and run plugins"
   (:require [limabean.adapter.plugins :as plugins]
             [limabean.adapter.pod :as pod]
-            [limabean.core.registry :as registry]))
+            [limabean.core.registry :as registry]
+            [clojure.java.io :as io]
+            [clojure.string :as str]
+            [limabean.adapter.debug :as debug]))
+
+(defn- dump
+  "Dump the beans and return the map"
+  [m k filename]
+  (debug/dump (get m k) filename)
+  m)
+
+(defn- typed
+  "Return a function which applies metadata if required to ensure `x` is typed as `kind`"
+  [kind]
+  (fn [x] (if (= (:type (meta x)) kind) x (with-meta x {:type kind}))))
+
+(defn- typed-directives
+  "Apply metadata to all directives"
+  [directives]
+  ((typed :limabean/directives)
+    (into [] (map (typed :limabean/dct) directives))))
 
 (defn load-beanfile
   [path]
@@ -10,29 +30,43 @@
         plugins (pod/plugins pod)
         options {} ;; TODO get options from JSON-RPC method
         resolved-plugins (plugins/resolve-symbols plugins options)
+        basename (-> (io/file path)
+                     .getName
+                     (str/replace #"\.[^.]*$" ""))
         {:keys [directives warnings]} (pod/directives pod)]
     (cond-> {:pod pod,
              :plugins resolved-plugins,
              :options options,
-             :raw-directives directives}
+             :raw-directives (typed-directives directives)}
+      (debug/dump-configured?) (dump :raw-directives
+                                     (str basename ".raw.beancount"))
       (seq warnings) (assoc :raw-warnings warnings)
       (plugins/has-specified-plugins? resolved-plugins :raw-xf)
-        (as-> m (let [{:keys [directives errors]} (plugins/run-xf
-                                                    (:raw-directives m)
-                                                    resolved-plugins
-                                                    :raw-xf)]
-                  (cond-> (assoc m :raw-xf-directives directives)
-                    (seq errors) (assoc :raw-xf-errors errors))))
+        (as-> m
+          (let [{:keys [directives errors]}
+                  (plugins/run-xf (:raw-directives m) resolved-plugins :raw-xf)]
+            (cond-> (assoc m :raw-xf-directives (typed-directives directives))
+              (debug/dump-configured?) (dump :raw-xf-directives
+                                             (str basename ".raw-xf.beancount"))
+              (seq errors) (assoc :raw-xf-errors errors))))
       true (as-> m (let [{:keys [directives warnings]}
                            (pod/book pod (:raw-xf-directives m))]
-                     (cond-> (assoc m :booked-directives directives)
+                     (cond-> (assoc m
+                               :booked-directives (typed-directives directives))
+                       (debug/dump-configured?) (dump :booked-directives
+                                                      (str basename
+                                                           ".booked.beancount"))
                        (seq warnings) (assoc :booked-warnings warnings))))
       (plugins/has-specified-plugins? resolved-plugins :booked-xf)
         (as-> m (let [{:keys [directives errors]} (plugins/run-xf
                                                     (:booked-directives m)
                                                     resolved-plugins
                                                     :booked-xf)]
-                  (cond-> (assoc m :booked-xf-directives directives)
+                  (cond-> (assoc m
+                            :booked-xf-directives (typed-directives directives))
+                    (debug/dump-configured?) (dump :booked-xf-directives
+                                                   (str basename
+                                                        ".booked-xf.beancount"))
                     (seq errors) (assoc :booked-xf-errors errors))))
       true (as-> m (assoc m
                      :directives (or (:booked-xf-directives m)

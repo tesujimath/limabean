@@ -159,22 +159,22 @@ impl<'a> From<&'_ parser::Custom<'a>> for Custom<'a> {
     fn from(value: &'_ parser::Custom<'a>) -> Self {
         Custom {
             type_: Cow::Borrowed(value.type_().item()),
-            // TODO custom meta values
+            values: value.values().map(|v| v.item().into()).collect::<Vec<_>>(),
         }
     }
 }
 
 pub(crate) fn from_flag(flag: parser::Flag) -> Cow<'static, str> {
-    use beancount_parser_lima::Flag::*;
+    use beancount_parser_lima::Flag;
 
     match flag {
-        Asterisk => Cow::Borrowed("*"),
-        Exclamation => Cow::Borrowed("!"),
-        Ampersand => Cow::Borrowed("&"),
-        Hash => Cow::Borrowed("#"),
-        Question => Cow::Borrowed("?"),
-        Percent => Cow::Borrowed("%"),
-        Letter(_) => Cow::Owned(flag.to_string()),
+        Flag::Asterisk => Cow::Borrowed("*"),
+        Flag::Exclamation => Cow::Borrowed("!"),
+        Flag::Ampersand => Cow::Borrowed("&"),
+        Flag::Hash => Cow::Borrowed("#"),
+        Flag::Question => Cow::Borrowed("?"),
+        Flag::Percent => Cow::Borrowed("%"),
+        Flag::Letter(_) => Cow::Owned(flag.to_string()),
     }
 }
 
@@ -210,36 +210,36 @@ impl<'a> From<&'_ parser::CostSpec<'a>> for CostSpec<'a> {
 
 impl<'a> From<&'_ parser::PriceSpec<'a>> for PriceSpec<'a> {
     fn from(value: &'_ parser::PriceSpec<'a>) -> Self {
-        use beancount_parser_lima::PriceSpec::*;
+        use beancount_parser_lima::PriceSpec as PPS;
         use beancount_parser_lima::ScopedExprValue::*;
 
         match value {
-            Unspecified => PriceSpec {
+            PPS::Unspecified => PriceSpec {
                 per_unit: None,
                 total: None,
                 cur: None,
             },
-            BareCurrency(cur) => PriceSpec {
+            PPS::BareCurrency(cur) => PriceSpec {
                 per_unit: None,
                 total: None,
                 cur: Some(cur.into()),
             },
-            BareAmount(PerUnit(expr)) => PriceSpec {
+            PPS::BareAmount(PerUnit(expr)) => PriceSpec {
                 per_unit: Some(expr.value()),
                 total: None,
                 cur: None,
             },
-            BareAmount(Total(expr)) => PriceSpec {
+            PPS::BareAmount(Total(expr)) => PriceSpec {
                 per_unit: None,
                 total: Some(expr.value()),
                 cur: None,
             },
-            CurrencyAmount(PerUnit(expr), cur) => PriceSpec {
+            PPS::CurrencyAmount(PerUnit(expr), cur) => PriceSpec {
                 per_unit: Some(expr.value()),
                 total: None,
                 cur: Some(cur.into()),
             },
-            CurrencyAmount(Total(expr), cur) => PriceSpec {
+            PPS::CurrencyAmount(Total(expr), cur) => PriceSpec {
                 per_unit: None,
                 total: Some(expr.value()),
                 cur: Some(cur.into()),

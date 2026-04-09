@@ -143,3 +143,4 @@ Quotes are essential, as what is being passed is Clojure code exactly as it woul
 - `LIMABEAN_LOG` - path to logfile, for troubleshooting
 - `LIMABEAN_POD_LOG` - path to logfile for `limabean-pod` logging including JSON-RPC messages at `DEBUG` level, otherwise no logging
 - `LIMABEAN_POD_LOG_LEVEL` - custom log levels for `limabean-pod` as per `RUST_LOG` conventions, or default log levels if omitted
+- `LIMABEAN_DEBUG_DIR` - if set, is a directory where intermediate beanfiles (post-plugin, pre-booking), are dumped, for troubleshooting

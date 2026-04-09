@@ -141,5 +141,10 @@ popmeta drink:
   Assets:US:ETrade:Cash
   Expenses:Financial:Commissions                            9.95 USD
 
-2028-01-01 query "fictional SQL" "SELECT money FROM accounts;" #for-testing
+2025-01-01 query "fictional SQL" "SELECT money FROM accounts;" #for-testing
   status: "bogus"
+
+2025-02-10 custom "all the things!" 10.50 USD "anticipation" CAD Expenses:Groceries #my-custom-tag ^my-custom-link 2023-06-01 TRUE 150
+  i-am-meta: "yay!"
+  #i-am-a-meta-tag
+  ^i-am-a-meta-link
