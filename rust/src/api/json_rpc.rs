@@ -26,6 +26,8 @@ pub(crate) enum RequestMethod<'a> {
     ParserPlugins,
     #[serde(rename = "parser.directives")]
     ParserDirectives,
+    #[serde(rename = "parser.options")]
+    ParserOptions,
     #[serde(rename = "parser.format-errors")]
     ParserFormatErrors(Params<Vec<Report<'a>>>),
     #[serde(rename = "parser.format-warnings")]
@@ -77,6 +79,7 @@ pub(crate) enum ResultData<'a, 'b> {
     Plugins(&'b [Plugin<'a>]),
     #[serde(borrow)]
     RawDirectives(RawDirectives<'a>),
+    Options(&'b Options<'a>),
     Report(Cow<'b, str>),
     ResolvedSpan(SpannedSource<'a>),
     Spans(Vec<Span>),

@@ -54,7 +54,7 @@
   [path]
   (let [pod (pod/start path)
         plugins (pod/plugins pod)
-        options {} ;; TODO get options from JSON-RPC method
+        options (pod/options pod)
         resolved-plugins (plugins/resolve-symbols plugins options)]
     (cond-> {:path path, :pod pod, :plugins resolved-plugins, :options options}
       true (get-raw-directives)

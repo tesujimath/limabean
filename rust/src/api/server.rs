@@ -147,6 +147,10 @@ impl<'a> Server<'a> {
                             healthy.parser_directives(id, w).unwrap()
                         }
 
+                        (Ok(healthy), Method::ParserOptions) => {
+                            healthy.parser_options(id, w).unwrap()
+                        }
+
                         (Ok(healthy), Method::ParserFormatErrors(Params { params })) => healthy
                             .parser_format_report::<parser::ErrorKind, W>(id, &params, w)
                             .unwrap(),
@@ -232,6 +236,24 @@ impl<'a> HealthyServer<'a> {
                         warnings: None,
                     }),
                 );
+
+                write_response(&response, w)
+            }
+            Err(errors) => {
+                let reports = create_reports_from_parser_errors(errors);
+                write_error_reports(None, reports, w)
+            }
+        }
+    }
+
+    fn parser_options<W>(&self, id: Option<Id>, w: &mut W) -> io::Result<()>
+    where
+        W: Write,
+    {
+        match &self.parsed {
+            Ok(Parsed { options, .. }) => {
+                let options = options.into();
+                let response = ResultResponse::new(id, ResultData::Options(&options));
 
                 write_response(&response, w)
             }
