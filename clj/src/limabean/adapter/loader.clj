@@ -5,24 +5,14 @@
             [limabean.core.registry :as registry]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [limabean.adapter.debug :as debug]))
+            [limabean.adapter.debug :as debug]
+            [limabean.core.type :as type]))
 
 (defn- dump
   "Dump the beans and return the map"
   [m k filename]
   (debug/dump (get m k) filename)
   m)
-
-(defn- typed
-  "Return a function which applies metadata if required to ensure `x` is typed as `kind`"
-  [kind]
-  (fn [x] (if (= (:type (meta x)) kind) x (with-meta x {:type kind}))))
-
-(defn- typed-directives
-  "Apply metadata to all directives"
-  [directives]
-  ((typed :limabean/directives)
-    (into [] (map (typed :limabean/dct) directives))))
 
 (defn load-beanfile
   [path]
@@ -37,7 +27,8 @@
     (cond-> {:pod pod,
              :plugins resolved-plugins,
              :options options,
-             :raw-directives (typed-directives directives)}
+             :raw-directives (type/directives directives),
+             :basename basename}
       (debug/dump-configured?) (dump :raw-directives
                                      (str basename ".raw.beancount"))
       (seq warnings) (assoc :raw-warnings warnings)
@@ -45,14 +36,14 @@
         (as-> m
           (let [{:keys [directives errors]}
                   (plugins/run-xf (:raw-directives m) resolved-plugins :raw-xf)]
-            (cond-> (assoc m :raw-xf-directives (typed-directives directives))
+            (cond-> (assoc m :raw-xf-directives (type/directives directives))
               (debug/dump-configured?) (dump :raw-xf-directives
                                              (str basename ".raw-xf.beancount"))
               (seq errors) (assoc :raw-xf-errors errors))))
       true (as-> m (let [{:keys [directives warnings]}
                            (pod/book pod (:raw-xf-directives m))]
                      (cond-> (assoc m
-                               :booked-directives (typed-directives directives))
+                               :booked-directives (type/directives directives))
                        (debug/dump-configured?) (dump :booked-directives
                                                       (str basename
                                                            ".booked.beancount"))
@@ -63,7 +54,7 @@
                                                     resolved-plugins
                                                     :booked-xf)]
                   (cond-> (assoc m
-                            :booked-xf-directives (typed-directives directives))
+                            :booked-xf-directives (type/directives directives))
                     (debug/dump-configured?) (dump :booked-xf-directives
                                                    (str basename
                                                         ".booked-xf.beancount"))
@@ -71,5 +62,8 @@
       true (as-> m (assoc m
                      :directives (or (:booked-xf-directives m)
                                      (:booked-directives m)))
-             (assoc m
-               :registry (registry/build (:directives m) (:options m)))))))
+             (assoc m :registry (registry/build (:directives m) (:options m)))
+             (select-keys m
+                          [:pod :plugins :options :raw-directives
+                           :raw-xf-directives :booked-directives
+                           :booked-xf-directives :directives])))))

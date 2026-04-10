@@ -22,6 +22,8 @@
   (fn []
     (try (require '[limabean :refer :all])
          (require '[limabean.core.filters :as f])
+         (require '[limabean.core.type :as type])
+         (require '[clojure.pprint :refer [pprint]])
          (limabean/load-beanfile beanfile)
          (user-clj/load-user-cljs)
          (catch Exception e (print-exception e) (System/exit 1)))))
