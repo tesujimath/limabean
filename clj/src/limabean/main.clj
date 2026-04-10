@@ -1,5 +1,5 @@
 (ns limabean.main
-  (:require [clojure.tools.cli :refer [parse-opts]]
+  (:require [clojure.tools.cli :as cli]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [limabean]
@@ -29,8 +29,8 @@
   should exit (with an error message, and optional ok status), or a map
   with the options provided."
   [args]
-  (let [{:keys [options arguments errors summary]} (parse-opts args
-                                                               cli-options)]
+  (let [{:keys [options arguments errors summary]} (cli/parse-opts args
+                                                                   cli-options)]
     (tel/log! {:id ::options, :data options})
     (cond (:help options) ; help => exit OK with usage summary
             {:exit-message (usage summary), :ok? true}

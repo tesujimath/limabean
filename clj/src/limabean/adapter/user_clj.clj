@@ -1,6 +1,6 @@
 (ns limabean.adapter.user-clj
   (:require [clojure.string :as str]
-            [limabean.adapter.exception :refer [print-causes]]))
+            [limabean.adapter.exception :as exception]))
 
 (defn load-user-cljs
   "Load user Clojure code from $LIMABEAN_USER_CLJ"
@@ -11,5 +11,5 @@
                  (catch Exception e
                    (binding [*out* *err*]
                      (println "Failed to load" clj "from $LIMABEAN_USER_CLJ")
-                     (print-causes e)))))
+                     (exception/print-causes e)))))
           (str/split cljs #":"))))
