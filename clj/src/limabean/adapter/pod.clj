@@ -98,6 +98,10 @@
   "Return parsed directives"
   [pod]
   (ok-or-print-errors-and-throw pod (invoke pod "parser.directives")))
+(defn options
+  "Return parsed options"
+  [pod]
+  (ok-or-print-errors-and-throw pod (invoke pod "parser.options")))
 (defn format-errors
   "Format errors"
   [pod errors]

@@ -241,6 +241,53 @@ pub enum MetaValue<'a> {
     Null,
 }
 
+/// Options excluding parser-only options, which are by now fully processed
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Options<'a> {
+    pub(crate) name_assets: &'a str,
+    pub(crate) name_liabilities: &'a str,
+    pub(crate) name_equity: &'a str,
+    pub(crate) name_income: &'a str,
+    pub(crate) name_expenses: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) title: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) account_previous_balances: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) account_previous_earnings: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) account_previous_conversions: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) account_current_earnings: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) account_current_conversions: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) account_unrealized_gains: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) account_rounding: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) conversion_currency: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) inferred_tolerance_default: Option<HashMap<&'a str, Decimal>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) inferred_tolerance_default_fallback: Option<Decimal>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) inferred_tolerance_multiplier: Option<Decimal>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) infer_tolerance_from_cost: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) documents: Option<HashSet<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) operating_currency: Option<HashSet<&'a str>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) render_commas: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) booking_method: Option<Booking>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) plugin_processing_mode: Option<PluginProcessingMode>,
+}
+
 /// The booking method for an account.
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -252,6 +299,14 @@ pub enum Booking {
     Fifo,
     Lifo,
     Hifo,
+}
+
+/// The booking method for an account.
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub enum PluginProcessingMode {
+    Default,
+    Raw,
 }
 
 /// The booking method for an account.

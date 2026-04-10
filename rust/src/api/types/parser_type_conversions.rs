@@ -1,4 +1,5 @@
 use beancount_parser_lima as parser;
+use rust_decimal::Decimal;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
@@ -318,6 +319,64 @@ impl<'a> From<&'_ parser::MetaValue<'a>> for MetaValue<'a> {
     }
 }
 
+impl<'a> From<&'_ parser::Options<'a>> for Options<'a> {
+    fn from(value: &'_ parser::Options<'a>) -> Options<'a> {
+        use parser::AccountType::*;
+
+        let mut inferred_tolerance_default = HashMap::<&str, Decimal>::default();
+        let mut inferred_tolerance_default_fallback = None;
+
+        for (cur, tol) in value.inferred_tolerance_defaults() {
+            if let Some(cur) = cur {
+                inferred_tolerance_default.insert(cur.into(), tol);
+            } else {
+                inferred_tolerance_default_fallback = Some(tol);
+            }
+        }
+
+        let documents = value
+            .documents()
+            .map(|path| path.to_string_lossy().into_owned())
+            .collect::<HashSet<_>>();
+
+        let operating_currency = value
+            .operating_currency()
+            .map(|x| x.into())
+            .collect::<HashSet<_>>();
+
+        Options {
+            name_assets: value.account_type_name(Assets).into(),
+            name_liabilities: value.account_type_name(Liabilities).into(),
+            name_equity: value.account_type_name(Equity).into(),
+            name_income: value.account_type_name(Income).into(),
+            name_expenses: value.account_type_name(Expenses).into(),
+            title: value.title().map(|x| *x.item()),
+            account_previous_balances: value.account_previous_balances().map(|x| x.item().into()),
+            account_previous_earnings: value.account_previous_earnings().map(|x| x.item().into()),
+            account_previous_conversions: value
+                .account_previous_conversions()
+                .map(|x| x.item().into()),
+            account_current_earnings: value.account_current_earnings().map(|x| x.item().into()),
+            account_current_conversions: value
+                .account_current_conversions()
+                .map(|x| x.item().into()),
+            account_unrealized_gains: value.account_unrealized_gains().map(|x| x.item().into()),
+            account_rounding: value.account_rounding().map(|x| x.item().into()),
+            conversion_currency: value.conversion_currency().map(|x| x.item().into()),
+            inferred_tolerance_default: (!inferred_tolerance_default.is_empty())
+                .then_some(inferred_tolerance_default),
+            inferred_tolerance_default_fallback,
+            inferred_tolerance_multiplier: value.inferred_tolerance_multiplier().map(|x| *x.item()),
+            infer_tolerance_from_cost: value.infer_tolerance_from_cost().map(|x| *x.item()),
+            documents: (!documents.is_empty()).then_some(documents),
+            operating_currency: (!operating_currency.is_empty()).then_some(operating_currency),
+            render_commas: value.render_commas().map(|x| *x.item()),
+            booking_method: value.booking_method().map(|x| x.item().into()),
+            plugin_processing_mode: value.plugin_processing_mode().map(|x| x.item().into()),
+        }
+    }
+}
+
 impl From<parser::Booking> for Booking {
     fn from(value: parser::Booking) -> Self {
         use Booking::*;
@@ -337,6 +396,24 @@ impl From<parser::Booking> for Booking {
 
 impl From<&parser::Booking> for Booking {
     fn from(value: &parser::Booking) -> Self {
+        Self::from(*value)
+    }
+}
+
+impl From<parser::PluginProcessingMode> for PluginProcessingMode {
+    fn from(value: parser::PluginProcessingMode) -> Self {
+        use PluginProcessingMode::*;
+        use parser::PluginProcessingMode as parser;
+
+        match value {
+            parser::Default => Default,
+            parser::Raw => Raw,
+        }
+    }
+}
+
+impl From<&parser::PluginProcessingMode> for PluginProcessingMode {
+    fn from(value: &parser::PluginProcessingMode) -> Self {
         Self::from(*value)
     }
 }

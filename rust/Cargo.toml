@@ -25,8 +25,8 @@ limabean-booking = { version = "0.10.2", features = [
 #   "lima-parser-types",
 #   "rust-decimal",
 # ] }
-beancount-parser-lima = "0.16.0"
-# beancount-parser-lima = { version = "0.16.0", path = "../../beancount-parser-lima" }
+beancount-parser-lima = "0.16.1"
+# beancount-parser-lima = { version = "0.16.1", path = "../../beancount-parser-lima" }
 tabulator = { version = "0.6.0", features = [
   "bin",
   "num-bigint",

@@ -1,6 +1,6 @@
 (ns limabean.app
   (:require [limabean]
-            [limabean.adapter.exception :refer [print-causes]]
+            [limabean.adapter.exception :as exception]
             [limabean.adapter.user-clj :as user-clj]
             [rebel-readline.clojure.main :as rebel-clj-main]))
 
@@ -22,6 +22,8 @@
   (fn []
     (try (require '[limabean :refer :all])
          (require '[limabean.core.filters :as f])
+         (require '[limabean.core.type :as type])
+         (require '[clojure.pprint :refer [pprint]])
          (limabean/load-beanfile beanfile)
          (user-clj/load-user-cljs)
          (catch Exception e (print-exception e) (System/exit 1)))))
@@ -34,7 +36,7 @@
        (catch Exception e
          (binding [*out* *err*]
            (println "Error:" expr-str)
-           (print-causes e)
+           (exception/print-causes e)
            (System/exit 1)))))
 
 (defn run

@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file. This change
 - pass custom meta values through to Clojure
 - if LIMABEAN_DEBUG_DIR is defined, dump intermediate beanfiles into that directory
 - print method for directives
+- pass all options through to Clojure
 
 ### Changed
 
