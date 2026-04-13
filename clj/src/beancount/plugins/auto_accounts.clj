@@ -25,11 +25,10 @@
                      (vreset! opened-accounts
                               (apply conj @opened-accounts new-accs))
                      (reduce (fn [result acc]
-                               (let [auto-open (merge
-                                                 (select-keys dct [:date :span])
-                                                 {:dct :open,
-                                                  :acc acc,
-                                                  :metadata {:auto nil}})]
+                               (let [auto-open {:dct :open,
+                                                :date (:date dct),
+                                                :acc acc,
+                                                :metadata {:auto nil}}]
                                  (rf result auto-open)))
                        result
                        new-accs))
