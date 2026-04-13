@@ -43,10 +43,41 @@
   [plugins options]
   (mapv (resolve-xfs-with-config options) plugins))
 
-(defn- compose-resolved-xf
-  "Compose the transducers in the plugins"
-  [resolved-plugins sel]
-  (apply comp (keep sel resolved-plugins)))
+(defn tag-unknown
+  "Transducer to tag unknown directives"
+  [known-directives tagf]
+  (fn [rf]
+    (fn
+      ;; init
+      ([] (rf))
+      ;; completion
+      ([result] (rf result))
+      ;; step
+      ([result d]
+       (if (not (contains? @known-directives (System/identityHashCode d)))
+         (let [tagged-d (tagf d)]
+           (vreset! known-directives
+                    (conj! @known-directives
+                           (System/identityHashCode tagged-d)))
+           (rf result tagged-d))
+         ;; otherwise emit the original directive, whatever it was
+         (rf result d))))))
+
+(defn provenance-tagf
+  [provenance]
+  (fn [d] (update d :provenance (fnil conj []) provenance)))
+
+(defn compose-resolved-xf
+  "Compose the transducers in the plugins along with a tagging transducer to set the provenance"
+  [resolved-plugins sel known-directives]
+  (apply comp
+    (tag-unknown known-directives identity)
+    (keep (fn [plugin]
+            (when-let [xf (get plugin sel)]
+              (comp xf
+                    (tag-unknown known-directives
+                                 (provenance-tagf (:name plugin))))))
+          resolved-plugins)))
 
 (defn has-specified-plugins?
   "Return whether there are plugins of the given kind to run"
@@ -56,7 +87,11 @@
 (defn run-xf
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
   [directives resolved-plugins sel]
-  ;; TODO actually separate out directives and errors with plugin
-  ;; transducers wrapper
-  {:directives (into [] (compose-resolved-xf resolved-plugins sel) directives),
-   :errors []})
+  (let [known-directives (volatile! (transient #{}))]
+    ;; TODO actually separate out directives and errors with plugin
+    ;; transducers wrapper
+    {:directives (into
+                   []
+                   (compose-resolved-xf resolved-plugins sel known-directives)
+                   directives),
+     :errors []}))

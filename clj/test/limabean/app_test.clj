@@ -6,6 +6,7 @@
             [clojure.java.io :as io]
             [clojure.java.shell :as shell]
             [clojure.test :refer [deftest is testing]]
+            [clojure.walk :as walk]
             [matcho.core :as matcho])
   (:import [java.nio.file Files]))
 
@@ -68,7 +69,13 @@
                                        beanfile
                                        (.getMessage e))
                               []))
-                expected (edn/read-edn-string (slurp expected-directives))]
-            (matcho/assert expected
+                expected (edn/read-edn-string (slurp expected-directives))
+                expected-strict (walk/postwalk
+                                  (fn [x]
+                                    (if (instance? clojure.lang.IObj x)
+                                      (with-meta x {:matcho/strict true})
+                                      x))
+                                  expected)]
+            (matcho/assert expected-strict
                            (test-support/remove-spans-and-indexes
                              (:directives actual)))))))))
