@@ -8,29 +8,30 @@
   [directives options]
   (let [default-booking (get options :booking :strict)
         init (transient {:acc-booking (transient {}), :cur-freq (transient {})})
-        result
-          (reduce (fn [result d]
-                    (case (:dct d)
-                      :open (if-let [booking (get d :booking)]
-                              (assoc!
-                                result
-                                :acc-booking
-                                (assoc! (:acc-booking result) (:acc d) booking))
-                              result)
-                      :txn
-                        ;; bump currency frequency for each posting
-                        (reduce (fn [result p]
-                                  (let [cur-freq (:cur-freq result)
-                                        cur (:cur p)
-                                        freq (get cur-freq cur 0)]
-                                    (assoc! result
-                                            :cur-freq
-                                            (assoc! cur-freq cur (inc freq)))))
-                          result
-                          (:postings d))
-                      result))
-            init
-            directives)
+        result (reduce (fn [result dct]
+                         (case (:dct dct)
+                           :open (if-let [booking (get dct :booking)]
+                                   (assoc! result
+                                           :acc-booking
+                                           (assoc! (:acc-booking result)
+                                                   (:acc dct)
+                                                   booking))
+                                   result)
+                           :txn
+                             ;; bump currency frequency for each posting
+                             (reduce (fn [result pst]
+                                       (let [cur-freq (:cur-freq result)
+                                             cur (:cur pst)
+                                             freq (get cur-freq cur 0)]
+                                         (assoc!
+                                           result
+                                           :cur-freq
+                                           (assoc! cur-freq cur (inc freq)))))
+                               result
+                               (:postings dct))
+                           result))
+                 init
+                 directives)
         acc-booking (persistent! (:acc-booking result))
         cur-freq (persistent! (:cur-freq result))
         curs (mapv first (sort-by (comp - second) (into [] cur-freq)))

@@ -81,22 +81,28 @@
                 (when-let [cur (:cur price)] (print "" cur))))
 
 (defn- print-posting
-  [posting]
+  [pst]
   (print " ")
-  (when-let [flag (:flag posting)] (print "" flag))
-  (print "" (:acc posting))
-  (when-let [units (:units posting)] (print "" (str units)))
-  (when-let [cur (:cur posting)] (print "" cur))
-  (when-let [cost (or (:cost posting) (:cost-spec posting))]
+  (when-let [flag (:flag pst)] (print "" flag))
+  (print "" (:acc pst))
+  (when-let [units (:units pst)] (print "" (str units)))
+  (when-let [cur (:cur pst)] (print "" cur))
+  (when-let [cost (or (:cost pst) (:cost-spec pst))]
     (print "" (cost->str cost)))
-  (when-let [price (or (:price posting) (:price-spec posting))]
+  (when-let [price (or (:price pst) (:price-spec pst))]
     (print "" (price->str price)))
   (println)
-  (print-tags-and-links-on-separate-lines "  " (:tags posting) (:links posting))
-  (when-let [metadata (:metadata posting)]
+  (print-tags-and-links-on-separate-lines "  " (:tags pst) (:links pst))
+  (when-let [metadata (:metadata pst)]
     (print-meta-key-values-on-separate-lines "  " metadata)))
 
-(defn- print-txn-header
+(defn- posting->str [pst] (with-out-str (print-posting pst)))
+
+(defn- print-dct-common-header-fields
+  [dct]
+  (print (str (:date dct)) (dct-type dct)))
+
+(defn- print-txn-specific-header-fields
   [txn]
   (let [payee (double-quote (:payee txn))
         narration (double-quote (:narration txn))
@@ -105,13 +111,18 @@
           payee (print "" payee empty)
           narration (print "" narration))))
 
+(defn- txn-header->str
+  [txn]
+  (with-out-str (print-dct-common-header-fields txn)
+                (print-txn-specific-header-fields txn)))
+
 (defn directive->str
   "Convert directive to string"
   [dct]
   (with-out-str
-    (print (str (:date dct)) (dct-type dct))
+    (print-dct-common-header-fields dct)
     (case (:dct dct)
-      :txn (print-txn-header dct)
+      :txn (print-txn-specific-header-fields dct)
       :price (let [price (:price dct)]
                (print "" (:cur dct) (str (:per-unit price)) (:cur price)))
       :balance (do (print "" (:acc dct) (str (:units dct)) (:cur dct))
@@ -144,14 +155,25 @@
     (when (= (:dct dct) :txn)
       (doseq [pst (:postings dct)] (print-posting pst)))))
 
-(defn directive->str-or-strs
-  "Return a str or multiple strings for a directive, according to whether it is a transaction.
+(defn elements-xf
+  "Transducer to produce string elements from directives, to facilitate building synthetic spans.
 
-  Transactions are returned as a header line then all postings, to facilitate building synthetic spans.
+  Except for transactions, each directive results in a single string, its human-readable representation.
+
+  Transactions result in strings for the header and each posting separately.
   "
-  [dct]
-  (if (= (:dct dct) :txn)
-    (reduce (fn [result pst] (conj result (with-out-str (print-posting pst))))
-      [(with-out-str (print-txn-header dct) (println))]
-      (:postings dct))
-    (directive->str dct)))
+  []
+  (fn [rf]
+    (fn
+      ;; init
+      ([] (rf))
+      ;; completion
+      ([result] (rf result))
+      ;; step
+      ([result dct]
+       (if (= (:dct dct) :txn)
+         ;; transaction header line and postings separately
+         (do (rf result (txn-header->str dct))
+             (reduce rf result (map posting->str (:postings dct))))
+         ;; otherwise emit the whole formatted directive
+         (rf result (directive->str dct)))))))

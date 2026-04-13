@@ -33,21 +33,22 @@
         key (into {}
                   (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
                     [:xf :directives :xf-directives :xf-errors]))]
-    (try
-      (let [{:keys [directives errors]}
-              (plugins/run-xf (get m (:directives key)) (:plugins m) (:xf key))]
-        (cond-> (assoc m (:xf-directives key) (type/directives directives))
-          (debug/dump-configured?) (dump (:directives key))
-          (seq errors) (assoc (:xf-errors key) errors)))
-      (catch Exception e
-        (binding [*err* *out*]
-          (println "Exception in"
-                   kind-name
-                   "plugin, all"
-                   kind-name
-                   "plugins ignored")
-          (.printStackTrace e))
-        m))))
+    (try (let [{:keys [directives errors]} (plugins/run-plugins-of-kind
+                                             (get m (:directives key))
+                                             (:plugins m)
+                                             (:xf key))]
+           (cond-> (assoc m (:xf-directives key) (type/directives directives))
+             (debug/dump-configured?) (dump (:directives key))
+             (seq errors) (assoc (:xf-errors key) errors)))
+         (catch Exception e
+           (binding [*err* *out*]
+             (println "Exception in"
+                      kind-name
+                      "plugin, all"
+                      kind-name
+                      "plugins ignored")
+             (.printStackTrace e))
+           m))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw plugins as parsed."

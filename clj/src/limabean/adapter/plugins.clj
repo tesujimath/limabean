@@ -43,7 +43,7 @@
   [plugins options]
   (mapv (resolve-xfs-with-config options) plugins))
 
-(defn tag-unknown
+(defn- tag-unknown
   "Transducer to tag unknown directives"
   [known-directives tagf]
   (fn [rf]
@@ -63,11 +63,11 @@
          ;; otherwise emit the original directive, whatever it was
          (rf result d))))))
 
-(defn provenance-tagf
+(defn- provenance-tagf
   [provenance]
   (fn [d] (update d :provenance (fnil conj []) provenance)))
 
-(defn compose-resolved-xf
+(defn- compose-and-wrap-resolved-plugins
   "Compose the transducers in the plugins along with a tagging transducer to set the provenance"
   [resolved-plugins sel known-directives]
   (apply comp
@@ -84,14 +84,15 @@
   [resolved-plugins sel]
   (boolean (seq (keep sel resolved-plugins))))
 
-(defn run-xf
+(defn run-plugins-of-kind
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
   [directives resolved-plugins sel]
   (let [known-directives (volatile! (transient #{}))]
     ;; TODO actually separate out directives and errors with plugin
     ;; transducers wrapper
-    {:directives (into
-                   []
-                   (compose-resolved-xf resolved-plugins sel known-directives)
-                   directives),
+    {:directives (into []
+                       (compose-and-wrap-resolved-plugins resolved-plugins
+                                                          sel
+                                                          known-directives)
+                       directives),
      :errors []}))
