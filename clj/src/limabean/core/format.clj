@@ -80,18 +80,38 @@
                   (when-let [total (:total price)] (print " #" (str total))))
                 (when-let [cur (:cur price)] (print "" cur))))
 
+(defn- print-posting
+  [posting]
+  (print " ")
+  (when-let [flag (:flag posting)] (print "" flag))
+  (print "" (:acc posting))
+  (when-let [units (:units posting)] (print "" (str units)))
+  (when-let [cur (:cur posting)] (print "" cur))
+  (when-let [cost (or (:cost posting) (:cost-spec posting))]
+    (print "" (cost->str cost)))
+  (when-let [price (or (:price posting) (:price-spec posting))]
+    (print "" (price->str price)))
+  (println)
+  (print-tags-and-links-on-separate-lines "  " (:tags posting) (:links posting))
+  (when-let [metadata (:metadata posting)]
+    (print-meta-key-values-on-separate-lines "  " metadata)))
+
+(defn- print-txn-header
+  [txn]
+  (let [payee (double-quote (:payee txn))
+        narration (double-quote (:narration txn))
+        empty (double-quote "")]
+    (cond (and payee narration) (print "" payee narration)
+          payee (print "" payee empty)
+          narration (print "" narration))))
+
 (defn directive->str
   "Convert directive to string"
   [dct]
   (with-out-str
     (print (str (:date dct)) (dct-type dct))
     (case (:dct dct)
-      :txn (let [payee (double-quote (:payee dct))
-                 narration (double-quote (:narration dct))
-                 empty (double-quote "")]
-             (cond (and payee narration) (print "" payee narration)
-                   payee (print "" payee empty)
-                   narration (print "" narration)))
+      :txn (print-txn-header dct)
       :price (let [price (:price dct)]
                (print "" (:cur dct) (str (:per-unit price)) (:cur price)))
       :balance (do (print "" (:acc dct) (str (:units dct)) (:cur dct))
@@ -122,19 +142,16 @@
     (when-let [metadata (:metadata dct)]
       (print-meta-key-values-on-separate-lines "  " metadata))
     (when (= (:dct dct) :txn)
-      (doseq [posting (:postings dct)]
-        (print " ")
-        (when-let [flag (:flag posting)] (print "" flag))
-        (print "" (:acc posting))
-        (when-let [units (:units posting)] (print "" (str units)))
-        (when-let [cur (:cur posting)] (print "" cur))
-        (when-let [cost (or (:cost posting) (:cost-spec posting))]
-          (print "" (cost->str cost)))
-        (when-let [price (or (:price posting) (:price-spec posting))]
-          (print "" (price->str price)))
-        (println)
-        (print-tags-and-links-on-separate-lines "  "
-                                                (:tags posting)
-                                                (:links posting))
-        (when-let [metadata (:metadata posting)]
-          (print-meta-key-values-on-separate-lines "  " metadata))))))
+      (doseq [pst (:postings dct)] (print-posting pst)))))
+
+(defn directive->str-or-strs
+  "Return a str or multiple strings for a directive, according to whether it is a transaction.
+
+  Transactions are returned as a header line then all postings, to facilitate building synthetic spans.
+  "
+  [dct]
+  (if (= (:dct dct) :txn)
+    (reduce (fn [result pst] (conj result (with-out-str (print-posting pst))))
+      [(with-out-str (print-txn-header dct) (println))]
+      (:postings dct))
+    (directive->str dct)))

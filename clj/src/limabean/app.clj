@@ -4,18 +4,6 @@
             [limabean.adapter.user-clj :as user-clj]
             [rebel-readline.clojure.main :as rebel-clj-main]))
 
-(defn- print-exception
-  "Print exception to *err* according to what it is."
-  [e]
-  (binding [*out* *err*]
-    (if (instance? clojure.lang.ExceptionInfo e)
-      (if (contains? (ex-data e) :user-error)
-        (when-let [user-error (:user-error (ex-data e))]
-          (print user-error)
-          (flush))
-        (println "unexpected error" e))
-      (do (println "Unexpected error" e) (.printStackTrace e)))))
-
 (defn- init
   "Return a function which initializes or exits with error message on failure"
   [{:keys [beanfile]}]
@@ -26,7 +14,7 @@
          (require '[clojure.pprint :refer [pprint]])
          (limabean/load-beanfile beanfile)
          (user-clj/load-user-cljs)
-         (catch Exception e (print-exception e) (System/exit 1)))))
+         (catch Exception e (exception/print-exception e) (System/exit 1)))))
 
 (defn- try-eval
   [expr-str options]
@@ -45,4 +33,5 @@
   (binding [*ns* (find-ns 'user)]
     (if-let [expr-str (:eval options)]
       (try-eval expr-str options)
-      (rebel-clj-main/repl :init (init options) :caught print-exception))))
+      (rebel-clj-main/repl :init (init options)
+                           :caught exception/print-exception))))

@@ -6,7 +6,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [limabean.adapter.debug :as debug]
-            [limabean.core.type :as type]))
+            [limabean.core.type :as type]
+            [limabean.adapter.exception :as exception]))
 
 (defn- dump
   "Dump the beans and return the map"
@@ -25,30 +26,41 @@
       (seq warnings) (assoc :raw-warnings warnings)
       (debug/dump-configured?) (dump :raw-directives))))
 
-(defn- run-raw-plugins
-  [m]
-  (let [{:keys [directives errors]}
-          (plugins/run-xf (:raw-directives m) (:plugins m) :raw-xf)]
-    (cond-> (assoc m :raw-xf-directives (type/directives directives))
-      (debug/dump-configured?) (dump :raw-xf-directives)
-      (seq errors) (assoc :raw-xf-errors errors))))
+(defn- run-plugins
+  "Run plugins, kind being :raw or :booked"
+  [m kind]
+  (let [kind-name (name kind)
+        key (into {}
+                  (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
+                    [:xf :directives :xf-directives :xf-errors]))]
+    (try
+      (let [{:keys [directives errors]}
+              (plugins/run-xf (get m (:directives key)) (:plugins m) (:xf key))]
+        (cond-> (assoc m (:xf-directives key) (type/directives directives))
+          (debug/dump-configured?) (dump (:directives key))
+          (seq errors) (assoc (:xf-errors key) errors)))
+      (catch Exception e
+        (binding [*err* *out*]
+          (println "Exception in"
+                   kind-name
+                   "plugin, all"
+                   kind-name
+                   "plugins ignored")
+          (.printStackTrace e))
+        m))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw plugins as parsed."
   [m]
-  (let [{:keys [directives warnings]} (pod/book (:pod m)
-                                                (:raw-xf-directives m))]
-    (cond-> (assoc m :booked-directives (type/directives directives))
-      (debug/dump-configured?) (dump :booked-directives)
-      (seq warnings) (assoc :booked-warnings warnings))))
-
-(defn- run-booked-plugins
-  [m]
-  (let [{:keys [directives errors]}
-          (plugins/run-xf (:booked-directives m) (:plugins m) :booked-xf)]
-    (cond-> (assoc m :booked-xf-directives (type/directives directives))
-      (debug/dump-configured?) (dump :booked-xf-directives)
-      (seq errors) (assoc :booked-xf-errors errors))))
+  (try (let [{:keys [directives warnings]} (pod/book (:pod m)
+                                                     (:raw-xf-directives m))]
+         (cond-> (assoc m :booked-directives (type/directives directives))
+           (debug/dump-configured?) (dump :booked-directives)
+           (seq warnings) (assoc :booked-warnings warnings)))
+       (catch Exception e
+         (binding [*err* *out*] (println "Booking failed"))
+         (exception/print-exception e)
+         m)))
 
 (defn load-beanfile
   [path]
@@ -58,11 +70,11 @@
         resolved-plugins (plugins/resolve-symbols plugins options)]
     (cond-> {:path path, :pod pod, :plugins resolved-plugins, :options options}
       true (get-raw-directives)
-      (plugins/has-specified-plugins? resolved-plugins :raw-xf)
-        (run-raw-plugins)
+      (plugins/has-specified-plugins? resolved-plugins :raw-xf) (run-plugins
+                                                                  :raw)
       true (book-raw-directives)
-      (plugins/has-specified-plugins? resolved-plugins :booked-xf)
-        (run-booked-plugins)
+      (plugins/has-specified-plugins? resolved-plugins :booked-xf) (run-plugins
+                                                                     :booked)
       true (as-> m (assoc m
                      :directives (or (:booked-xf-directives m)
                                      (:booked-directives m)))
