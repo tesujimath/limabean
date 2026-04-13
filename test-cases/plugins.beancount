@@ -1,0 +1,15 @@
+plugin "beancount.plugins.auto_accounts"
+plugin "limabean.test.plugins.set-metadata" "{:open {:opened-with {:string \"can opener\"}} :close {:finished {:bool true}}}"
+
+;; an explicitly opened account, unlike the others
+2020-01-01 open Assets:Bank:Current
+
+2023-04-10 * "WIKIMEDIA" "WIKIMEDIA ;"
+  Assets:Bank:Current  -10.00 NZD
+  Expenses:Donations
+
+2023-04-12 * "Tear Fund" ""
+  Assets:Bank:Current  -20.00 NZD
+  Expenses:Donations:Other
+
+2026-01-31 close Expenses:Donations:Other
