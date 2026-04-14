@@ -55,6 +55,26 @@
       (seq warnings) (assoc :raw-warnings warnings)
       (debug/dump-configured?) (dump :raw-directives))))
 
+(defn- format-plugin-error
+  [m kind message dct plugin]
+  (let [span
+          (case kind
+            :raw (if (:provenance dct)
+                   (get (synthetic-spans/create-with-provenance [dct] (:pod m))
+                        0)
+                   (:span dct))
+            :booked
+              (if (:provenance dct)
+                (get (synthetic-spans/create-with-provenance [dct] (:pod m)) 0)
+                (let [raw-directives (or (:raw-xf-directives m)
+                                         (:raw-directives m))]
+                  (get-in raw-directives [(:raw-idx dct) :span]))))]
+    (pod/format-errors
+      (:pod m)
+      [{:message (str (str/capitalize (name kind)) " plugin " plugin " failed"),
+        :reason message,
+        :span span}])))
+
 (defn- run-plugins
   "Run plugins, kind being :raw or :booked"
   [m kind]
@@ -63,7 +83,9 @@
                   (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
                     [:xf :directives :xf-directives :xf-errors]))
         create-synthetic-spans-if-required
-          (if (= kind :raw) #(synthetic-spans/create % (:pod m)) identity)]
+          (if (= kind :raw)
+            #(synthetic-spans/create-and-merge-with-provenance % (:pod m))
+            identity)]
     (try (let [{:keys [directives errors]} (plugins/run-plugins-of-kind
                                              (get m (:directives key))
                                              (:plugins m)
@@ -79,9 +101,8 @@
              (let [data (ex-data e)
                    {:keys [dct plugin]} data]
                (if (and dct plugin)
-                 (do
-                   (println "Plugin" plugin "failed with" (.getMessage e) "at")
-                   (println dct))
+                 (println
+                   (format-plugin-error m kind (.getMessage e) dct plugin))
                  (do (println "Exception in" kind-name "plugin")
                      (.printStackTrace e)))
                (println "All" kind-name "plugins ignored")))
