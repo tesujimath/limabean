@@ -116,8 +116,8 @@
   (ok-or-throw (invoke pod "parser.resolve-span" span)))
 (defn create-synthetic-spans
   "Create spans for synthetic sources, e.g. the output of plugins"
-  [pod synthetic-spans]
-  (ok-or-throw (invoke pod "parser.create-synthetic-spans" synthetic-spans)))
+  [pod requests]
+  (ok-or-throw (invoke pod "parser.create-synthetic-spans" requests)))
 (defn book
   "Book directives, or parsed directives by default"
   ([pod] (ok-or-print-errors-and-throw pod (invoke pod "book")))

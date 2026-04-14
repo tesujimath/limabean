@@ -156,13 +156,15 @@
       (doseq [pst (:postings dct)] (print-posting pst)))))
 
 (defn elements-xf
-  "Transducer to produce string elements from directives, to facilitate building synthetic spans.
+  "Transducer to produce elements from directives, to facilitate building synthetic spans.
 
   Except for transactions, each directive results in a single string, its human-readable representation.
 
   Transactions result in strings for the header and each posting separately.
+
+  `element-builder` is a function taking the directive and string, and returning the element
   "
-  []
+  [element-builder]
   (fn [rf]
     (fn
       ;; init
@@ -173,7 +175,9 @@
       ([result dct]
        (if (= (:dct dct) :txn)
          ;; transaction header line and postings separately
-         (do (rf result (txn-header->str dct))
-             (reduce rf result (map posting->str (:postings dct))))
+         (let [result' (rf result (element-builder dct (txn-header->str dct)))]
+           (reduce rf
+             result'
+             (map #(element-builder dct (posting->str %)) (:postings dct))))
          ;; otherwise emit the whole formatted directive
-         (rf result (directive->str dct)))))))
+         (rf result (element-builder dct (directive->str dct))))))))

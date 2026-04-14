@@ -7,7 +7,8 @@
             [clojure.string :as str]
             [limabean.adapter.debug :as debug]
             [limabean.core.type :as type]
-            [limabean.adapter.exception :as exception]))
+            [limabean.adapter.exception :as exception]
+            [limabean.adapter.synthetic-spans :as synthetic-spans]))
 
 (defn- dump
   "Dump the beans and return the map"
@@ -32,12 +33,17 @@
   (let [kind-name (name kind)
         key (into {}
                   (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
-                    [:xf :directives :xf-directives :xf-errors]))]
+                    [:xf :directives :xf-directives :xf-errors]))
+        create-synthetic-spans-if-required
+          (if (= kind :raw) #(synthetic-spans/create % (:pod m)) identity)]
     (try (let [{:keys [directives errors]} (plugins/run-plugins-of-kind
                                              (get m (:directives key))
                                              (:plugins m)
                                              (:xf key))]
-           (cond-> (assoc m (:xf-directives key) (type/directives directives))
+           (cond-> (assoc m
+                     (:xf-directives key) (type/directives
+                                            (create-synthetic-spans-if-required
+                                              directives)))
              (debug/dump-configured?) (dump (:directives key))
              (seq errors) (assoc (:xf-errors key) errors)))
          (catch Exception e

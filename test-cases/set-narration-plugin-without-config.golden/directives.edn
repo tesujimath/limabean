@@ -6,13 +6,11 @@
   :narration "unspecified in config",
   :payee "New World",
   :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 10.00M}
-             {:acc "Assets:Bank:Current", :cur "NZD", :units -10.00M}],
-  :provenance ["limabean.test.plugins.set-narration"]}
+             {:acc "Assets:Bank:Current", :cur "NZD", :units -10.00M}]}
  {:date #time/date "2023-05-30",
   :dct :txn,
   :flag "*",
   :narration "unspecified in config",
   :payee "Countdown",
   :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 17.50M}
-             {:acc "Assets:Bank:Current", :cur "NZD", :units -17.50M}],
-  :provenance ["limabean.test.plugins.set-narration"]}]
+             {:acc "Assets:Bank:Current", :cur "NZD", :units -17.50M}]}]
