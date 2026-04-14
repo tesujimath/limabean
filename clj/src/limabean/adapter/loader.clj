@@ -48,12 +48,15 @@
              (seq errors) (assoc (:xf-errors key) errors)))
          (catch Exception e
            (binding [*err* *out*]
-             (println "Exception in"
-                      kind-name
-                      "plugin, all"
-                      kind-name
-                      "plugins ignored")
-             (.printStackTrace e))
+             (let [data (ex-data e)
+                   {:keys [dct plugin]} data]
+               (if (and dct plugin)
+                 (do
+                   (println "Plugin" plugin "failed with" (.getMessage e) "at")
+                   (println dct))
+                 (do (println "Exception in" kind-name "plugin")
+                     (.printStackTrace e)))
+               (println "All" kind-name "plugins ignored")))
            m))))
 
 (defn- resolve-idx
