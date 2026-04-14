@@ -67,6 +67,7 @@
          (:error response) (assoc :err (:error response)))))))
 
 (def ERROR-REPORT 2)
+(def ERROR-INDEXED-REPORT 3)
 
 (declare format-errors)
 
@@ -116,13 +117,19 @@
   (ok-or-throw (invoke pod "parser.resolve-span" span)))
 (defn create-synthetic-spans
   "Create spans for synthetic sources, e.g. the output of plugins"
-  [pod synthetic-spans]
-  (ok-or-throw (invoke pod "parser.create-synthetic-spans" synthetic-spans)))
+  [pod requests]
+  (ok-or-throw (invoke pod "parser.create-synthetic-spans" requests)))
 (defn book
   "Book directives, or parsed directives by default"
-  ([pod] (ok-or-print-errors-and-throw pod (invoke pod "book")))
+  ([pod] (book pod nil))
   ([pod directives]
-   (ok-or-print-errors-and-throw pod (invoke pod "book" directives))))
+   (let [result (invoke pod "book" directives)]
+     (if-let [err (:err result)]
+       (let [{:keys [code data message]} err]
+         (cond (= code ERROR-REPORT) {:err {:spanned-reports data}}
+               (= code ERROR-INDEXED-REPORT) {:err {:indexed-reports data}}
+               :else {:err {:message message}}))
+       result))))
 
 (defn stop
   "Stop the limabean-pod"

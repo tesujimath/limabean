@@ -16,12 +16,14 @@ All notable changes to this project will be documented in this file. This change
 - if LIMABEAN_DEBUG_DIR is defined, dump intermediate beanfiles into that directory
 - print method for directives
 - pass all options through to Clojure
+- create synthetic spans for plugin outputs so errors reported in context
 
 ### Changed
 
 - limabean-pod provides JSON-RPC server instead of one-shot book command
 - at least Clojure 1.12 required
 - remove dynamic variables *plugins* and *booked-directives* in favour of *beans* aggregate
+- when errors occur, fall back into the REPL with context saved in *beans*
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.3.2...HEAD
 

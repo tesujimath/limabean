@@ -69,7 +69,7 @@
         (println err)
         (println "[limabean]"
                  (count *directives*)
-                 "directives resulting from running plugins")))
+                 "directives resulting from booking and running plugins")))
     :ok))
 
 (defn- postings

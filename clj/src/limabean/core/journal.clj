@@ -31,8 +31,8 @@
   (into [] (with-bal) postings))
 
 (defmethod cell :journal/entry
-  [p]
-  (cell/row [(cell (:date p)) (cell (:acc p)) (cell (:payee p))
-             (cell (:narration p)) (cell (:units p)) (cell (:cur p))
-             (cell (:bal p))]
+  [ent]
+  (cell/row [(cell (:date ent)) (cell (:acc ent)) (cell (:payee ent))
+             (cell (:narration ent)) (cell (:units ent)) (cell (:cur ent))
+             (cell (:bal ent))]
             cell/SPACE-MEDIUM))
