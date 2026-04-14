@@ -117,9 +117,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "beancount-parser-lima"
-version = "0.16.1"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd69fba5d4e736a31172b92f83405f694e70e75462ea3528a17003eb4da08ee0"
+checksum = "7842de7510ff4addab5a5d8262ebc4783f29d7ef3494f78834a28f4987e2ef8b"
 dependencies = [
  "ariadne",
  "chumsky",
