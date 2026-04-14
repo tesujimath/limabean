@@ -10,6 +10,34 @@
             [limabean.adapter.exception :as exception]
             [limabean.adapter.synthetic-spans :as synthetic-spans]))
 
+(defn- resolve-idx
+  [[dct-idx pst-idx] directives]
+  (let [dct (get directives dct-idx)
+        pst (get (:postings dct) pst-idx)]
+    (cond-> {:kind (if pst "posting" (name (:dct dct))),
+             :span (or (:span pst) (:span dct))}
+      pst (assoc :context ["txn" (:span dct)]))))
+
+(defn- resolve-related
+  [directives]
+  (fn [idx]
+    (let [{:keys [kind span]} (resolve-idx idx directives)] [kind span])))
+
+(defn- resolve-indexed-report
+  [report directives]
+  (let [{:keys [kind span context]} (resolve-idx (:idx report) directives)]
+    (cond-> (assoc (select-keys report [:reason :annotation])
+              :message (str "invalid " kind)
+              :span span)
+      context (assoc :context context)
+      (:related report) (assoc :related
+                          (mapv (resolve-related directives)
+                            (:related report))))))
+
+(defn- resolve-indexed-reports
+  [reports directives]
+  (map #(resolve-indexed-report % directives) reports))
+
 (defn- dump
   "Dump the beans and return the map"
   [m k]
@@ -58,34 +86,6 @@
                      (.printStackTrace e)))
                (println "All" kind-name "plugins ignored")))
            m))))
-
-(defn- resolve-idx
-  [[dct-idx pst-idx] directives]
-  (let [dct (get directives dct-idx)
-        pst (get (:postings dct) pst-idx)]
-    (cond-> {:kind (if pst "posting" (name (:dct dct))),
-             :span (or (:span pst) (:span dct))}
-      pst (assoc :context ["txn" (:span dct)]))))
-
-(defn- resolve-related
-  [directives]
-  (fn [idx]
-    (let [{:keys [kind span]} (resolve-idx idx directives)] [kind span])))
-
-(defn- resolve-indexed-report
-  [report directives]
-  (let [{:keys [kind span context]} (resolve-idx (:idx report) directives)]
-    (cond-> (assoc (select-keys report [:reason :annotation])
-              :message (str "invalid " kind)
-              :span span)
-      context (assoc :context context)
-      (:related report) (assoc :related
-                          (mapv (resolve-related directives)
-                            (:related report))))))
-
-(defn- resolve-indexed-reports
-  [reports directives]
-  (map #(resolve-indexed-report % directives) reports))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
