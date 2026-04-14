@@ -106,7 +106,7 @@
                              (pod/format-errors (:pod m) resolved-reports)
                              message)]
                (println "Booking failed\n" message)
-               (assoc m :booking-error err))))
+               (assoc-in m [:errors :booking] err))))
          (catch Exception e
            (println "Booking failed")
            (exception/print-exception e)
