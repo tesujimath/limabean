@@ -97,16 +97,23 @@
              (debug/dump-configured?) (dump (:directives key))
              (seq errors) (assoc (:xf-errors key) errors)))
          (catch Exception e
-           (binding [*err* *out*]
-             (let [data (ex-data e)
-                   {:keys [dct plugin]} data]
-               (if (and dct plugin)
-                 (println
-                   (format-plugin-error m kind (.getMessage e) dct plugin))
-                 (do (println "Exception in" kind-name "plugin")
+           (let [error-key (keyword (str kind-name "-plugin"))
+                 error (let [data (ex-data e)
+                             {:keys [dct plugin]} data]
+                         (if (and dct plugin)
+                           {:message (.getMessage e), :dct dct, :plugin plugin}
+                           {:message (str "Exception " (.getMessage e))}))]
+             (binding [*err* *out*]
+               (if (:dct error)
+                 (println (format-plugin-error m
+                                               kind
+                                               (:message error)
+                                               (:dct error)
+                                               (:plugin error)))
+                 (do (println (:message error) "in" kind-name "plugin")
                      (.printStackTrace e)))
-               (println "All" kind-name "plugins ignored")))
-           m))))
+               (println "All" kind-name "plugins ignored"))
+             (assoc-in m [:error error-key] error))))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
@@ -130,11 +137,15 @@
                              (pod/format-errors (:pod m) resolved-reports)
                              message)]
                (println "Booking failed\n" message)
-               (assoc-in m [:errors :booking] err))))
+               (assoc-in m [:error :booking] err))))
          (catch Exception e
            (println "Booking failed")
            (exception/print-exception e)
-           m))))
+           (assoc-in m
+             [:error :booking]
+             {:message (str "Exception " (.getMessage e))})))))
+
+(defn- unless-error [m f] (if (:error m) m (f m)))
 
 (defn load-beanfile
   [path]
@@ -144,13 +155,13 @@
         resolved-plugins (plugins/resolve-symbols plugins options)]
     (cond-> {:path path, :pod pod, :plugins resolved-plugins, :options options}
       true (get-raw-directives)
-      (plugins/has-specified-plugins? resolved-plugins :raw-xf) (run-plugins
-                                                                  :raw)
-      true (book-raw-directives)
-      (plugins/has-specified-plugins? resolved-plugins :booked-xf) (run-plugins
-                                                                     :booked)
+      (plugins/has-specified-plugins? resolved-plugins :raw-xf)
+        (unless-error #(run-plugins % :raw))
+      true (unless-error #(book-raw-directives %))
+      (plugins/has-specified-plugins? resolved-plugins :booked-xf)
+        (unless-error #(run-plugins % :booked))
       true (as-> m (assoc m
-                     :directives (or (:booked-xf-directives m)
-                                     (:booked-directives m)))
+                     :directives
+                       (or (:booked-xf-directives m) (:booked-directives m) []))
              (assoc m
                :registry (registry/build (:directives m) (:options m)))))))
