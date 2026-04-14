@@ -56,18 +56,61 @@
              (.printStackTrace e))
            m))))
 
+(defn- resolve-idx
+  [[dct-idx pst-idx] directives]
+  (let [dct (get directives dct-idx)
+        pst (get (:postings dct) pst-idx)]
+    (cond-> {:kind (if pst "posting" (name (:dct dct))),
+             :span (or (:span pst) (:span dct))}
+      pst (assoc :context ["txn" (:span dct)]))))
+
+(defn- resolve-related
+  [directives]
+  (fn [idx]
+    (let [{:keys [kind span]} (resolve-idx idx directives)] [kind span])))
+
+(defn- resolve-indexed-report
+  [report directives]
+  (let [{:keys [kind span context]} (resolve-idx (:idx report) directives)]
+    (cond-> (assoc (select-keys report [:reason :annotation])
+              :message (str "invalid " kind)
+              :span span)
+      context (assoc :context context)
+      (:related report) (assoc :related
+                          (mapv (resolve-related directives)
+                            (:related report))))))
+
+(defn- resolve-indexed-reports
+  [reports directives]
+  (map #(resolve-indexed-report % directives) reports))
+
 (defn- book-raw-directives
-  "Book the raw-xf directives if any, otherwise use the raw plugins as parsed."
+  "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
   [m]
-  (try (let [{:keys [directives warnings]} (pod/book (:pod m)
-                                                     (:raw-xf-directives m))]
-         (cond-> (assoc m :booked-directives (type/directives directives))
-           (debug/dump-configured?) (dump :booked-directives)
-           (seq warnings) (assoc :booked-warnings warnings)))
-       (catch Exception e
-         (binding [*err* *out*] (println "Booking failed"))
-         (exception/print-exception e)
-         m)))
+  (binding [*err* *out*]
+    (try (let [{:keys [ok err]} (pod/book (:pod m) (:raw-xf-directives m))]
+           (if ok
+             (let [{:keys [directives warnings]} ok]
+               (cond-> (assoc m :booked-directives (type/directives directives))
+                 (debug/dump-configured?) (dump :booked-directives)
+                 (seq warnings) (assoc :booked-warnings warnings)))
+             (let [{:keys [spanned-reports indexed-reports message]} err
+                   raw-directives (or (:raw-xf-directives m)
+                                      (:raw-directives m))
+                   resolved-reports (or spanned-reports
+                                        (and indexed-reports
+                                             (resolve-indexed-reports
+                                               indexed-reports
+                                               raw-directives)))
+                   message (if resolved-reports
+                             (pod/format-errors (:pod m) resolved-reports)
+                             message)]
+               (println "Booking failed\n" message)
+               (assoc m :booking-error err))))
+         (catch Exception e
+           (println "Booking failed")
+           (exception/print-exception e)
+           m))))
 
 (defn load-beanfile
   [path]

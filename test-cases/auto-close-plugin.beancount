@@ -1,4 +1,4 @@
-plugin "limabean.test.plugins.auto-close" "#{\"Assets:Transient\"}"
+plugin "limabean.test.plugins.auto-close" "#{\"Assets:Transient\" \"Expenses:Groceries\"}"
 
 2016-03-01 open Assets:Bank:Current
 

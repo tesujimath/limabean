@@ -11,7 +11,7 @@
     (vreset! spans remaining)
     span))
 
-(defn merge-with-directives
+(defn- merge-with-directives
   "Stateful transducer to merge synthetic spans back in with directives"
   [synthetic-spans]
   (fn [rf]
