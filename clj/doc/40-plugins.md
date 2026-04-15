@@ -58,7 +58,7 @@ A limabean plugin namespace is simply a [Clojure namespace](https://guide.clojur
 
 The intention is that `limabean.contrib.plugins` is a place for development and refinement of plugins, which upon gaining stability may be promoted into the `limabean.plugins` itself.
 
-Legacy plugins appear with their original names, e.g. `beancount.plugins.auto_accounts`.
+Legacy plugins appear with their original names, e.g. `beancount.plugins.auto-accounts`.  Because Clojure prefers hyphen to underscore in namespace names, any plugin name from a Beancount file containing underscores gets changed to hyphens before resolving as a Clojure namespace.  Therefore, such plugins may continue to be referenced by their original names from Beancount files.
 
 ### Errors
 
