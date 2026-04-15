@@ -86,17 +86,15 @@
   (inventory/build (postings args) (partial registry/acc-booking *registry*)))
 
 (defn rollup
-  "Build a rollup for the primary currency from `*directives*` and `*registry*` after applying filters, if any.
+  "Build a rollup for the primary currency from an inventory.
 
   To build for a different currency, simply filter by that currency, e.g
   ```
-  (rollup (f/cur \"CHF\"))
+  (rollup (inventory (f/cur \"CHF\")))
   ```
-
-  Custom directives may be passed in after the filters using :directives."
-  [& args]
-  (let [inv (apply inventory args)
-        primary-cur (first (apply max-key val (inventory/cur-freq inv)))]
+  "
+  [inv]
+  (let [primary-cur (first (apply max-key val (inventory/cur-freq inv)))]
     (rollup/build inv primary-cur)))
 
 (defn balances
@@ -110,6 +108,19 @@
       (join-args-and-opts (conj filters
                                 (f/sub-acc (:name-assets *options*)
                                            (:name-liabilities *options*)))
+                          opts))))
+
+(defn income-statement
+  "Build balances from `*directives*` and `*options*`, optionally further filtered.
+
+  Custom directives may be passed in after the filters using :directives.
+  "
+  [& args]
+  (let [[filters opts] (split-args-and-opts args)]
+    (apply inventory
+      (join-args-and-opts (conj filters
+                                (f/sub-acc (:name-income *options*)
+                                           (:name-expenses *options*)))
                           opts))))
 
 (defn journal

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Added
+
+- `income-statement` query for profit and loss
+
+### Changed
+
+- `rollup` must now be applied to an inventory, to facilitate use across different standard queries.
+
 [commit log]: https://github.com/tesujimath/limabean/compare/0.4.1...HEAD
 
 ## [0.4.1] - 2026-04-15

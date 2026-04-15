@@ -47,12 +47,14 @@
     (testing name
       (doseq [query ["inventory" "rollup" "journal"]]
         (let [actual (temp-file-path name query)
-              expected (io/file golden-dir query)]
+              expected (io/file golden-dir query)
+              query-expr (case query
+                           "rollup" "(show (rollup (inventory)))"
+                           (format "(show (%s))" query))]
           (when (.exists expected)
             (with-open [w (io/writer actual)]
               (binding [*out* w]
-                (sut/run {:beanfile beanfile,
-                          :eval (format "(show (%s))" query)})))
+                (sut/run {:beanfile beanfile, :eval query-expr})))
             (is (golden (format "%s.%s" name query)
                         actual
                         (.getPath expected)))))))))

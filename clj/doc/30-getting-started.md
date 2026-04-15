@@ -43,10 +43,10 @@ Expenses:Groceries                            39.65 NZD
 :ok
 
 
-user=> (rollup)
+user=> (rollup (inventory))
 {"Expenses:Entertainment:Drinks-and-snacks" {:item [25.00M 2], :cell/type :rollup/entry}, "Expenses:Groceries" {:item [39.65M 2], :cell/type :rollup/entry}, "Assets:Bank:Savings" {:item [100.00M 2], :cell/type :rollup/entry}, "Equity:Opening-Balances" {:item [-1164.65M 2], :cell/type :rollup/entry}, "Expenses:Car" {:item [25.00M 2], :total [280.00M 1], :cell/type :rollup/entry}, "Expenses:Entertainment" {:total [25.00M 1], :cell/type :rollup/entry}, "Assets:Bank:Current" {:item [720.00M 2], :cell/type :rollup/entry}, "Assets" {:total [820.00M 0], :cell/type :rollup/entry}, "Equity" {:total [-1164.65M 0], :cell/type :rollup/entry}, "Expenses" {:total [344.65M 0], :cell/type :rollup/entry}, "Expenses:Car:Fuel" {:item [255.00M 2], :cell/type :rollup/entry}, "Assets:Bank" {:total [820.00M 1], :cell/type :rollup/entry}}
 
-user=> (show (rollup))
+user=> (show (rollup (inventory)))
 Assets                                      820.00
 Assets:Bank                                         820.00
 Assets:Bank:Current                                           720.00
@@ -86,6 +86,19 @@ Notice that in each case, the raw Clojure data structures are available for arbi
 
 The intention is that `show` is smart enough to make a decent job of tabulating pretty much anything.  But it is rather early to make too big a claim there! 😅
 
+## Standard queries
+
+A number of standard queries are defined.  Probably many useful ones are currently missing, so please feel free to open an [issue](https://github.com/tesujimath/limabean/issues).  All support the same mechanism for applying date or account filters, as shown in the examples in the following section.
+
+Of course, the premise of Clojure as user interface means that it is simple to build whatever query is required, as [user provided code](40-plugins.md#User-provided code).
+
+- `balances` - assets and liabilities
+- `income-statement` - profit and loss statement, i.e. income and expenses
+- `inventory` - raw unfiltered query underlying both `balances` and `income-statement`
+- `journal` - show individual postings
+
+Additionally, `rollup` may be applied to any inventory to show totals across sub-accounts for a single currency.
+
 ## Further examples
 
 Inventory pre-filtered to assets and liabilities
@@ -110,7 +123,7 @@ user=> (show (journal (f/date>= 2026) (f/acc "Assets:Bank:Current")))
 
 Rollup for a secondary currency
 ```
-user=> (show (rollup (f/cur "GBP")))
+user=> (show (rollup (inventory (f/cur "GBP"))))
 ```
 
 Payments made to Z Energy or Repco.  (Note that the `-match` filters take a [Clojure regular expression](https://clojure.org/reference/other_functions#regex).)
