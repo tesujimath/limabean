@@ -14,29 +14,31 @@
 <p>The Clojure namespace must define one or both of the functions <code>raw-xf</code> and <code>booked-xf</code>, each of which is a function returning a Clojure transducer on raw or booked directives respectively.</p>
 <h2><a href="#running-plugins" id="running-plugins"></a>Running plugins</h2>
 <p>Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin will cause that plugin to be disabled (with an error message).  See <code>(:plugins *beans*)</code> to see what has been applied and what has not.</p>
-<p>The original directives loaded from the file are available in the REPL as <code>(:raw-directives *beans*)</code>, with the post-plugin raw directives available as <code>(:raw-xf-directives *beans*)</code>, booked directives as <code>(:booked-directives *beans*)</code>, and post-plugin booked directives as <code>(:booked-xf-directives *beans*)</code>.  See the <code>set-narration</code> example below for how to use the original booked directives instead of the post-plugin ones.</p>
-<p>Any errors in actually running any plugin cause the whole pipeline to be discarded with an error message.</p>
+<p>The original directives loaded from the file are available in the REPL as <code>(:raw-directives *beans*)</code>, with the post-plugin raw directives available as <code>(:raw-xf-directives *beans*)</code>, booked directives as <code>(:booked-directives *beans*)</code>, and post-plugin booked directives as <code>(:booked-xf-directives *beans*)</code>.</p>
+<p>Any errors in actually running any plugin cause the loader to abort with whatever partial state was reached, for further investigation by the user using the REPL.</p>
 <h3><a href="#configuration-required-to-resolve-plugins" id="configuration-required-to-resolve-plugins"></a>Configuration required to resolve plugins</h3>
 <p>Plugins are Clojure code, so they must be on the Java class-path in order to be resolvable at runtime.  The <code>limabean</code> launcher supports running the clojure command line with the <a href="https://clojure.org/guides/deps_and_cli#command_line_deps"><code>-Sdeps</code> option to pass the required dependencies</a>.</p>
-<p>The Clojure package containing the desired namespace should be passed in the environment variable <code>LIMABEAN_CLJ_DEPS</code>, as e.g. <code>io.github.tesujimath/limabean-contrib {:mvn/version "0.1.0"}</code>.  This environment variable comprises a space-separated list of package name, co-ordinate pairs, that is without the <code>{:deps {...} }</code> wrapper.</p>
+<p>In order to run anything beyond the bundled plugins, the Clojure package containing the desired plugin should be passed in the environment variable <code>LIMABEAN_CLJ_DEPS</code>, as e.g. <code>io.github.tesujimath/limabean-contrib {:mvn/version "0.1.0"}</code>.  This environment variable comprises a space-separated list of package name, co-ordinate pairs, that is without the <code>{:deps {...} }</code> wrapper.</p>
 <p>See the <a href="https://clojure.org/reference/deps_edn#deps">Clojure deps reference</a> for what is possible, which includes local directories and git repos.</p>
 <p>The following examples make use of <code>limabean-contrib</code> as a source for plugins, but you are free to create your own.  But do please consider contributing your plugins to <a href="https://github.com/tesujimath/limabean-contrib">limabean-contrib</a>.</p>
 <p>To use a specified version from Clojars: <code>io.github.tesujimath/limabean-contrib {:mvn/version "0.1.0"}</code></p>
 <p>To use a library directly from GitHub: <code>io.github.tesujimath/limabean-contrib {:git/sha "bc55aa4105ca1b050fffe12301e1829c908a4689"}</code> - in this case the GitHub organization and repo are inferred from the library name, <a href="https://clojure.org/reference/deps_edn#deps_git">unless overridden</a> using <code>:git/url</code>.</p>
 <p>To use a library from a local path: <code>io.github.tesujimath/limabean-contrib {:local/root "/path/to/limabean-contrib"}</code></p>
 <p>As always, run with <code>limabean -v</code> to see what is going on with the Clojure invocation.</p>
-<p>Note: it is not possible to load plugins when running in the standalone mode, which uses <code>java</code> rather than <code>clojure</code>.</p>
+<p>Note: it is not possible to load additional plugins when running in the standalone mode, which uses <code>java</code> rather than <code>clojure</code>.</p>
 <h2><a href="#writing-plugins" id="writing-plugins"></a>Writing plugins</h2>
-<p>The plugin development framework is a work-in-progress.  In particular, error handling and diagnostics are not yet addressed.</p>
-<p>However, both raw and booked plugins are supported, as per the examples below.</p>
 <h3><a href="#plugin-namespaces" id="plugin-namespaces"></a>Plugin namespaces</h3>
 <p>A limabean plugin namespace is simply a <a href="https://guide.clojure.style/#naming-ns-naming-schemas">Clojure namespace</a>.  Please avoid defining your own plugins in the <code>limabean</code> namespace, although <a href="https://github.com/tesujimath/limabean-contrib">limabean.contrib.plugins</a> is a good choice if you want to contribute your plugin there (please do!).  Otherwise, use your own domain.</p>
+<p>The intention is that <code>limabean.contrib.plugins</code> is a place for development and refinement of plugins, which upon gaining stability may be promoted into the <code>limabean.plugins</code> itself.</p>
+<p>Legacy plugins appear with their original names, e.g. <code>beancount.plugins.auto_accounts</code>.</p>
+<h3><a href="#errors" id="errors"></a>Errors</h3>
+<p>Any errors detected by plugins may be reported using the <code>limabean.plugin/error!</code> macro, as shown for example in the <a href="../test-plugins/src/limabean/test/plugins/fail.clj"><code>limabean.test.plugins.fail</code></a> plugin.</p>
 <h3><a href="#examples" id="examples"></a>Examples</h3>
 <h4><a href="#set-narration" id="set-narration"></a>Set narration</h4>
-<p>The test plugin <a href="../test/limabean/test/plugins/set_narration.clj">set-narration</a> is the simplest possible plugin example, which overrides the narration field of each transaction according to its configuration, as in <a href="../../test-cases/set-narration-plugin-with-config.beancount">this example beancount file</a>.</p>
-<pre><code>kiri&gt; limabean --beanfile ../examples/beancount/set-narration-plugin.beancount
+<p>The test plugin <a href="../test-plugins/src/limabean/test/plugins/set_narration.clj">set-narration</a> is the simplest possible plugin example, which overrides the narration field of each transaction according to its configuration, as in <a href="../../test-cases/set-narration-plugin-with-config.beancount">this example beancount file</a>.</p>
+<pre><code>kiri&gt; limabean --beanfile ./test-cases/set-narration-plugin-with-config.beancount
 [Rebel readline] Type :repl/help for online help info
-[limabean] 4 directives loaded from ../examples/beancount/set-narration-plugin.beancount
+[limabean] 4 directives loaded from ./examples/beancount/set-narration-plugin.beancount
 [limabean] 4 directives resulting from running plugins
 
 user=&gt; (show (journal))
@@ -45,21 +47,14 @@ user=&gt; (show (journal))
 2023-05-30  Expenses:Groceries   Countdown  Plugins rule ok!   17.50  NZD  17.50 NZD
 2023-05-30  Assets:Bank:Current  Countdown  Plugins rule ok!  -17.50  NZD
 :ok
-
-user=&gt; (binding [*directives* (:booked-directives *beans*)] (show (journal)))
-2023-05-29  Expenses:Groceries   New World     10.00  NZD  10.00 NZD
-2023-05-29  Assets:Bank:Current  New World    -10.00  NZD
-2023-05-30  Expenses:Groceries   Countdown     17.50  NZD  17.50 NZD
-2023-05-30  Assets:Bank:Current  Countdown    -17.50  NZD
-:ok
 </code></pre>
 <h4><a href="#auto-accounts" id="auto-accounts"></a>Auto accounts</h4>
 <p>The original Beancount plugin <code>auto_accounts</code> has been implemented as a <a href="../src/beancount/plugins/auto_accounts.clj">raw plugin</a>.</p>
 <h4><a href="#magic-money" id="magic-money"></a>Magic Money</h4>
 <p>The <a href="https://github.com/tesujimath/limabean-contrib/blob/main/src/limabean/contrib/plugins/examples/magic_money.clj">magic-money example</a> is a more sophisticated plugin which inserts additional directives, namely a transaction after every <code>open</code> directive to add some money to the account, from a specified equity account.  It works as a <a href="https://clojure.org/reference/transducers#_transducers_with_reduction_state">stateful transducer</a>.</p>
-<pre><code>kiri&gt; limabean --beanfile ../examples/beancount/magic-money-plugin.beancount
+<pre><code>kiri&gt; limabean --beanfile ./examples/beancount/magic-money-plugin.beancount
 [Rebel readline] Type :repl/help for online help info
-[limabean] 4 directives loaded from ../examples/beancount/magic-money-plugin.beancount
+[limabean] 4 directives loaded from ./examples/beancount/magic-money-plugin.beancount
 [limabean] 7 directives resulting from running plugins
 
 user=&gt; (show (journal))
@@ -81,17 +76,53 @@ user=&gt; (show (journal))
   :booked-xf #object[limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968 0x1ecc1a99
                     "limabean.contrib.plugins.examples.set_narration$booked_xf$fn__16968@1ecc1a99"]}]
 
-user=&gt; (def set-narration-xf (get-in (:plugins *beans*) [0 :booked-xf]))
+user=&gt; (def set-narration-xf (get-in (:plugins *beans*) [0 :raw-xf]))
 
-user=&gt; (into [] set-narration-xf (:booked-directives *beans*))
-[{:date #object[java.time.LocalDate 0x3922c5bc "2016-03-01"], :dct :open, :acc "Assets:Bank:Current"}
- {:date #object[java.time.LocalDate 0x63190b1 "2016-03-01"], :dct :open, :acc "Expenses:Groceries"}
- {:date #object[java.time.LocalDate 0x4325de9e "2023-05-29"], :dct :txn, :flag "*", :payee "New World",
-  :postings [{:acc "Expenses:Groceries", :units 10.00M, :cur "NZD"}
-             {:acc "Assets:Bank:Current", :units -10.00M, :cur "NZD"}], :narration "Plugins rule ok!"}
- {:date #object[java.time.LocalDate 0x1c0b38af "2023-05-30"], :dct :txn, :flag "*", :payee "Countdown",
-  :postings [{:acc "Expenses:Groceries", :units 17.50M, :cur "NZD"}
-             {:acc "Assets:Bank:Current", :units -17.50M, :cur "NZD"}], :narration "Plugins rule ok!"}]
+user=&gt; (into [] set-narration-xf (:raw-directives *beans*))
+[2016-03-01 open Assets:Bank:Current
+ 2016-03-01 open Expenses:Groceries
+ 2023-05-29 * "New World" "Plugins rule ok!"
+  Expenses:Groceries 10.00 NZD
+  Assets:Bank:Current
+ 2023-05-30 * "Countdown" "Plugins rule ok!"
+  Expenses:Groceries 17.50 NZD
+  Assets:Bank:Current
+]
+</code></pre>
+<p>With the newly added output formatting for directives, it is necessary to use <code>pprint</code> to see the underlying Clojure data structures.</p>
+<pre><code>user=&gt; (pprint (into [] set-narration-xf (:raw-directives *beans*)))
+[{:span [0 82 119],
+  :date #time/date "2016-03-01",
+  :dct :open,
+  :acc "Assets:Bank:Current"}
+ {:span [0 119 155],
+  :date #time/date "2016-03-01",
+  :dct :open,
+  :acc "Expenses:Groceries"}
+ {:span [0 155 238],
+  :date #time/date "2023-05-29",
+  :dct :txn,
+  :flag "*",
+  :payee "New World",
+  :postings
+  [{:span [0 185 214],
+    :acc "Expenses:Groceries",
+    :units 10.00M,
+    :cur "NZD"}
+   {:span [0 217 236], :acc "Assets:Bank:Current"}],
+  :narration "Plugins rule ok!"}
+ {:span [0 238 320],
+  :date #time/date "2023-05-30",
+  :dct :txn,
+  :flag "*",
+  :payee "Countdown",
+  :postings
+  [{:span [0 268 297],
+    :acc "Expenses:Groceries",
+    :units 17.50M,
+    :cur "NZD"}
+   {:span [0 300 319], :acc "Assets:Bank:Current"}],
+  :narration "Plugins rule ok!"}]
 </code></pre>
 <h2><a href="#user-provided-code" id="user-provided-code"></a>User-provided code</h2>
 <p>The user may provide their own Clojure code.  The environment variable <code>LIMABEAN_USER_CLJ</code> is a colon-separated list of Clojure source files, which are loaded in order, and made available in the REPL. This facility is not suitable for plugins, because the functions are loaded too late.  But it is a useful place for defining custom filters.</p>
