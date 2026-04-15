@@ -8,7 +8,8 @@
             [limabean.adapter.debug :as debug]
             [limabean.core.type :as type]
             [limabean.adapter.exception :as exception]
-            [limabean.adapter.synthetic-spans :as synthetic-spans]))
+            [limabean.adapter.synthetic-spans :as synthetic-spans]
+            [limabean.macros :as macros]))
 
 (defn- resolve-idx
   [[dct-idx pst-idx] directives]
@@ -48,12 +49,31 @@
     (debug/dump (get m k) (str basename "." prefix ".beancount"))
     m))
 
+(defn- get-plugins-and-options
+  [m]
+  (let [{:keys [ok err]} (pod/plugins (:pod m))]
+    (if ok
+      (let [plugins ok
+            options (:ok (pod/options (:pod m)))
+            resolved-plugins (plugins/resolve-symbols plugins options)]
+        (assoc m
+          :plugins resolved-plugins
+          :options options))
+      (let [spanned-reports (:spanned-reports err)]
+        (binding [*out* *err*]
+          ;; this is where we first encounter parse errors
+          (println (pod/format-errors (:pod m) spanned-reports))
+          (assoc-in m [:error :parser] spanned-reports))))))
+
 (defn- get-raw-directives
   [m]
-  (let [{:keys [directives warnings]} (pod/directives (:pod m))]
-    (cond-> (assoc m :raw-directives (type/directives directives))
-      (seq warnings) (assoc :raw-warnings warnings)
-      (debug/dump-configured?) (dump :raw-directives))))
+  (let [{:keys [ok err]} (pod/directives (:pod m))]
+    (if ok
+      (let [{:keys [directives warnings]} ok]
+        (cond-> (assoc m :raw-directives (type/directives directives))
+          (seq warnings) (assoc :raw-warnings warnings)
+          (debug/dump-configured?) (dump :raw-directives)))
+      (throw (ex-info "unexpected parser failure on directives" err)))))
 
 (defn- format-plugin-error
   [m kind message dct plugin]
@@ -86,34 +106,37 @@
           (if (= kind :raw)
             #(synthetic-spans/create-and-merge-with-provenance % (:pod m))
             identity)]
-    (try (let [{:keys [directives errors]} (plugins/run-plugins-of-kind
-                                             (get m (:directives key))
-                                             (:plugins m)
-                                             (:xf key))]
-           (cond-> (assoc m
-                     (:xf-directives key) (type/directives
-                                            (create-synthetic-spans-if-required
-                                              directives)))
-             (debug/dump-configured?) (dump (:directives key))
-             (seq errors) (assoc (:xf-errors key) errors)))
-         (catch Exception e
-           (let [error-key (keyword (str kind-name "-plugin"))
-                 error (let [data (ex-data e)
-                             {:keys [dct plugin]} data]
-                         (if (and dct plugin)
-                           {:message (.getMessage e), :dct dct, :plugin plugin}
-                           {:message (str "Exception " (.getMessage e))}))]
-             (binding [*err* *out*]
-               (if (:dct error)
-                 (println (format-plugin-error m
-                                               kind
-                                               (:message error)
-                                               (:dct error)
-                                               (:plugin error)))
-                 (do (println (:message error) "in" kind-name "plugin")
-                     (.printStackTrace e)))
-               (println "All" kind-name "plugins ignored"))
-             (assoc-in m [:error error-key] error))))))
+    (if-not (plugins/has-specified-plugins? (:plugins m) (:xf key))
+      m
+      (try (let [{:keys [directives errors]} (plugins/run-plugins-of-kind
+                                               (get m (:directives key))
+                                               (:plugins m)
+                                               (:xf key))]
+             (cond-> (assoc m
+                       (:xf-directives key)
+                         (type/directives (create-synthetic-spans-if-required
+                                            directives)))
+               (debug/dump-configured?) (dump (:directives key))
+               (seq errors) (assoc (:xf-errors key) errors)))
+           (catch Exception e
+             (let [error-key (keyword (str kind-name "-plugin"))
+                   error
+                     (let [data (ex-data e)
+                           {:keys [dct plugin]} data]
+                       (if (and dct plugin)
+                         {:message (.getMessage e), :dct dct, :plugin plugin}
+                         {:message (str "Exception " (.getMessage e))}))]
+               (binding [*err* *out*]
+                 (if (:dct error)
+                   (println (format-plugin-error m
+                                                 kind
+                                                 (:message error)
+                                                 (:dct error)
+                                                 (:plugin error)))
+                   (do (println (:message error) "in" kind-name "plugin")
+                       (.printStackTrace e)))
+                 (println "All" kind-name "plugins ignored"))
+               (assoc-in m [:error error-key] error)))))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
@@ -145,23 +168,28 @@
              [:error :booking]
              {:message (str "Exception " (.getMessage e))})))))
 
-(defn- unless-error [m f] (if (:error m) m (f m)))
+
+
+(defmacro cond-as->
+  "Like cond->, but binds the threaded value to a name for use in predicates"
+  [expr name & clauses]
+  (assert (even? (count clauses)))
+  (let [pairs (partition 2 clauses)]
+    `(as-> ~expr ~name
+       ~@(map (fn [[pred form]] `(if ~pred ~form ~name)) pairs))))
 
 (defn load-beanfile
   [path]
-  (let [pod (pod/start path)
-        plugins (pod/plugins pod)
-        options (pod/options pod)
-        resolved-plugins (plugins/resolve-symbols plugins options)]
-    (cond-> {:path path, :pod pod, :plugins resolved-plugins, :options options}
-      true (get-raw-directives)
-      (plugins/has-specified-plugins? resolved-plugins :raw-xf)
-        (unless-error #(run-plugins % :raw))
-      true (unless-error #(book-raw-directives %))
-      (plugins/has-specified-plugins? resolved-plugins :booked-xf)
-        (unless-error #(run-plugins % :booked))
-      true (as-> m (assoc m
-                     :directives
-                       (or (:booked-xf-directives m) (:booked-directives m) []))
-             (assoc m
-               :registry (registry/build (:directives m) (:options m)))))))
+  (let [pod (pod/start path)]
+    (macros/bind->
+      {:path path, :pod pod}
+      (get-plugins-and-options)
+      (get-raw-directives)
+      (run-plugins :raw)
+      (book-raw-directives)
+      (run-plugins :booked)
+      (as-> m (assoc m
+                :directives
+                  (or (:booked-xf-directives m) (:booked-directives m) [])))
+      (as-> m (assoc m
+                :registry (registry/build (:directives m) (:options m)))))))
