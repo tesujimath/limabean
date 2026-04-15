@@ -60,6 +60,10 @@ The intention is that `limabean.contrib.plugins` is a place for development and 
 
 Legacy plugins appear with their original names, e.g. `beancount.plugins.auto_accounts`.
 
+### Errors
+
+Any errors detected by plugins may be reported using the `limabean.plugin/error!` macro, as shown for example in the [`limabean.test.plugins.fail`](../test-plugins/src/limabean/test/plugins/fail.clj) plugin.
+
 ### Examples
 
 #### Set narration
