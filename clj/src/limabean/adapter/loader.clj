@@ -168,16 +168,6 @@
              [:error :booking]
              {:message (str "Exception " (.getMessage e))})))))
 
-
-
-(defmacro cond-as->
-  "Like cond->, but binds the threaded value to a name for use in predicates"
-  [expr name & clauses]
-  (assert (even? (count clauses)))
-  (let [pairs (partition 2 clauses)]
-    `(as-> ~expr ~name
-       ~@(map (fn [[pred form]] `(if ~pred ~form ~name)) pairs))))
-
 (defn load-beanfile
   [path]
   (let [pod (pod/start path)]

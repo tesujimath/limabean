@@ -69,19 +69,6 @@
 (def ERROR-REPORT 2)
 (def ERROR-INDEXED-REPORT 3)
 
-(declare format-errors)
-
-(defn ok-or-print-errors-and-throw
-  "Either unwrap an ok result, or extract the errors, print them, and throw"
-  [pod result]
-  (if-let [err (:err result)]
-    (binding [*out* *err*]
-      (when (= ERROR-REPORT (:code err))
-        (println (format-errors pod (:data err)))
-        (throw (ex-info (:message err) {:user-error nil})))
-      (throw (ex-info (:message err) {:user-error (:message err)})))
-    (:ok result)))
-
 (defn ok-or-throw
   "Either unwrap an ok result, or throw"
   [result]
