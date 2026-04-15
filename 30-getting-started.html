@@ -39,10 +39,10 @@ Expenses:Groceries                            39.65 NZD
 :ok
 
 
-user=&gt; (rollup)
+user=&gt; (rollup (inventory))
 {"Expenses:Entertainment:Drinks-and-snacks" {:item [25.00M 2], :cell/type :rollup/entry}, "Expenses:Groceries" {:item [39.65M 2], :cell/type :rollup/entry}, "Assets:Bank:Savings" {:item [100.00M 2], :cell/type :rollup/entry}, "Equity:Opening-Balances" {:item [-1164.65M 2], :cell/type :rollup/entry}, "Expenses:Car" {:item [25.00M 2], :total [280.00M 1], :cell/type :rollup/entry}, "Expenses:Entertainment" {:total [25.00M 1], :cell/type :rollup/entry}, "Assets:Bank:Current" {:item [720.00M 2], :cell/type :rollup/entry}, "Assets" {:total [820.00M 0], :cell/type :rollup/entry}, "Equity" {:total [-1164.65M 0], :cell/type :rollup/entry}, "Expenses" {:total [344.65M 0], :cell/type :rollup/entry}, "Expenses:Car:Fuel" {:item [255.00M 2], :cell/type :rollup/entry}, "Assets:Bank" {:total [820.00M 1], :cell/type :rollup/entry}}
 
-user=&gt; (show (rollup))
+user=&gt; (show (rollup (inventory)))
 Assets                                      820.00
 Assets:Bank                                         820.00
 Assets:Bank:Current                                           720.00
@@ -75,6 +75,16 @@ user=&gt; (show (journal (f/date&gt;=&lt; 2013 2018)))
 </code></pre>
 <p>Notice that in each case, the raw Clojure data structures are available for arbitrary processing by the user.  (Actually running these examples in the REPL gives nicely colourized output, which is not shown here.)</p>
 <p>The intention is that <code>show</code> is smart enough to make a decent job of tabulating pretty much anything.  But it is rather early to make too big a claim there! 😅</p>
+<h2><a href="#standard-queries" id="standard-queries"></a>Standard queries</h2>
+<p>A number of standard queries are defined.  Probably many useful ones are currently missing, so please feel free to open an <a href="https://github.com/tesujimath/limabean/issues">issue</a>.  All support the same mechanism for applying date or account filters, as shown in the examples in the following section.</p>
+<p>Of course, the premise of Clojure as user interface means that it is simple to build whatever query is required, as <a href="user provided code">user provided code</a>(40-plugins.md#User-provided code).</p>
+<ul>
+<li><code>balances</code> - assets and liabilities</li>
+<li><code>income-statement</code> - profit and loss statement, i.e. income and expenses</li>
+<li><code>inventory</code> - raw unfiltered query underlying both <code>balances</code> and <code>income-statement</code></li>
+<li><code>journal</code> - show individual postings</li>
+</ul>
+<p>Additionally, <code>rollup</code> may be applied to any inventory to show totals across sub-accounts for a single currency.</p>
 <h2><a href="#further-examples" id="further-examples"></a>Further examples</h2>
 <p>Inventory pre-filtered to assets and liabilities</p>
 <pre><code>user=&gt; (show (balances))
@@ -89,7 +99,7 @@ user=&gt; (show (journal (f/date&gt;=&lt; 2013 2018)))
 <pre><code>user=&gt; (show (journal (f/date&gt;= 2026) (f/acc "Assets:Bank:Current")))
 </code></pre>
 <p>Rollup for a secondary currency</p>
-<pre><code>user=&gt; (show (rollup (f/cur "GBP")))
+<pre><code>user=&gt; (show (rollup (inventory (f/cur "GBP"))))
 </code></pre>
 <p>Payments made to Z Energy or Repco.  (Note that the <code>-match</code> filters take a <a href="https://clojure.org/reference/other_functions#regex">Clojure regular expression</a>.)</p>
 <pre><code>user=&gt; (show (journal (f/sub-acc "Expenses") (f/payee-match #"Z Energy|Repco")))
