@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.4.0...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.4.1...HEAD
+
+## [0.4.1] - 2026-04-15
+
+Fumbled the packaging on 0.4.0, bah!
+
+[commit log]: https://github.com/tesujimath/limabean/compare/0.4.0...0.4.1
 
 ## [0.4.0] - 2026-04-15
 
