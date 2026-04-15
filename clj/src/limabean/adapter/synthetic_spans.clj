@@ -1,8 +1,7 @@
 (ns limabean.adapter.synthetic-spans
   (:require [limabean.core.format :as format]
             [clojure.string :as str]
-            [limabean.adapter.pod :as pod]
-            [taoensso.telemere :as tel]))
+            [limabean.adapter.pod :as pod]))
 
 (defn- pop-span!
   "Pop the first span from the front of the volatile spans"
@@ -36,22 +35,26 @@
              (rf result dct'))
            (rf result dct)))))))
 
-(defn create
+(defn create-with-provenance
   "Create synthetic spans for all directives/postings with provenance, if required."
   [directives pod]
   (let [synthetic-span-requests
           (into []
                 (comp (filter :provenance)
-                      (format/elements-xf (fn [dct s]
-                                            {:name (str/join " "
-                                                             (:provenance dct)),
-                                             :content s})))
+                      (format/elements-xf
+                        (fn [dct s]
+                          {:name (str "Synthetic directive from "
+                                      (str/join " " (:provenance dct))),
+                           :content s})))
                 directives)]
     (if (seq synthetic-span-requests)
-      (let [_ (tel/log! {:id ::create,
-                         :data {:n-with-provenance (count
-                                                     synthetic-span-requests)}})
-            synthetic-spans
-              (pod/create-synthetic-spans pod synthetic-span-requests)]
-        (into [] (merge-with-directives synthetic-spans) directives))
+      (pod/create-synthetic-spans pod synthetic-span-requests)
+      [])))
+
+(defn create-and-merge-with-provenance
+  "Create and merge synthetic spans for all directives/postings with provenance, if required."
+  [directives pod]
+  (let [synthetic-spans (create-with-provenance directives pod)]
+    (if (seq synthetic-spans)
+      (into [] (merge-with-directives synthetic-spans) directives)
       directives)))

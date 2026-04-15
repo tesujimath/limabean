@@ -69,19 +69,6 @@
 (def ERROR-REPORT 2)
 (def ERROR-INDEXED-REPORT 3)
 
-(declare format-errors)
-
-(defn ok-or-print-errors-and-throw
-  "Either unwrap an ok result, or extract the errors, print them, and throw"
-  [pod result]
-  (if-let [err (:err result)]
-    (binding [*out* *err*]
-      (when (= ERROR-REPORT (:code err))
-        (println (format-errors pod (:data err)))
-        (throw (ex-info (:message err) {:user-error nil})))
-      (throw (ex-info (:message err) {:user-error (:message err)})))
-    (:ok result)))
-
 (defn ok-or-throw
   "Either unwrap an ok result, or throw"
   [result]
@@ -89,20 +76,30 @@
     (throw (ex-info (:message err) {:user-error (:message err)}))
     (:ok result)))
 
+(defn- map-error
+  "Interpret error codes"
+  [result]
+  (if-let [err (:err result)]
+    (let [{:keys [code data message]} err]
+      (cond (= code ERROR-REPORT) {:err {:spanned-reports data}}
+            (= code ERROR-INDEXED-REPORT) {:err {:indexed-reports data}}
+            :else {:err {:message message}}))
+    result))
+
 ;; methods
 (defn status "Return pod status" [pod] (invoke pod "status"))
 (defn plugins
   "Return parsed plugins"
   [pod]
-  (ok-or-print-errors-and-throw pod (invoke pod "parser.plugins")))
+  (map-error (invoke pod "parser.plugins")))
 (defn directives
   "Return parsed directives"
   [pod]
-  (ok-or-print-errors-and-throw pod (invoke pod "parser.directives")))
+  (map-error (invoke pod "parser.directives")))
 (defn options
   "Return parsed options"
   [pod]
-  (ok-or-print-errors-and-throw pod (invoke pod "parser.options")))
+  (map-error (invoke pod "parser.options")))
 (defn format-errors
   "Format errors"
   [pod errors]
@@ -122,14 +119,7 @@
 (defn book
   "Book directives, or parsed directives by default"
   ([pod] (book pod nil))
-  ([pod directives]
-   (let [result (invoke pod "book" directives)]
-     (if-let [err (:err result)]
-       (let [{:keys [code data message]} err]
-         (cond (= code ERROR-REPORT) {:err {:spanned-reports data}}
-               (= code ERROR-INDEXED-REPORT) {:err {:indexed-reports data}}
-               :else {:err {:message message}}))
-       result))))
+  ([pod directives] (map-error (invoke pod "book" directives))))
 
 (defn stop
   "Stop the limabean-pod"

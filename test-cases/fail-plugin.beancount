@@ -1,0 +1,10 @@
+plugin "limabean.test.plugins.set-narration"
+plugin "limabean.test.plugins.fail" "{:matching {:dct :txn} :message \"Fail first matching directive\"}"
+
+2016-03-01 open Assets:Bank:Current
+
+2016-03-01 open Expenses:Groceries
+
+2023-05-30 * "Countdown" ""
+  Expenses:Groceries  17.50 NZD
+  Assets:Bank:Current

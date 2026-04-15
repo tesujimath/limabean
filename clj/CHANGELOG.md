@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+This is a major release focused on greatly improved support for plugins.
+
+Both raw and booked plugins are now supported, with support for notifying the user of errors found by plugins.
+
+See the [plugins guide](doc/40-plugins.md) for details.
+
 ### Fixed
 
 - fix count of raw directives printed on startup
