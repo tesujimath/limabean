@@ -1,4 +1,4 @@
-(ns beancount.plugins.auto_accounts
+(ns beancount.plugins.auto-accounts
   (:require [clojure.set :as set]))
 
 (defn raw-xf

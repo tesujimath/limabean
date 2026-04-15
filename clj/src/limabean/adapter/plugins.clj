@@ -1,10 +1,11 @@
 (ns limabean.adapter.plugins
-  (:require [clojure.edn :as edn]))
+  (:require [clojure.edn :as edn]
+            [clojure.string :as str]))
 
 (defn- resolve-xfs
   "Resolve a plugin by loading it from its namespace"
   [name]
-  (let [ns-sym (symbol name)]
+  (let [ns-sym (symbol (str/replace name #"_" "-"))]
     (try (require ns-sym)
          (let [booked-xf-fn (ns-resolve ns-sym 'booked-xf)
                raw-xf-fn (ns-resolve ns-sym 'raw-xf)
