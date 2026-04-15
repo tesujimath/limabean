@@ -30,7 +30,7 @@
 <h3><a href="#plugin-namespaces" id="plugin-namespaces"></a>Plugin namespaces</h3>
 <p>A limabean plugin namespace is simply a <a href="https://guide.clojure.style/#naming-ns-naming-schemas">Clojure namespace</a>.  Please avoid defining your own plugins in the <code>limabean</code> namespace, although <a href="https://github.com/tesujimath/limabean-contrib">limabean.contrib.plugins</a> is a good choice if you want to contribute your plugin there (please do!).  Otherwise, use your own domain.</p>
 <p>The intention is that <code>limabean.contrib.plugins</code> is a place for development and refinement of plugins, which upon gaining stability may be promoted into the <code>limabean.plugins</code> itself.</p>
-<p>Legacy plugins appear with their original names, e.g. <code>beancount.plugins.auto_accounts</code>.</p>
+<p>Legacy plugins appear with their original names, e.g. <code>beancount.plugins.auto-accounts</code>.  Because Clojure prefers hyphen to underscore in namespace names, any plugin name from a Beancount file containing underscores gets changed to hyphens before resolving as a Clojure namespace.  Therefore, such plugins may continue to be referenced by their original names from Beancount files.</p>
 <h3><a href="#errors" id="errors"></a>Errors</h3>
 <p>Any errors detected by plugins may be reported using the <code>limabean.plugin/error!</code> macro, as shown for example in the <a href="../test-plugins/src/limabean/test/plugins/fail.clj"><code>limabean.test.plugins.fail</code></a> plugin.</p>
 <h3><a href="#examples" id="examples"></a>Examples</h3>
