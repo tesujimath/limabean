@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.4.0...HEAD
+
+## [0.4.0] - 2026-04-15
+
 This is a major release focused on greatly improved support for plugins.
 
 Both raw and booked plugins are now supported, with support for notifying the user of errors found by plugins.
@@ -19,7 +23,7 @@ See the [plugins guide](doc/40-plugins.md) for details.
 
 - support for running raw plugins, with auto_accounts as an example
 - pass custom meta values through to Clojure
-- if LIMABEAN_DEBUG_DIR is defined, dump intermediate beanfiles into that directory
+- if `LIMABEAN_DEBUG_DIR` is defined, dump intermediate beanfiles into that directory
 - print method for directives
 - pass all options through to Clojure
 - create synthetic spans for plugin outputs so errors reported in context
@@ -31,7 +35,7 @@ See the [plugins guide](doc/40-plugins.md) for details.
 - remove dynamic variables *plugins* and *booked-directives* in favour of *beans* aggregate
 - when errors occur, fall back into the REPL with context saved in *beans*
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.3.2...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.3.2...0.4.0
 
 ## [0.3.2] - 2026-03-06
 
