@@ -65,6 +65,12 @@ jobs:
           cd rust
           cargo test --all-targets
 
+      - name: Cargo publish dry-run
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd rust
+          cargo publish --dry-run
+
       - name: Clojure tests
         run: |
           cd clj
