@@ -64,6 +64,16 @@ impl IndexedReport {
     }
 }
 
+/// A booking request
+#[derive(Deserialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) struct BookingRequest<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(borrow)]
+    pub(crate) directives: Option<Vec<raw::Directive<'a>>>, // if omitted, use the as-parsed directives
+    pub(crate) validate: bool,
+}
+
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub(crate) struct ElementIdx {
     pub(crate) directive: usize,

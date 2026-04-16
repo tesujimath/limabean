@@ -117,9 +117,10 @@
   [pod requests]
   (ok-or-throw (invoke pod "parser.create-synthetic-spans" requests)))
 (defn book
-  "Book directives, or parsed directives by default"
-  ([pod] (book pod nil))
-  ([pod directives] (map-error (invoke pod "book" directives))))
+  "Book directives, and optionally validate them"
+  ([pod directives validate]
+   (map-error
+     (invoke pod "book" {:directives directives, :validate validate}))))
 
 (defn stop
   "Stop the limabean-pod"

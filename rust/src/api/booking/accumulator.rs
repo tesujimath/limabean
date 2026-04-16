@@ -23,6 +23,7 @@ pub(crate) struct Accumulator<'a, 'd, 't> {
     currency_usage: hashbrown::HashMap<&'a str, i32>,
     default_booking: Booking,
     tolerance: &'t LimaTolerance<'a>,
+    validate: bool,
     warnings: Vec<IndexedReport>,
 }
 
@@ -36,7 +37,11 @@ pub(crate) struct BookingFailure {
 }
 
 impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
-    pub(crate) fn new(default_booking: Booking, tolerance: &'t LimaTolerance<'a>) -> Self {
+    pub(crate) fn new(
+        default_booking: Booking,
+        tolerance: &'t LimaTolerance<'a>,
+        validate: bool,
+    ) -> Self {
         Self {
             open_accounts: hashbrown::HashMap::default(),
             closed_accounts: hashbrown::HashMap::default(),
@@ -44,6 +49,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             currency_usage: hashbrown::HashMap::default(),
             default_booking,
             tolerance,
+            validate,
             warnings: Vec::default(),
         }
     }

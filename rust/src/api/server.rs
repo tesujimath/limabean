@@ -12,7 +12,7 @@ use crate::api::{
     booking::{self, BookingFailure},
     json_rpc::*,
     types::{
-        IndexedReport, Report, SyntheticSpan,
+        BookingRequest, IndexedReport, Report, SyntheticSpan,
         parser_type_conversions::{
             create_reports_from_booking_errors, create_reports_from_parser_errors,
         },
@@ -169,8 +169,8 @@ impl<'a> Server<'a> {
                                 .unwrap()
                         }
 
-                        (Ok(healthy), Method::Book(optional)) => {
-                            healthy.book(id, optional.params.as_ref(), w).unwrap()
+                        (Ok(healthy), Method::Book(Params { params })) => {
+                            healthy.book(id, &params, w).unwrap()
                         }
 
                         (Err(unhealthy), _) => write_other_error(
@@ -328,12 +328,7 @@ impl<'a> HealthyServer<'a> {
         write_response(&response, w)
     }
 
-    fn book<W>(
-        &self,
-        id: Option<Id>,
-        param_directives: Option<&Vec<Directive>>,
-        w: &mut W,
-    ) -> io::Result<()>
+    fn book<W>(&self, id: Option<Id>, request: &BookingRequest, w: &mut W) -> io::Result<()>
     where
         W: Write,
     {
@@ -343,7 +338,7 @@ impl<'a> HealthyServer<'a> {
                 options,
                 ..
             }) => {
-                let raw_parsed_directives = if param_directives.is_none() {
+                let raw_parsed_directives = if request.directives.is_none() {
                     Some(
                         parsed_directives
                             .iter()
@@ -354,13 +349,13 @@ impl<'a> HealthyServer<'a> {
                     None
                 };
                 let (directives_to_book, convert_to_spans) =
-                    match (param_directives, raw_parsed_directives.as_ref()) {
+                    match (request.directives.as_ref(), raw_parsed_directives.as_ref()) {
                         (Some(param_directives), _) => (param_directives, false),
                         (None, Some(raw_parsed_directives)) => (raw_parsed_directives, true),
                         _ => panic!("impossible"),
                     };
 
-                match booking::book(directives_to_book, options) {
+                match booking::book(directives_to_book, request.validate, options) {
                     Ok(booking::BookingSuccess {
                         directives,
                         warnings: _,

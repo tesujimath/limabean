@@ -2,6 +2,7 @@ use beancount_parser_lima as parser;
 
 pub(crate) fn book<'a, 'r, 'b>(
     directives: &'r [Directive<'a>],
+    validate: bool,
     options: &parser::Options<'a>,
 ) -> Result<BookingSuccess<'b>, BookingFailure>
 where
@@ -26,7 +27,7 @@ where
 
     let tolerance = options.into();
 
-    Accumulator::new(default_booking_option, &tolerance).collect(directives)
+    Accumulator::new(default_booking_option, &tolerance, validate).collect(directives)
 }
 
 mod accumulator;

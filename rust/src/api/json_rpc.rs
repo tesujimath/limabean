@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 
-use crate::api::types::{SyntheticSpan, booked};
+use crate::api::types::{BookingRequest, SyntheticSpan, booked};
 
 use super::types::{Plugin, Report, raw::*};
 
@@ -37,7 +37,7 @@ pub(crate) enum RequestMethod<'a> {
     #[serde(rename = "parser.create-synthetic-spans")]
     ParserCreateSyntheticSpans(Params<Vec<SyntheticSpan<'a>>>),
     #[serde(borrow)]
-    Book(OptionalParams<Vec<Directive<'a>>>),
+    Book(Params<BookingRequest<'a>>),
 }
 
 #[derive(Deserialize, Clone, Debug)]

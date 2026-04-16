@@ -142,7 +142,13 @@
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
   [m]
   (binding [*err* *out*]
-    (try (let [{:keys [ok err]} (pod/book (:pod m) (:raw-xf-directives m))]
+    (try (let [{:keys [ok err]} (pod/book (:pod m)
+                                          (:raw-xf-directives m)
+                                          ;; if we have booked plugins,
+                                          ;; don't validate (prematurely)
+                                          (not (plugins/has-specified-plugins?
+                                                 (:plugins m)
+                                                 :booked)))]
            (if ok
              (let [{:keys [directives warnings]} ok]
                (cond-> (assoc m :booked-directives (type/directives directives))
