@@ -91,12 +91,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let mut booked_directives = Vec::default();
 
         for (raw_idx, raw) in directives.into_iter().enumerate() {
-            match self.directive(
-                raw,
-                raw_idx.into(),
-                booked_directives.len(),
-                &mut booked_directives,
-            ) {
+            match self.directive(raw, raw_idx.into(), &mut booked_directives) {
                 Ok((booked_variant, pad_txn)) => {
                     booked_directives.push(booked::Directive {
                         raw_idx,
@@ -131,7 +126,6 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &mut self,
         directive: &'r raw::Directive<'a>,
         element: ElementIdx,
-        booked_idx: usize,
         booked_directives: &mut Vec<booked::Directive<'b>>,
     ) -> Result<
         (
@@ -160,7 +154,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             RDV::Open(open) => self.open(open, date, element).map(|x| (x, None)),
             RDV::Close(close) => self.close(close, date, element).map(|x| (x, None)),
             RDV::Commodity(commodity) => Ok((BDV::Commodity(commodity.clone()), None)),
-            RDV::Pad(pad) => self.pad(pad, date, booked_idx, element, booked_directives),
+            RDV::Pad(pad) => self.pad(pad, date, booked_directives.len(), element),
             RDV::Document(document) => Ok((BDV::Document(document.clone()), None)),
             RDV::Note(note) => Ok((BDV::Note(note.clone()), None)),
             RDV::Event(event) => Ok((BDV::Event(event.clone()), None)),
@@ -427,20 +421,30 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         }
     }
 
-    // get the total units for given currency in an account
-    fn total_units_for_currency(&self, account_name: &str, currency: &str) -> Decimal {
-        self.accounts
-            .get(account_name)
+    fn account_and_subaccounts(
+        &self,
+        base_account_name: &'_ str,
+    ) -> impl Iterator<Item = &AccountBuilder<'a, 'd>> {
+        // base account is known
+        self.accounts.iter().filter_map(move |(name, account)| {
+            name.strip_prefix(base_account_name)
+                .is_some_and(|s| s.is_empty() || s.starts_with(':'))
+                .then_some(account)
+        })
+    }
+
+    // get the total units for given currency in an account and all its subaccounts
+    fn total_rollup_units_for_currency(&self, base_account_name: &str, currency: &str) -> Decimal {
+        self.account_and_subaccounts(base_account_name)
             .map(|account| {
                 account
                     .positions
                     .units()
-                    .iter()
-                    .filter_map(|(cur, number)| (**cur == currency).then_some(*number))
-                    .sum()
+                    .get(&currency)
+                    .copied()
+                    .unwrap_or(Decimal::ZERO)
             })
-            .unwrap_or_default()
-        // }
+            .sum()
     }
 
     fn balance<'r, 'b>(
@@ -457,7 +461,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let margin = calculate_balance_margin(
             balance.units,
             balance.tolerance.unwrap_or(Decimal::ZERO),
-            self.total_units_for_currency(balance.acc, balance.cur),
+            self.total_rollup_units_for_currency(balance.acc, balance.cur),
         );
 
         let account = self.get_mut_valid_account(balance.acc, element)?;
@@ -635,7 +639,6 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         _date: Date,
         idx: usize,
         element: ElementIdx,
-        booked_directives: &[booked::Directive<'b>],
     ) -> Result<
         (
             booked::DirectiveVariant<'b>,
