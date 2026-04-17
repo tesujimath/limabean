@@ -22,9 +22,11 @@ Note for developers: the limabean implementation of the **Beancount booking algo
 
 ## Contributions
 
-While issues are welcome and I am particularly interested in making this generally useful to others, given the current pace of development I am unlikely to be able to accept PRs for now.
+`limabean` development is slow because it is joyously hand-crafted, and so I am disinclined to accept PRs developed using AI.
 
-I am, however, very interested to hear what people think is the priority for adding not-yet-implemented features (of which there are several).
+If, however, you have an idea for an enhancement or a fix, and the desire to do the work by hand, please start by creating an issue.
+
+And notwithstanding the no-AI contribution rule, I remain very interested to hear what people think is the priority for adding not-yet-implemented features (of which there are several).
 
 The best place for general discussion of `limabean` is the [GitHub discussions page](https://github.com/tesujimath/limabean/discussions).
 
