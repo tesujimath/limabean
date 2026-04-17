@@ -50,14 +50,11 @@ impl<'a, 't> Accumulator<'a, 't> {
     }
 
     // generate any errors before building
-    fn validate<'b>(
+    fn validate(
         self,
-        directives: Vec<booked::Directive<'b>>,
+        directives: Vec<booked::Directive<'a>>,
         mut errors: Vec<IndexedReport>,
-    ) -> Result<BookingSuccess<'b>, BookingFailure>
-    where
-        'a: 'b,
-    {
+    ) -> Result<BookingSuccess<'a>, BookingFailure> {
         let Self {
             accounts, warnings, ..
         } = self;
@@ -79,12 +76,8 @@ impl<'a, 't> Accumulator<'a, 't> {
         }
     }
 
-    pub(crate) fn collect<'b, I>(
-        mut self,
-        directives: I,
-    ) -> Result<BookingSuccess<'b>, BookingFailure>
+    pub(crate) fn collect<I>(mut self, directives: I) -> Result<BookingSuccess<'a>, BookingFailure>
     where
-        'a: 'b,
         I: IntoIterator<Item = &'a raw::Directive<'a>>,
     {
         let mut errors = Vec::default();
@@ -145,21 +138,18 @@ impl<'a, 't> Accumulator<'a, 't> {
         self.validate(booked_directives, errors)
     }
 
-    fn directive<'b>(
+    fn directive(
         &mut self,
         directive: &'a raw::Directive<'a>,
         element: ElementIdx,
-        booked_directives: &mut Vec<booked::Directive<'b>>,
+        booked_directives: &mut Vec<booked::Directive<'a>>,
     ) -> Result<
         (
-            booked::DirectiveVariant<'b>,
-            Option<booked::DirectiveVariant<'b>>,
+            booked::DirectiveVariant<'a>,
+            Option<booked::DirectiveVariant<'a>>,
         ),
         IndexedReport,
-    >
-    where
-        'a: 'b,
-    {
+    > {
         use booked::DirectiveVariant as BDV;
         use raw::DirectiveVariant as RDV;
 
@@ -185,15 +175,12 @@ impl<'a, 't> Accumulator<'a, 't> {
         }
     }
 
-    fn transaction<'b>(
+    fn transaction(
         &mut self,
         transaction: &'a raw::Transaction<'a>,
         date: Date,
         element: ElementIdx,
-    ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
-    where
-        'a: 'b,
-    {
+    ) -> Result<booked::DirectiveVariant<'a>, IndexedReport> {
         let booked_postings = self.book(date, &transaction.postings, element)?;
 
         Ok(booked::DirectiveVariant::Transaction(booked::Transaction {
@@ -207,15 +194,12 @@ impl<'a, 't> Accumulator<'a, 't> {
         }))
     }
 
-    fn book<'b>(
+    fn book(
         &mut self,
         date: Date,
         postings: &'a [raw::PostingSpec<'a>],
         element: ElementIdx,
-    ) -> Result<Vec<booked::Posting<'a>>, IndexedReport>
-    where
-        'a: 'b,
-    {
+    ) -> Result<Vec<booked::Posting<'a>>, IndexedReport> {
         // ugh, difference of reference vs value
         let postings = postings.iter().collect::<Vec<_>>();
 
@@ -410,15 +394,12 @@ impl<'a, 't> Accumulator<'a, 't> {
             .sum()
     }
 
-    fn balance<'b>(
+    fn balance(
         &mut self,
         balance: &'a raw::Balance<'a>,
         element: ElementIdx,
-        booked_directives: &mut [booked::Directive<'b>],
-    ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
-    where
-        'a: 'b,
-    {
+        booked_directives: &mut [booked::Directive<'a>],
+    ) -> Result<booked::DirectiveVariant<'a>, IndexedReport> {
         let margin = calculate_balance_margin(
             balance.units,
             balance.tolerance.unwrap_or(Decimal::ZERO),
@@ -497,13 +478,13 @@ impl<'a, 't> Accumulator<'a, 't> {
         }))
     }
 
-    fn balance_report<'b>(
+    fn balance_report(
         &self,
         base_account_name: &'a str,
         margin: Decimal,
         cur: &'a str,
         element: ElementIdx,
-        booked_directives: &[booked::Directive<'b>],
+        booked_directives: &[booked::Directive<'a>],
     ) -> IndexedReport {
         let base_account = self.accounts.get(base_account_name).unwrap();
         let balance_window = base_account.balance_window.as_ref().unwrap();
@@ -567,15 +548,12 @@ impl<'a, 't> Accumulator<'a, 't> {
             .with_annotation(annotation.to_string())
     }
 
-    fn open<'b>(
+    fn open(
         &mut self,
         open: &'a raw::Open<'a>,
         _date: Date,
         element: ElementIdx,
-    ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
-    where
-        'a: 'b,
-    {
+    ) -> Result<booked::DirectiveVariant<'a>, IndexedReport> {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(open.acc) {
             Occupied(open_entry) => {
@@ -626,15 +604,12 @@ impl<'a, 't> Accumulator<'a, 't> {
         Ok(booked::DirectiveVariant::Open(open.clone()))
     }
 
-    fn close<'b>(
+    fn close(
         &mut self,
         close: &'a raw::Close<'a>,
         _date: Date,
         element: ElementIdx,
-    ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
-    where
-        'a: 'b,
-    {
+    ) -> Result<booked::DirectiveVariant<'a>, IndexedReport> {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(close.acc) {
             Occupied(open_entry) => {
@@ -659,7 +634,7 @@ impl<'a, 't> Accumulator<'a, 't> {
         Ok(booked::DirectiveVariant::Close(close.clone()))
     }
 
-    fn pad<'b>(
+    fn pad(
         &mut self,
         pad: &'a raw::Pad<'a>,
         _date: Date,
@@ -667,14 +642,11 @@ impl<'a, 't> Accumulator<'a, 't> {
         element: ElementIdx,
     ) -> Result<
         (
-            booked::DirectiveVariant<'b>,
-            Option<booked::DirectiveVariant<'b>>,
+            booked::DirectiveVariant<'a>,
+            Option<booked::DirectiveVariant<'a>>,
         ),
         IndexedReport,
-    >
-    where
-        'a: 'b,
-    {
+    > {
         let account = self.get_mut_valid_account(pad.acc, element)?;
 
         let unused_pad = account.pad.take();
