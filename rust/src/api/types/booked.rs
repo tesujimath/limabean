@@ -1,16 +1,16 @@
 use limabean_booking::LimaParserBookingTypes;
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
 };
 use time::Date;
 
-use crate::api::types::{iso8601date, raw};
+use crate::api::types::{ElementIdx, iso8601date, raw};
 
 /// A Beancount directive of a particular [DirectiveVariant].
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Directive<'a> {
     pub(crate) raw_idx: usize,
@@ -28,7 +28,7 @@ pub struct Directive<'a> {
 }
 
 /// A Beancount directive, without the fields common to all, which belong to [Directive].
-#[derive(Serialize, Deserialize, PartialEq, Eq, strum_macros::IntoStaticStr, Clone, Debug)]
+#[derive(Serialize, PartialEq, Eq, strum_macros::IntoStaticStr, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 #[serde(tag = "dct")]
 #[strum(serialize_all = "kebab-case")]
@@ -36,7 +36,7 @@ pub enum DirectiveVariant<'a> {
     #[serde(rename = "txn")]
     Transaction(Transaction<'a>),
     Price(raw::PriceDct<'a>),
-    Balance(raw::Balance<'a>),
+    Balance(Balance<'a>),
     #[serde(borrow)]
     Open(raw::Open<'a>),
     Close(raw::Close<'a>),
@@ -50,7 +50,7 @@ pub enum DirectiveVariant<'a> {
 }
 
 /// A Beancount transaction directive, without the common [Directive] fields.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Transaction<'a> {
     pub(crate) flag: Cow<'static, str>,
@@ -62,7 +62,7 @@ pub struct Transaction<'a> {
 }
 
 /// A complete posting.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Posting<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -89,7 +89,7 @@ pub(crate) struct Posting<'a> {
 /// In addition to `per-unit` which is the natural representation, the `total`
 /// is also exposed, since this may be what the user originally specified in the
 /// beanfile, and ought to be preserved at its original precision.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Cost<'a> {
     #[serde(with = "iso8601date")]
@@ -122,11 +122,26 @@ impl<'a> From<&'a limabean_booking::Cost<LimaParserBookingTypes<'a>>> for Cost<'
 /// In addition to `per-unit` which is the natural representation, the `total`
 /// is also exposed, since this may be what the user originally specified in the
 /// beanfile, and ought to be preserved at its original precision.
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(Serialize, PartialEq, Eq, Hash, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct Price<'a> {
     pub(crate) per_unit: Decimal,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) total: Option<Decimal>,
     pub(crate) cur: &'a str,
+}
+
+/// Booked balance comprises the raw balance with any error,
+/// which we handle inline rather than as Result::Err, in order
+/// to report nice diagnostics, for which we need the balance in the
+/// booked directives.
+#[derive(Serialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct Balance<'a> {
+    #[serde(flatten)]
+    pub(crate) raw: raw::Balance<'a>,
+    #[serde(skip)]
+    pub(crate) unused_pad: Option<ElementIdx>,
+    #[serde(skip)]
+    pub(crate) margin: Option<Decimal>,
 }

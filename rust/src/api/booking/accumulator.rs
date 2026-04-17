@@ -8,6 +8,7 @@ use std::{
     borrow::Cow,
     collections::{HashMap, HashSet, VecDeque},
     fmt::Debug,
+    ops::Range,
 };
 use tabulator::{Align, Cell};
 use time::Date;
@@ -91,8 +92,31 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let mut booked_directives = Vec::default();
 
         for (raw_idx, raw) in directives.into_iter().enumerate() {
-            match self.directive(raw, raw_idx.into(), &mut booked_directives) {
+            let raw_element_idx = raw_idx.into();
+            match self.directive(raw, raw_element_idx, &mut booked_directives) {
                 Ok((booked_variant, pad_txn)) => {
+                    if let booked::DirectiveVariant::Balance(booked::Balance {
+                        raw,
+                        unused_pad,
+                        margin,
+                    }) = &booked_variant
+                    {
+                        if let Some(unused_pad) = unused_pad {
+                            errors
+                                .push(unused_pad.report("unused, no balance adjustment required"));
+                        }
+                        if let Some(margin) = margin {
+                            let e = self.balance_report(
+                                raw.acc,
+                                *margin,
+                                raw.cur,
+                                raw_element_idx,
+                                &booked_directives,
+                            );
+                            errors.push(e);
+                        }
+                    }
+
                     booked_directives.push(booked::Directive {
                         raw_idx,
                         date: raw.date,
@@ -426,11 +450,11 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         base_account_name: &'_ str,
     ) -> impl Iterator<Item = &AccountBuilder<'a, 'd>> {
         // base account is known
-        self.accounts.iter().filter_map(move |(name, account)| {
-            name.strip_prefix(base_account_name)
-                .is_some_and(|s| s.is_empty() || s.starts_with(':'))
-                .then_some(account)
-        })
+        self.accounts
+            .iter()
+            .filter_map(move |(candidate, account)| {
+                is_nonstrict_subaccount(base_account_name, candidate).then_some(account)
+            })
     }
 
     // get the total units for given currency in an account and all its subaccounts
@@ -466,6 +490,14 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
 
         let account = self.get_mut_valid_account(balance.acc, element)?;
         account.validate_currency(balance.cur, element)?;
+
+        let new_window_end = booked_directives.len();
+        let old_window = match account.balance_window.take() {
+            Some(old_window) => old_window.end..new_window_end,
+            None => 0..new_window_end,
+        };
+        account.balance_window.insert(old_window);
+
         // pad can't last beyond balance
         let pad = account.pad.take();
 
@@ -475,28 +507,27 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             account.balance_diagnostics.clear();
 
             // but if there was a pad directive, we ought to have used it, so:
-            if let Some((_, pad_idx)) = pad {
-                return Err(pad_idx.report("unused, no balance adjustment required"));
-            } else {
-                return Ok(booked::DirectiveVariant::Balance(balance.clone()));
-            }
+            let unused_pad = pad.map(|(_, pad_idx)| pad_idx);
+            return Ok(booked::DirectiveVariant::Balance(booked::Balance {
+                raw: balance.clone(),
+                unused_pad,
+                margin: None,
+            }));
         }
         let margin = margin.unwrap();
 
         if pad.is_none() {
             // balance assertion is incorrect and we have no pad to take up the slack, so:
-
-            let err = Err(construct_balance_error_and_clear_diagnostics(
-                account,
-                balance.cur,
-                margin,
-                element,
-            ));
+            account.balance_diagnostics.clear(); // TODO remove the whole diagnostics state
 
             // even though we have a balance error, we adjust the account to match, in order to localise balance failures
             adjust_account_to_match_balance(account, balance.cur, margin, Adjustment::Add);
 
-            return err;
+            return Ok(booked::DirectiveVariant::Balance(booked::Balance {
+                raw: balance.clone(),
+                unused_pad: None,
+                margin: Some(margin),
+            }));
         }
         let (booked_pad_idx, _) = pad.unwrap();
 
@@ -536,7 +567,81 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let pad_account = self.accounts.get_mut(pad_source).unwrap();
         adjust_account_to_match_balance(pad_account, balance.cur, margin, Adjustment::Subtract);
 
-        Ok(booked::DirectiveVariant::Balance(balance.clone()))
+        Ok(booked::DirectiveVariant::Balance(booked::Balance {
+            raw: (balance.clone()),
+            unused_pad: None,
+            margin: None,
+        }))
+    }
+
+    fn balance_report<'b>(
+        &self,
+        base_account_name: &'a str,
+        margin: Decimal,
+        cur: &'a str,
+        element: ElementIdx,
+        booked_directives: &[booked::Directive<'b>],
+    ) -> IndexedReport {
+        let base_account = self.accounts.get(base_account_name).unwrap();
+        let balance_window = base_account.balance_window.as_ref().unwrap();
+
+        let mut diagnostics = Vec::default();
+
+        let mut total = if balance_window.start < booked_directives.len()
+            && let booked::DirectiveVariant::Balance(bal) =
+                &booked_directives[balance_window.start].variant
+        {
+            if bal.raw.cur == cur {
+                // let bal_date = booked_directives[balance_window.start].date;
+                // diagnostics.push((bal_date, None, bal.raw.units));
+
+                bal.raw.units
+            } else {
+                Decimal::ZERO
+            }
+        } else {
+            Decimal::ZERO
+        };
+
+        for dct in booked_directives {
+            if let booked::DirectiveVariant::Transaction(txn) = &dct.variant {
+                for pst in &txn.postings {
+                    if is_nonstrict_subaccount(base_account_name, pst.acc) {
+                        total += pst.units;
+                        let description = txn.payee.or(txn.narration);
+
+                        diagnostics.push((dct.date, pst.acc, pst.units, total, description));
+                    }
+                }
+            }
+        }
+
+        let reason = format!("accumulated {}, error {} {}", total, margin, cur,);
+
+        // determine context for error by collating postings since last balance
+        let annotation = Cell::Stack(
+            diagnostics
+                .into_iter()
+                .map(|(date, acc, units, total, description)| {
+                    Cell::Row(
+                        vec![
+                            (date.to_string(), Align::Left).into(),
+                            (acc.to_string(), Align::Left).into(),
+                            units.into(),
+                            total.into(),
+                            description
+                                .map(|d| (d, Align::Left).into())
+                                .unwrap_or(Cell::Empty),
+                        ],
+                        GUTTER_MEDIUM,
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        element
+            .report(reason)
+            .with_annotation(annotation.to_string())
     }
 
     fn open<'r, 'b>(
@@ -676,6 +781,14 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     }
 }
 
+/// is candidate equal or a subaccount of base_account_name
+fn is_nonstrict_subaccount(base_account_name: &str, candidate: &str) -> bool {
+    // base account is known
+    candidate
+        .strip_prefix(base_account_name)
+        .is_some_and(|s| s.is_empty() || s.starts_with(':'))
+}
+
 fn calculate_balance_margin(
     balance_units: Decimal,
     balance_tolerance: Decimal,
@@ -720,49 +833,6 @@ fn calculate_balance_pad_postings<'a>(
     ]
 }
 
-fn construct_balance_error_and_clear_diagnostics<'a, 'd>(
-    account: &mut AccountBuilder<'a, 'd>,
-    cur: &'a str,
-    margin: Decimal,
-    element: ElementIdx,
-) -> IndexedReport {
-    let reason = format!(
-        "accumulated {}, error {} {}",
-        if account.positions.is_empty() {
-            "zero".to_string()
-        } else {
-            account.positions.to_string()
-        },
-        margin,
-        cur,
-    );
-
-    // determine context for error by collating postings since last balance
-    let annotation = Cell::Stack(
-        account
-            .balance_diagnostics
-            .drain(..)
-            .map(|bd| {
-                Cell::Row(
-                    vec![
-                        (bd.date.to_string(), Align::Left).into(),
-                        bd.amount.map(|amt| amt.into()).unwrap_or(Cell::Empty),
-                        bd.positions.map(positions_into_cell).unwrap_or(Cell::Empty),
-                        bd.description
-                            .map(|d| (d, Align::Left).into())
-                            .unwrap_or(Cell::Empty),
-                    ],
-                    GUTTER_MEDIUM,
-                )
-            })
-            .collect::<Vec<_>>(),
-    );
-
-    element
-        .report(reason)
-        .with_annotation(annotation.to_string())
-}
-
 #[derive(PartialEq, Eq, Debug)]
 enum Adjustment {
     Add,
@@ -794,6 +864,7 @@ struct AccountBuilder<'a, 'd> {
     opened: ElementIdx,
     pad: Option<(usize, ElementIdx)>,
     balance_diagnostics: Vec<BalanceDiagnostic<'a, 'd>>,
+    balance_window: Option<Range<usize>>,
     booking: Booking,
 }
 
@@ -808,6 +879,7 @@ impl<'a, 'd> AccountBuilder<'a, 'd> {
             opened,
             pad: None,
             balance_diagnostics: Vec::default(),
+            balance_window: None,
             booking,
         }
     }
