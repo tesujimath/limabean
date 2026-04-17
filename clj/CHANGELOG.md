@@ -4,9 +4,14 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+### Fixed
+
+- balance directives now correctly apply to total of account and its sub-accounts #78
+
 ### Added
 
 - `income-statement` query for profit and loss
+- diagnostics for failed balance directives show all the sub-accounts
 
 ### Changed
 
