@@ -16,11 +16,11 @@ use time::Date;
 use crate::api::types::{ElementIdx, IndexedReport, booked, raw};
 
 #[derive(Debug)]
-pub(crate) struct Accumulator<'a, 'd, 't> {
+pub(crate) struct Accumulator<'a, 't> {
     // hashbrown HashMaps are used here for their Entry API, which is still unstable in std::collections::HashMap
     open_accounts: hashbrown::HashMap<&'a str, ElementIdx>,
     closed_accounts: hashbrown::HashMap<&'a str, ElementIdx>,
-    accounts: HashMap<&'a str, AccountBuilder<'a, 'd>>,
+    accounts: HashMap<&'a str, AccountBuilder<'a>>,
     currency_usage: hashbrown::HashMap<&'a str, i32>,
     default_booking: Booking,
     tolerance: &'t LimaTolerance<'a>,
@@ -36,7 +36,7 @@ pub(crate) struct BookingFailure {
     pub(crate) errors: Vec<IndexedReport>,
 }
 
-impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
+impl<'a, 't> Accumulator<'a, 't> {
     pub(crate) fn new(default_booking: Booking, tolerance: &'t LimaTolerance<'a>) -> Self {
         Self {
             open_accounts: hashbrown::HashMap::default(),
@@ -79,14 +79,13 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         }
     }
 
-    pub(crate) fn collect<'r, 'b, I>(
+    pub(crate) fn collect<'b, I>(
         mut self,
         directives: I,
     ) -> Result<BookingSuccess<'b>, BookingFailure>
     where
-        'a: 'r + 'b + 'd,
-        'r: 'b + 'd,
-        I: IntoIterator<Item = &'r raw::Directive<'a>>,
+        'a: 'b,
+        I: IntoIterator<Item = &'a raw::Directive<'a>>,
     {
         let mut errors = Vec::default();
         let mut booked_directives = Vec::default();
@@ -146,9 +145,9 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         self.validate(booked_directives, errors)
     }
 
-    fn directive<'r, 'b>(
+    fn directive<'b>(
         &mut self,
-        directive: &'r raw::Directive<'a>,
+        directive: &'a raw::Directive<'a>,
         element: ElementIdx,
         booked_directives: &mut Vec<booked::Directive<'b>>,
     ) -> Result<
@@ -159,8 +158,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         IndexedReport,
     >
     where
-        'a: 'r + 'b + 'd,
-        'r: 'b + 'd,
+        'a: 'b,
     {
         use booked::DirectiveVariant as BDV;
         use raw::DirectiveVariant as RDV;
@@ -173,7 +171,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                 .map(|x| (x, None)),
             RDV::Price(price) => Ok((BDV::Price(price.clone()), None)),
             RDV::Balance(balance) => self
-                .balance(balance, date, element, booked_directives)
+                .balance(balance, element, booked_directives)
                 .map(|x| (x, None)),
             RDV::Open(open) => self.open(open, date, element).map(|x| (x, None)),
             RDV::Close(close) => self.close(close, date, element).map(|x| (x, None)),
@@ -187,27 +185,16 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         }
     }
 
-    fn transaction<'r, 'b>(
+    fn transaction<'b>(
         &mut self,
-        transaction: &'r raw::Transaction<'a>,
+        transaction: &'a raw::Transaction<'a>,
         date: Date,
         element: ElementIdx,
     ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
     where
-        'a: 'r + 'b + 'd,
-        'r: 'b + 'd,
+        'a: 'b,
     {
-        let description = transaction.payee.as_ref().map_or_else(
-            || {
-                transaction
-                    .narration
-                    .as_ref()
-                    .map_or("post", |narration| narration.as_ref())
-            },
-            |payee| payee.as_ref(),
-        );
-
-        let booked_postings = self.book(date, &transaction.postings, description, element)?;
+        let booked_postings = self.book(date, &transaction.postings, element)?;
 
         Ok(booked::DirectiveVariant::Transaction(booked::Transaction {
             flag: transaction.flag.clone(),
@@ -220,16 +207,14 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         }))
     }
 
-    fn book<'r, 'b>(
+    fn book<'b>(
         &mut self,
         date: Date,
-        postings: &'r [raw::PostingSpec<'a>],
-        description: &'d str,
+        postings: &'a [raw::PostingSpec<'a>],
         element: ElementIdx,
     ) -> Result<Vec<booked::Posting<'a>>, IndexedReport>
     where
-        'a: 'r + 'b + 'd,
-        'r: 'b + 'd,
+        'a: 'b,
     {
         // ugh, difference of reference vs value
         let postings = postings.iter().collect::<Vec<_>>();
@@ -319,56 +304,10 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
                     })
                     .collect::<Vec<_>>();
 
-                // group postings by account and currency for balance diagnostics
-                let mut account_posting_amounts =
-                    hashbrown::HashMap::<&str, VecDeque<Amount<'_>>>::new();
-                for booked in &booked_postings {
-                    use hashbrown::hash_map::Entry::*;
-
-                    let currency = booked.cur;
-                    let units = booked.units;
-
-                    self.tally_currency_usage(currency);
-
-                    let account_name = booked.acc;
-
-                    match account_posting_amounts.entry(account_name) {
-                        Occupied(entry) => {
-                            entry.into_mut().push_back((units, currency).into());
-                        }
-                        Vacant(entry) => {
-                            let mut amounts = VecDeque::new();
-                            amounts.push_back((units, currency).into());
-                            entry.insert(amounts);
-                        }
-                    }
-                }
-
                 for (account_name, updated_positions) in updated_inventory {
                     let account = self.get_mut_valid_account(account_name, element)?;
 
                     account.positions = updated_positions;
-
-                    if let Some(mut posting_amounts) = account_posting_amounts.remove(account_name)
-                    {
-                        let last_amount = posting_amounts.pop_back().unwrap();
-
-                        for amount in posting_amounts {
-                            account.balance_diagnostics.push(BalanceDiagnostic {
-                                date,
-                                description: Some(description),
-                                amount: Some(amount),
-                                positions: None,
-                            });
-                        }
-
-                        account.balance_diagnostics.push(BalanceDiagnostic {
-                            date,
-                            description: Some(description),
-                            amount: Some(last_amount),
-                            positions: Some(account.positions.clone()),
-                        });
-                    }
                 }
 
                 Ok(booked_postings)
@@ -407,7 +346,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &self,
         account_name: &'a str,
         element: ElementIdx,
-    ) -> Result<&AccountBuilder<'a, 'd>, IndexedReport> {
+    ) -> Result<&AccountBuilder<'a>, IndexedReport> {
         self.validate_account(account_name, element)?;
         Ok(self.accounts.get(account_name).unwrap())
     }
@@ -416,7 +355,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         &mut self,
         account_name: &'a str,
         element: ElementIdx,
-    ) -> Result<&mut AccountBuilder<'a, 'd>, IndexedReport> {
+    ) -> Result<&mut AccountBuilder<'a>, IndexedReport> {
         self.validate_account(account_name, element)?;
         Ok(self.accounts.get_mut(account_name).unwrap())
     }
@@ -448,7 +387,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
     fn account_and_subaccounts(
         &self,
         base_account_name: &'_ str,
-    ) -> impl Iterator<Item = &AccountBuilder<'a, 'd>> {
+    ) -> impl Iterator<Item = &AccountBuilder<'a>> {
         // base account is known
         self.accounts
             .iter()
@@ -471,16 +410,14 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             .sum()
     }
 
-    fn balance<'r, 'b>(
+    fn balance<'b>(
         &mut self,
-        balance: &'r raw::Balance<'a>,
-        date: Date,
+        balance: &'a raw::Balance<'a>,
         element: ElementIdx,
         booked_directives: &mut [booked::Directive<'b>],
     ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
     where
-        'a: 'r + 'b,
-        'r: 'b,
+        'a: 'b,
     {
         let margin = calculate_balance_margin(
             balance.units,
@@ -502,11 +439,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let pad = account.pad.take();
 
         if margin.is_none() {
-            // balance assertion is correct, and we already cleared the pad, so:
-
-            account.balance_diagnostics.clear();
-
-            // but if there was a pad directive, we ought to have used it, so:
+            // if there was a pad directive, we ought to have used it, so:
             let unused_pad = pad.map(|(_, pad_idx)| pad_idx);
             return Ok(booked::DirectiveVariant::Balance(booked::Balance {
                 raw: balance.clone(),
@@ -517,9 +450,6 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let margin = margin.unwrap();
 
         if pad.is_none() {
-            // balance assertion is incorrect and we have no pad to take up the slack, so:
-            account.balance_diagnostics.clear(); // TODO remove the whole diagnostics state
-
             // even though we have a balance error, we adjust the account to match, in order to localise balance failures
             adjust_account_to_match_balance(account, balance.cur, margin, Adjustment::Add);
 
@@ -532,17 +462,10 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         let (booked_pad_idx, _) = pad.unwrap();
 
         adjust_account_to_match_balance(account, balance.cur, margin, Adjustment::Add);
-        account.balance_diagnostics.clear();
 
         // initialize balance diagnostics according to balance assertion
         let mut positions = Positions::default();
         positions.accumulate(balance.units, balance.cur, None, Booking::default());
-        account.balance_diagnostics.push(BalanceDiagnostic {
-            date,
-            description: None,
-            amount: None,
-            positions: Some(positions),
-        });
 
         let booked::DirectiveVariant::Pad(pad) = &booked_directives[booked_pad_idx].variant else {
             panic!(
@@ -644,15 +567,14 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
             .with_annotation(annotation.to_string())
     }
 
-    fn open<'r, 'b>(
+    fn open<'b>(
         &mut self,
-        open: &'r raw::Open<'a>,
+        open: &'a raw::Open<'a>,
         _date: Date,
         element: ElementIdx,
     ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
     where
-        'a: 'r + 'b,
-        'r: 'b,
+        'a: 'b,
     {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(open.acc) {
@@ -704,15 +626,14 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         Ok(booked::DirectiveVariant::Open(open.clone()))
     }
 
-    fn close<'r, 'b>(
+    fn close<'b>(
         &mut self,
-        close: &'r raw::Close<'a>,
+        close: &'a raw::Close<'a>,
         _date: Date,
         element: ElementIdx,
     ) -> Result<booked::DirectiveVariant<'b>, IndexedReport>
     where
-        'a: 'r + 'b,
-        'r: 'b,
+        'a: 'b,
     {
         use hashbrown::hash_map::Entry::*;
         match self.open_accounts.entry(close.acc) {
@@ -738,9 +659,9 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         Ok(booked::DirectiveVariant::Close(close.clone()))
     }
 
-    fn pad<'r, 'b>(
+    fn pad<'b>(
         &mut self,
-        pad: &'r raw::Pad<'a>,
+        pad: &'a raw::Pad<'a>,
         _date: Date,
         idx: usize,
         element: ElementIdx,
@@ -752,8 +673,7 @@ impl<'a, 'd, 't> Accumulator<'a, 'd, 't> {
         IndexedReport,
     >
     where
-        'a: 'r + 'b,
-        'r: 'b,
+        'a: 'b,
     {
         let account = self.get_mut_valid_account(pad.acc, element)?;
 
@@ -839,8 +759,8 @@ enum Adjustment {
     Subtract,
 }
 
-fn adjust_account_to_match_balance<'a, 'd>(
-    account: &mut AccountBuilder<'a, 'd>,
+fn adjust_account_to_match_balance<'a>(
+    account: &mut AccountBuilder<'a>,
     cur: &'a str,
     units: Decimal,
     adjustment: Adjustment,
@@ -858,17 +778,16 @@ fn adjust_account_to_match_balance<'a, 'd>(
 }
 
 #[derive(Debug)]
-struct AccountBuilder<'a, 'd> {
+struct AccountBuilder<'a> {
     allowed_currencies: HashSet<&'a str>,
     positions: Positions<'a>,
     opened: ElementIdx,
     pad: Option<(usize, ElementIdx)>,
-    balance_diagnostics: Vec<BalanceDiagnostic<'a, 'd>>,
     balance_window: Option<Range<usize>>,
     booking: Booking,
 }
 
-impl<'a, 'd> AccountBuilder<'a, 'd> {
+impl<'a> AccountBuilder<'a> {
     fn new<I>(allowed_currencies: I, booking: Booking, opened: ElementIdx) -> Self
     where
         I: Iterator<Item = &'a str>,
@@ -878,7 +797,6 @@ impl<'a, 'd> AccountBuilder<'a, 'd> {
             positions: Positions::default(),
             opened,
             pad: None,
-            balance_diagnostics: Vec::default(),
             balance_window: None,
             booking,
         }
@@ -902,14 +820,6 @@ impl<'a, 'd> AccountBuilder<'a, 'd> {
                 .related_to(self.opened))
         }
     }
-}
-
-#[derive(Debug)]
-struct BalanceDiagnostic<'a, 'd> {
-    date: Date,
-    description: Option<&'d str>,
-    amount: Option<Amount<'a>>,
-    positions: Option<Positions<'a>>,
 }
 
 const PAD_FLAG: &str = "'P";
