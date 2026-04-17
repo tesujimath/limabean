@@ -6,7 +6,7 @@ use limabean_booking::{
 use rust_decimal::Decimal;
 use std::{
     borrow::Cow,
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     fmt::Debug,
     ops::Range,
 };
@@ -21,7 +21,6 @@ pub(crate) struct Accumulator<'a, 't> {
     open_accounts: hashbrown::HashMap<&'a str, ElementIdx>,
     closed_accounts: hashbrown::HashMap<&'a str, ElementIdx>,
     accounts: HashMap<&'a str, AccountBuilder<'a>>,
-    currency_usage: hashbrown::HashMap<&'a str, i32>,
     default_booking: Booking,
     tolerance: &'t LimaTolerance<'a>,
     warnings: Vec<IndexedReport>,
@@ -42,7 +41,6 @@ impl<'a, 't> Accumulator<'a, 't> {
             open_accounts: hashbrown::HashMap::default(),
             closed_accounts: hashbrown::HashMap::default(),
             accounts: HashMap::default(),
-            currency_usage: hashbrown::HashMap::default(),
             default_booking,
             tolerance,
             warnings: Vec::default(),
@@ -354,20 +352,6 @@ impl<'a, 't> Accumulator<'a, 't> {
         account.validate_currency(currency, element)
     }
 
-    fn tally_currency_usage(&mut self, currency: &'a str) {
-        use hashbrown::hash_map::Entry::*;
-
-        match self.currency_usage.entry(currency) {
-            Occupied(mut usage) => {
-                let usage = usage.get_mut();
-                *usage += 1;
-            }
-            Vacant(usage) => {
-                usage.insert(1);
-            }
-        }
-    }
-
     fn account_and_subaccounts(
         &self,
         base_account_name: &'_ str,
@@ -410,11 +394,11 @@ impl<'a, 't> Accumulator<'a, 't> {
         account.validate_currency(balance.cur, element)?;
 
         let new_window_end = booked_directives.len();
-        let old_window = match account.balance_window.take() {
+        let new_window = match account.balance_window.take() {
             Some(old_window) => old_window.end..new_window_end,
             None => 0..new_window_end,
         };
-        account.balance_window.insert(old_window);
+        account.balance_window = Some(new_window);
 
         // pad can't last beyond balance
         let pad = account.pad.take();
@@ -842,58 +826,6 @@ impl<'a> From<&'_ Amount<'a>> for Cell<'a, 'static> {
 }
 
 type Positions<'a> = limabean_booking::Positions<limabean_booking::LimaParserBookingTypes<'a>>;
-
-// should be From, but both types are third-party
-fn positions_into_cell<'a>(positions: Positions<'a>) -> Cell<'a, 'static> {
-    Cell::Stack(
-        positions
-            .into_iter()
-            .map(position_into_cell)
-            .collect::<Vec<_>>(),
-    )
-}
-
-type Position<'a> = limabean_booking::Position<limabean_booking::LimaParserBookingTypes<'a>>;
-
-fn position_into_cell<'a>(position: Position<'a>) -> Cell<'a, 'static> {
-    let Position {
-        units,
-        currency,
-        cost,
-    } = position;
-    let mut cells = vec![
-        units.into(),
-        (Into::<&str>::into(currency), Align::Left).into(),
-    ];
-    if let Some(cost) = cost {
-        cells.push(cost_into_cell(cost))
-    }
-    Cell::Row(cells, GUTTER_MINOR)
-}
-
-type Cost<'a> = limabean_booking::Cost<limabean_booking::LimaParserBookingTypes<'a>>;
-fn cost_into_cell<'a>(cost: Cost<'a>) -> Cell<'a, 'static> {
-    let Cost {
-        date,
-        per_unit,
-        total: _total,
-        currency,
-        label,
-        merge,
-    } = cost;
-    let mut cells = vec![
-        (date.to_string(), Align::Left).into(),
-        per_unit.into(),
-        (Into::<&str>::into(currency), Align::Left).into(),
-    ];
-    if let Some(label) = label {
-        cells.push((label.clone(), Align::Left).into())
-    }
-    if merge {
-        cells.push(("*", Align::Left).into())
-    }
-    Cell::Row(cells, GUTTER_MINOR)
-}
 
 fn cur_posting_cost_to_cost<'a>(
     currency: &'a str,
