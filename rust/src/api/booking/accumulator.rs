@@ -474,6 +474,7 @@ impl<'a, 't> Accumulator<'a, 't> {
         let balance_window = base_account.balance_window.as_ref().unwrap();
 
         let mut diagnostics = Vec::default();
+        let mut accounts = HashSet::<&str>::default();
 
         let mut total = if balance_window.start < booked_directives.len()
             && let booked::DirectiveVariant::Balance(bal) =
@@ -499,7 +500,14 @@ impl<'a, 't> Accumulator<'a, 't> {
                         total += pst.units;
                         let description = txn.payee.or(txn.narration);
 
-                        diagnostics.push((dct.date, pst.acc, pst.units, total, description));
+                        diagnostics.push((
+                            dct.date,
+                            pst.acc.strip_prefix(base_account_name).unwrap(),
+                            pst.units,
+                            total,
+                            description,
+                        ));
+                        accounts.insert(pst.acc);
                     }
                 }
             }
@@ -507,24 +515,20 @@ impl<'a, 't> Accumulator<'a, 't> {
 
         let reason = format!("accumulated {}, error {} {}", total, margin, cur,);
 
-        // let header = Cell::Row(
-        //     ["date", "acc", "post", "balance", "payee/narration"]
-        //         .iter()
-        //         .map(|s| (s.to_string(), Align::Centre).into())
-        //         .collect::<Vec<_>>(),
-        //     GUTTER_MEDIUM,
-        // );
+        let multiple_accounts = accounts.len() > 1;
 
         let annotation = Cell::Stack(
-            // once(header)
-            //     .chain(
             diagnostics
                 .into_iter()
                 .map(|(date, acc, units, total, description)| {
                     Cell::Row(
                         vec![
                             (date.to_string(), Align::Left).into(),
-                            (acc.to_string(), Align::Left).into(),
+                            if multiple_accounts {
+                                (acc.to_string(), Align::Left).into()
+                            } else {
+                                Cell::Empty
+                            },
                             units.into(),
                             total.into(),
                             description
