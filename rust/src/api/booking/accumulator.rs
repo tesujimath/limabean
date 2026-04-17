@@ -491,7 +491,8 @@ impl<'a, 't> Accumulator<'a, 't> {
             Decimal::ZERO
         };
 
-        for dct in booked_directives {
+        // determine context for error by collating postings since last balance
+        for dct in &booked_directives[balance_window.clone()] {
             if let booked::DirectiveVariant::Transaction(txn) = &dct.variant {
                 for pst in &txn.postings {
                     if is_nonstrict_subaccount(base_account_name, pst.acc) {
@@ -506,8 +507,17 @@ impl<'a, 't> Accumulator<'a, 't> {
 
         let reason = format!("accumulated {}, error {} {}", total, margin, cur,);
 
-        // determine context for error by collating postings since last balance
+        // let header = Cell::Row(
+        //     ["date", "acc", "post", "balance", "payee/narration"]
+        //         .iter()
+        //         .map(|s| (s.to_string(), Align::Centre).into())
+        //         .collect::<Vec<_>>(),
+        //     GUTTER_MEDIUM,
+        // );
+
         let annotation = Cell::Stack(
+            // once(header)
+            //     .chain(
             diagnostics
                 .into_iter()
                 .map(|(date, acc, units, total, description)| {
