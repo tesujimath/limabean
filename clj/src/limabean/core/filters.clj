@@ -120,3 +120,8 @@
   "Combinator filter which selects only what at least one filter selects"
   [& filters]
   (fn [x] (some #(% x) filters)))
+
+(defn none-f
+  "Combinator filter which selects only what none of the filters select"
+  [& filters]
+  (fn [x] (not (some #(% x) filters))))
