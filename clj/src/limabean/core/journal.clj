@@ -33,6 +33,6 @@
 (defmethod cell :journal/entry
   [ent]
   (cell/row [(cell (:date ent)) (cell (:acc ent)) (cell (:payee ent))
-             (cell (:narration ent)) (cell (:units ent)) (cell (:cur ent))
-             (cell (:bal ent))]
+             (cell (:narration ent)) (cell (:flag ent)) (cell (:units ent))
+             (cell (:cur ent)) (cell (:bal ent))]
             cell/SPACE-MEDIUM))
