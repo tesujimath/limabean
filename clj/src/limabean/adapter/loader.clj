@@ -119,24 +119,16 @@
                (debug/dump-configured?) (dump (:directives key))
                (seq errors) (assoc (:xf-errors key) errors)))
            (catch Exception e
-             (let [error-key (keyword (str kind-name "-plugin"))
-                   error
-                     (let [data (ex-data e)
-                           {:keys [dct plugin]} data]
-                       (if (and dct plugin)
-                         {:message (.getMessage e), :dct dct, :plugin plugin}
-                         {:message (str "Exception " (.getMessage e))}))]
-               (binding [*err* *out*]
-                 (if (:dct error)
-                   (println (format-plugin-error m
-                                                 kind
-                                                 (:message error)
-                                                 (:dct error)
-                                                 (:plugin error)))
-                   (do (println (:message error) "in" kind-name "plugin")
-                       (.printStackTrace e)))
-                 (println "All" kind-name "plugins ignored"))
-               (assoc-in m [:error error-key] error)))))))
+             (let [error-key (keyword (str kind-name "-plugin"))]
+               (assoc-in m
+                 [:error error-key]
+                 (exception/handle-exception (ex-info (str "Exception in "
+                                                           kind-name
+                                                           " plugin, all "
+                                                           kind-name
+                                                           " plugins ignored")
+                                                      {}
+                                                      e)))))))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
