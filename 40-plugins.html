@@ -33,6 +33,7 @@
 <p>Legacy plugins appear with their original names, e.g. <code>beancount.plugins.auto-accounts</code>.  Because Clojure prefers hyphen to underscore in namespace names, any plugin name from a Beancount file containing underscores gets changed to hyphens before resolving as a Clojure namespace.  Therefore, such plugins may continue to be referenced by their original names from Beancount files.</p>
 <h3><a href="#errors" id="errors"></a>Errors</h3>
 <p>Any errors detected by plugins may be reported using the <code>limabean.plugin/error!</code> macro, as shown for example in the <a href="../test-plugins/src/limabean/test/plugins/fail.clj"><code>limabean.test.plugins.fail</code></a> plugin.</p>
+<p>Errors reported to the user do not include a full stack trace, but this may be found in <code>*exception*</code>.</p>
 <h3><a href="#examples" id="examples"></a>Examples</h3>
 <h4><a href="#set-narration" id="set-narration"></a>Set narration</h4>
 <p>The test plugin <a href="../test-plugins/src/limabean/test/plugins/set_narration.clj">set-narration</a> is the simplest possible plugin example, which overrides the narration field of each transaction according to its configuration, as in <a href="../../test-cases/set-narration-plugin-with-config.beancount">this example beancount file</a>.</p>

@@ -4,6 +4,7 @@
 <p>By default <code>limabean</code> will start a REPL for interactive use, for direct evaluation of Clojure expressions, so learning <code>limabean</code> is about learning Clojure, and the particular <a href="https://tesujimath.github.io/limabean/">Clojure functions and data structures</a> it provides for querying a beanfile.</p>
 <p>When <code>limabean</code> starts, it simply loads the beanfile into <code>*beans*</code>.  The top-level functions in the <code>limabean</code> Clojure namespace operate solely on <code>*beans*</code>.</p>
 <p>As a convenience, <code>*directives*</code>, <code>*options*</code>, and <code>*registry*</code> are also created, and all these are exposed as Clojure variables in the REPL.  <code>*registry*</code> contains for example the booking method for each account (derived from options and <code>open</code> directives).  But to be clear, it is only <code>*beans*</code> which is read by the top-level query functions.</p>
+<p>There is also a top-level variable <code>*exception*</code> which holds the full details of the most recent exception, since stack traces are no longer printed by default.  <code>(pprint *exception*)</code> may provide useful information.</p>
 <p>These functions build further Clojure data structures, generally maps and vectors, which may be inspected in the REPL directly, or tabulated using <code>show</code>.</p>
 <pre><code>kiri&gt; limabean --help
 limabean: usage: limabean [options]
