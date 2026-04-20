@@ -1,9 +1,16 @@
 (ns limabean.core.format
   (:require [clojure.string :as str]))
 
+(defn- invalid-directive!
+  [dct]
+  (throw (ex-info "Cannot format invalid directive" {:directive dct})))
+
 (defn- dct-type
   [dct]
-  (let [type (:dct dct)] (if (= type :txn) (or (:flag dct) "txn") (name type))))
+  (let [t (:dct dct)]
+    (cond (= t :txn) (or (:flag dct) "txn")
+          (keyword? t) (name t)
+          :else (invalid-directive! dct))))
 
 (defn- double-quote
   "Double quote a string, otherwise nil"
@@ -100,7 +107,7 @@
 
 (defn- print-dct-common-header-fields
   [dct]
-  (print (str (:date dct)) (dct-type dct)))
+  (print (str (or (:date dct) (invalid-directive! dct))) (dct-type dct)))
 
 (defn- print-txn-specific-header-fields
   [txn]
