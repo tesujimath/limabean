@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file. This change
 - `rollup` must now be applied to an inventory, to facilitate use across different standard queries
 - journal now includes posting flags, if any
 - only `*beans*` is used by the top-level queries, with `*directives*` et al being ignored
+- exception stack traces are no longer printed, instead they are saved in `*exception*`
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.4.1...HEAD
 

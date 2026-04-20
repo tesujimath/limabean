@@ -1,18 +1,17 @@
-(ns limabean.adapter.exception)
+(ns limabean.adapter.exception
+  (:require [clojure.pprint :refer [pprint]]))
 
-(defn print-causes
-  "Prints the message of e and all its causes"
-  [^Throwable e]
-  (loop [ex e] (when ex (println (.getMessage ex)) (recur (.getCause ex)))))
+(def ^:dynamic *exception* "Last exception, if any" nil)
 
-(defn print-exception
-  "Print exception to *err* according to what it is."
-  [e]
-  (binding [*out* *err*]
-    (if (instance? clojure.lang.ExceptionInfo e)
-      (if (contains? (ex-data e) :user-error)
-        (when-let [user-error (:user-error (ex-data e))]
-          (print user-error)
-          (flush))
-        (println "unexpected error" e))
-      (do (println "Unexpected error" e) (.printStackTrace e)))))
+(defn handle-exception
+  "Print exception to *err* and preserve it in *exception*."
+  [^Throwable exc]
+  (let [e (Throwable->map exc)]
+    (alter-var-root #'*exception* (constantly e))
+    (binding [*out* *err*]
+      (print "Exception: ")
+      (cond (:via e) (run! println (keep :message (:via e)))
+            (:message e) (println (:message e))
+            :else (pprint e))
+      (flush))
+    e))

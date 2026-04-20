@@ -163,10 +163,9 @@
                (assoc-in m [:error :booking] err))))
          (catch Exception e
            (println "Booking failed")
-           (exception/print-exception e)
            (assoc-in m
              [:error :booking]
-             {:message (str "Exception " (.getMessage e))})))))
+             {:exception (exception/handle-exception e)})))))
 
 (defn load-beanfile
   [path]
