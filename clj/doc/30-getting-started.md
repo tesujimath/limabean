@@ -2,9 +2,9 @@
 
 By default `limabean` will start a REPL for interactive use, for direct evaluation of Clojure expressions, so learning `limabean` is about learning Clojure, and the particular [Clojure functions and data structures](https://tesujimath.github.io/limabean/) it provides for querying a beanfile.
 
-When `limabean` starts, it simply loads the beanfile into `*directives*` and `*options*`, which are exposed as Clojure variables in the REPL.
+When `limabean` starts, it simply loads the beanfile into `*beans*`.  The top-level functions in the `limabean` Clojure namespace operate solely on `*beans*`.
 
-The top-level functions in the `limabean` Clojure namespace operate on these global variables, and also `*registry*`, which contains for example the booking method for each account (derived from options and `open` directives).
+As a convenience, `*directives*`, `*options*`, and `*registry*` are also created, and all these are exposed as Clojure variables in the REPL.  `*registry*` contains for example the booking method for each account (derived from options and `open` directives).  But to be clear, it is only `*beans*` which is read by the top-level query functions.
 
 These functions build further Clojure data structures, generally maps and vectors, which may be inspected in the REPL directly, or tabulated using `show`.
 

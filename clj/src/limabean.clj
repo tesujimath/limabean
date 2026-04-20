@@ -5,13 +5,8 @@
             [limabean.adapter.logging :as logging]
             [limabean.adapter.print]
             [limabean.adapter.show :as show]
-            [limabean.core.filters :as f]
-            [limabean.core.inventory :as inventory]
-            [limabean.core.xf :as xf]
-            [limabean.core.journal :as journal]
-            [limabean.core.registry :as registry]
-            [limabean.core.rollup :as rollup]
-            [limabean.adapter.pod :as pod]))
+            [limabean.adapter.pod :as pod]
+            [limabean.adapter.bean-queries :as bean-queries]))
 
 (def ^:dynamic *beans*
   "An aggregate of the elements which were used in deriving the directives for the current beanfile.
@@ -35,23 +30,6 @@
     (alter-var-root #'*options* (constantly options))
     (alter-var-root #'*registry* (constantly (:registry beans)))))
 
-(defn- split-args-and-opts
-  "Return a list of args and hashmap of opts, by splitting on the first keyword."
-  [args-and-opts]
-  (let [[args opts] (split-with (complement keyword?) args-and-opts)]
-    (when (odd? (count opts))
-      (throw (ex-info "bad usage"
-                      {:user-error "odd number of keyword/options"})))
-    (when-not (every? keyword? (take-nth 2 opts))
-      (throw (ex-info "bad usage"
-                      {:user-error "expected alternating keyword/options"})))
-    [args (apply hash-map opts)]))
-
-(defn- join-args-and-opts
-  "Splice them back together again."
-  [args opts]
-  (concat args (mapcat identity opts)))
-
 (defn load-beanfile
   [path]
   (when (:pod *beans*) (pod/stop (:pod *beans*)))
@@ -68,22 +46,16 @@
       (if-let [err (:plugin-errors beans)]
         (println err)
         (println "[limabean]"
-                 (count *directives*)
+                 (count (:directives beans))
                  "directives resulting from booking and running plugins")))
     :ok))
 
-(defn- postings
-  [args]
-  (let [[filters opts] (split-args-and-opts args)]
-    (eduction (comp (xf/postings) (xf/all-of filters))
-              (get opts :directives *directives*))))
-
 (defn inventory
-  "Build inventory from `*directives*` and `*registry*` after applying filters, if any.
+  "Build inventory from `*beans*` after applying filters, if any.
 
   Custom directives may be passed in after the filters using :directives."
   [& args]
-  (inventory/build (postings args) (partial registry/acc-booking *registry*)))
+  (bean-queries/inventory *beans* args))
 
 (defn rollup
   "Build a rollup for the primary currency from an inventory.
@@ -94,41 +66,30 @@
   ```
   "
   [inv]
-  (let [primary-cur (first (apply max-key val (inventory/cur-freq inv)))]
-    (rollup/build inv primary-cur)))
+  (bean-queries/rollup inv))
 
 (defn balances
-  "Build balances from `*directives*` and `*options*`, optionally further filtered.
+  "Build balances from `*beans*`, optionally further filtered.
 
   Custom directives may be passed in after the filters using :directives.
   "
   [& args]
-  (let [[filters opts] (split-args-and-opts args)]
-    (apply inventory
-      (join-args-and-opts (conj filters
-                                (f/sub-acc (:name-assets *options*)
-                                           (:name-liabilities *options*)))
-                          opts))))
+  (bean-queries/balances *beans* args))
 
 (defn income-statement
-  "Build balances from `*directives*` and `*options*`, optionally further filtered.
+  "Build balances from `*beans*`, optionally further filtered.
 
   Custom directives may be passed in after the filters using :directives.
   "
   [& args]
-  (let [[filters opts] (split-args-and-opts args)]
-    (apply inventory
-      (join-args-and-opts (conj filters
-                                (f/sub-acc (:name-income *options*)
-                                           (:name-expenses *options*)))
-                          opts))))
+  (bean-queries/income-statement *beans* args))
 
 (defn journal
-  "Build a journal of postings from `*directives*` with running balance.
+  "Build a journal of postings from `*beans*` with running balance.
 
   Custom directives may be passed in after the filters using :directives."
   [& args]
-  (journal/build (postings args)))
+  (bean-queries/journal *beans* args))
 
 (defn show "Convert `x` to a cell and tabulate it." [x] (show/show x))
 
