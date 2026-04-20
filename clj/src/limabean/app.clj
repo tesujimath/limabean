@@ -5,16 +5,16 @@
             [rebel-readline.clojure.main :as rebel-clj-main]))
 
 (defn- init
-  "Return a function which initializes or exits with error message on failure"
+  "Return a function which initializes, printing error messages on failure"
   [{:keys [beanfile]}]
   (fn []
-    (try (require '[limabean :refer :all])
-         (require '[limabean.core.filters :as f])
-         (require '[limabean.core.type :as type])
-         (require '[clojure.pprint :refer [pprint]])
-         (limabean/load-beanfile beanfile)
-         (user-clj/load-user-cljs)
-         (catch Exception e (exception/print-exception e) (System/exit 1)))))
+    (require '[limabean :refer :all])
+    (require '[limabean.core.filters :as f])
+    (require '[limabean.core.type :as type])
+    (require '[limabean.adapter.exception :refer [*exception*]])
+    (require '[clojure.pprint :refer [pprint]])
+    (limabean/load-beanfile beanfile)
+    (user-clj/load-user-cljs)))
 
 (defn- try-eval
   [expr-str options]
@@ -23,8 +23,7 @@
          (eval expr))
        (catch Exception e
          (binding [*out* *err*]
-           (println "Error:" expr-str)
-           (exception/print-causes e)
+           (exception/handle-exception e)
            (System/exit 1)))))
 
 (defn run
@@ -34,4 +33,4 @@
     (if-let [expr-str (:eval options)]
       (try-eval expr-str options)
       (rebel-clj-main/repl :init (init options)
-                           :caught exception/print-exception))))
+                           :caught exception/handle-exception))))

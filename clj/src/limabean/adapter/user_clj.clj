@@ -11,5 +11,5 @@
                  (catch Exception e
                    (binding [*out* *err*]
                      (println "Failed to load" clj "from $LIMABEAN_USER_CLJ")
-                     (exception/print-causes e)))))
+                     (exception/handle-exception e)))))
           (str/split cljs #":"))))
