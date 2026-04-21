@@ -1,6 +1,8 @@
 (ns limabean.adapter.plugins
   (:require [clojure.edn :as edn]
-            [clojure.string :as str]))
+            [clojure.spec.alpha :as s]
+            [clojure.string :as str]
+            [limabean.spec :as spec]))
 
 (defn- resolve-xfs
   "Resolve a plugin by loading it from its namespace"
@@ -68,16 +70,29 @@
   [provenance]
   (fn [d] (update d :provenance (fnil conj []) provenance)))
 
+(defn- validate-xf
+  "Transducer to validate directives according to `spec`"
+  [spec]
+  (fn [rf]
+    (fn
+      ;; init
+      ([] (rf))
+      ;; completion
+      ([result] (rf result))
+      ;; step
+      ([result d] (rf result (s/assert spec d))))))
+
 (defn- compose-and-wrap-resolved-plugins
   "Compose the transducers in the plugins along with a tagging transducer to set the provenance"
-  [resolved-plugins sel known-directives]
+  [resolved-plugins sel directive-spec known-directives]
   (apply comp
     (tag-unknown known-directives identity)
     (keep (fn [plugin]
             (when-let [xf (get plugin sel)]
               (comp xf
                     (tag-unknown known-directives
-                                 (provenance-tagf (:name plugin))))))
+                                 (provenance-tagf (:name plugin)))
+                    (validate-xf directive-spec))))
           resolved-plugins)))
 
 (defn has-specified-plugins?
@@ -87,13 +102,14 @@
 
 (defn run-plugins-of-kind
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
-  [directives resolved-plugins sel]
+  [directives resolved-plugins sel directive-spec]
   (let [known-directives (volatile! (transient #{}))]
     ;; TODO actually separate out directives and errors with plugin
     ;; transducers wrapper
     {:directives (into []
                        (compose-and-wrap-resolved-plugins resolved-plugins
                                                           sel
+                                                          directive-spec
                                                           known-directives)
                        directives),
      :errors []}))

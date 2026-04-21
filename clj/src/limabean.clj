@@ -3,7 +3,6 @@
   (:require [clojure.java.io :as io]
             [limabean.adapter.loader :as loader]
             [limabean.adapter.logging :as logging]
-            [limabean.adapter.print]
             [limabean.adapter.show :as show]
             [limabean.adapter.pod :as pod]
             [limabean.adapter.bean-queries :as bean-queries]))
