@@ -122,7 +122,7 @@
 (s/def :limabean.spec.raw/directive
   (s/and ::base-directive (s/or
                             :txn :limabean.spec.raw/txn
-                            :price :limabeab.spec.dct/price
+                            :price :limabean.spec.dct/price
                             :balance ::balance
                             :open ::open
                             :close ::close
@@ -139,7 +139,7 @@
 (s/def :limabean.spec.booked/directive
   (s/and ::base-directive (s/or
                             :txn :limabean.spec.booked/txn
-                            :price :limabeab.spec.dct/price
+                            :price :limabean.spec.dct/price
                             :balance ::balance
                             :open ::open
                             :close ::close

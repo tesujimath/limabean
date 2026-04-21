@@ -85,7 +85,11 @@
   (assoc (into {}
                (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
                  [:xf :directives :xf-directives :xf-errors]))
-    :directive-spec (keyword (str "limabean.spec." kind-name "/directive"))))
+    :directive-spec :limabean.spec.raw/directive ; TODO (keyword (str
+                                                 ; "limabean.spec."
+                                                 ; kind-name
+    ; "/directive"))
+  ))
 
 (defn- run-plugins
   "Run plugins, kind being :raw or :booked"
@@ -153,15 +157,18 @@
 (defn load-beanfile
   [path]
   (let [pod (pod/start path)]
-    (macros/bind->
-      {:path path, :pod pod}
-      (get-plugins-and-options)
-      (get-raw-directives)
-      (run-plugins :raw)
-      (book-raw-directives)
-      (run-plugins :booked)
-      (as-> m (assoc m
-                :directives
-                  (or (:booked-xf-directives m) (:booked-directives m) [])))
-      (as-> m (assoc m
-                :registry (registry/build (:directives m) (:options m)))))))
+    (s/check-asserts true)
+    (let [m (macros/bind-> {:path path, :pod pod}
+                           (get-plugins-and-options)
+                           (get-raw-directives)
+                           (run-plugins :raw)
+                           (book-raw-directives)
+                           (run-plugins :booked)
+                           (as-> m (assoc m
+                                     :directives (or (:booked-xf-directives m)
+                                                     (:booked-directives m)
+                                                     [])))
+                           (as-> m (assoc m
+                                     :registry (registry/build (:directives m)
+                                                               (:options m)))))]
+      m)))

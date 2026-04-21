@@ -1,8 +1,7 @@
 (ns limabean.adapter.plugins
   (:require [clojure.edn :as edn]
             [clojure.spec.alpha :as s]
-            [clojure.string :as str]
-            [limabean.spec :as spec]))
+            [clojure.string :as str]))
 
 (defn- resolve-xfs
   "Resolve a plugin by loading it from its namespace"
@@ -46,9 +45,9 @@
   [plugins options]
   (mapv (resolve-xfs-with-config options) plugins))
 
-(defn- tag-unknown
-  "Transducer to tag unknown directives"
-  [known-directives tagf]
+(defn- tag-and-validate-unseen
+  "Transducer to tag which haven't been seen before, and if spec is non-nil, validate"
+  [known-directives tagf spec]
   (fn [rf]
     (fn
       ;; init
@@ -62,7 +61,7 @@
            (vreset! known-directives
                     (conj! @known-directives
                            (System/identityHashCode tagged-d)))
-           (rf result tagged-d))
+           (rf result (if spec (s/assert spec tagged-d) tagged-d)))
          ;; otherwise emit the original directive, whatever it was
          (rf result d))))))
 
@@ -70,29 +69,17 @@
   [provenance]
   (fn [d] (update d :provenance (fnil conj []) provenance)))
 
-(defn- validate-xf
-  "Transducer to validate directives according to `spec`"
-  [spec]
-  (fn [rf]
-    (fn
-      ;; init
-      ([] (rf))
-      ;; completion
-      ([result] (rf result))
-      ;; step
-      ([result d] (rf result (s/assert spec d))))))
-
 (defn- compose-and-wrap-resolved-plugins
   "Compose the transducers in the plugins along with a tagging transducer to set the provenance"
   [resolved-plugins sel directive-spec known-directives]
   (apply comp
-    (tag-unknown known-directives identity)
+    (tag-and-validate-unseen known-directives identity nil)
     (keep (fn [plugin]
             (when-let [xf (get plugin sel)]
               (comp xf
-                    (tag-unknown known-directives
-                                 (provenance-tagf (:name plugin)))
-                    (validate-xf directive-spec))))
+                    (tag-and-validate-unseen known-directives
+                                             (provenance-tagf (:name plugin))
+                                             directive-spec))))
           resolved-plugins)))
 
 (defn has-specified-plugins?
