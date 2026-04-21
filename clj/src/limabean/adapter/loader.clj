@@ -158,17 +158,15 @@
   [path]
   (let [pod (pod/start path)]
     (s/check-asserts true)
-    (let [m (macros/bind-> {:path path, :pod pod}
-                           (get-plugins-and-options)
-                           (get-raw-directives)
-                           (run-plugins :raw)
-                           (book-raw-directives)
-                           (run-plugins :booked)
-                           (as-> m (assoc m
-                                     :directives (or (:booked-xf-directives m)
-                                                     (:booked-directives m)
-                                                     [])))
-                           (as-> m (assoc m
-                                     :registry (registry/build (:directives m)
-                                                               (:options m)))))]
-      m)))
+    (macros/bind->
+      {:path path, :pod pod}
+      (get-plugins-and-options)
+      (get-raw-directives)
+      (run-plugins :raw)
+      (book-raw-directives)
+      (run-plugins :booked)
+      (as-> m (assoc m
+                :directives
+                  (or (:booked-xf-directives m) (:booked-directives m) [])))
+      (as-> m (assoc m
+                :registry (registry/build (:directives m) (:options m)))))))

@@ -23,12 +23,12 @@
         :cur (s/map-of #{:cur} string? :count 1)
         :date (s/map-of #{:date} jt/local-date? :count 1)
         :link (s/map-of #{:link} string? :count 1)
-        :null (s/map-of #{:null} nil? :count 1)
+        :null nil?
         :number (s/map-of #{:number} decimal? :count 1)
         :string (s/map-of #{:string} string? :count 1)
         :tag (s/map-of #{:tag} string? :count 1)
         :units (s/map-of #{:units} ::decimal-or-int :count 1)))
-(s/def ::metadata (s/map-of string? ::metavalue))
+(s/def ::metadata (s/map-of keyword? ::metavalue))
 
 ;; txn fields
 (s/def ::flag string?)
