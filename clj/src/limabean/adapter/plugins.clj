@@ -73,7 +73,7 @@
   "Compose the transducers in the plugins along with a tagging transducer to set the provenance"
   [resolved-plugins sel directive-spec known-directives]
   (apply comp
-    (tag-and-validate-unseen known-directives identity nil)
+    (tag-and-validate-unseen known-directives identity directive-spec)
     (keep (fn [plugin]
             (when-let [xf (get plugin sel)]
               (comp xf

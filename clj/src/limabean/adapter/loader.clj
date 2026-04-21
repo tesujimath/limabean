@@ -67,7 +67,7 @@
         (binding [*out* *err*]
           ;; this is where we first encounter parse errors
           (println (pod/format-errors (:pod m) spanned-reports))
-          (assoc-in m [:error :parser] err))))))
+          (assoc-in m [:error :parser] spanned-reports))))))
 
 (defn- get-raw-directives
   [m]
@@ -85,11 +85,7 @@
   (assoc (into {}
                (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
                  [:xf :directives :xf-directives :xf-errors]))
-    :directive-spec :limabean.spec.raw/directive ; TODO (keyword (str
-                                                 ; "limabean.spec."
-                                                 ; kind-name
-    ; "/directive"))
-  ))
+    :directive-spec (keyword (str "limabean.spec." kind-name "/directive"))))
 
 (defn- run-plugins
   "Run plugins, kind being :raw or :booked"
