@@ -13,7 +13,8 @@
             [limabean.core.type :as type]
             [limabean.macros :as macros]
             [limabean.adapter.print]
-            [limabean.spec]))
+            [limabean.spec]
+            [limabean.spec :as spec]))
 
 (defn- resolve-idx
   [[dct-idx pst-idx] directives]
@@ -82,10 +83,9 @@
 (defn- kind-name-key
   "Return a map according to kind-name"
   [kind-name]
-  (assoc (into {}
-               (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
-                 [:xf :directives :xf-directives :xf-errors]))
-    :directive-spec (keyword (str "limabean.spec." kind-name "/directive"))))
+  (into {}
+        (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
+          [:xf :directives :xf-directives :xf-errors])))
 
 (defn- run-plugins
   "Run plugins, kind being :raw or :booked"
@@ -102,7 +102,7 @@
                                                (get m (:directives key))
                                                (:plugins m)
                                                (:xf key)
-                                               (:directive-spec key))]
+                                               (spec/directive-spec kind))]
              (cond-> (assoc m
                        (:xf-directives key)
                          (type/directives (create-synthetic-spans-if-required

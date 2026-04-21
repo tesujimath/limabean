@@ -2,14 +2,13 @@
   (:require [clojure.spec.alpha :as s]
             [java-time.api :as jt]))
 
+;; common fields
 (s/def ::date jt/local-date?)
-(s/def ::dct
-  #{:txn :price :balance :open :close :commodity :pad :document :note :event
-    :query :custom})
-
-(s/def ::decimal-or-int
+(s/def ::acc string?)
+(s/def ::units
   (s/or :decimal decimal?
         :int int?))
+(s/def ::cur string?)
 
 ;; metadata
 (s/def ::tag string?)
@@ -18,16 +17,16 @@
 (s/def ::links (s/coll-of ::link :kind set?))
 
 (s/def ::metavalue
-  (s/or :acc (s/map-of #{:acc} string? :count 1)
+  (s/or :acc (s/map-of #{:acc} ::acc :count 1)
         :bool (s/map-of #{:bool} boolean? :count 1)
-        :cur (s/map-of #{:cur} string? :count 1)
-        :date (s/map-of #{:date} jt/local-date? :count 1)
-        :link (s/map-of #{:link} string? :count 1)
+        :cur (s/map-of #{:cur} ::cur :count 1)
+        :date (s/map-of #{:date} ::date :count 1)
+        :link (s/map-of #{:link} ::link :count 1)
         :null nil?
         :number (s/map-of #{:number} decimal? :count 1)
         :string (s/map-of #{:string} string? :count 1)
-        :tag (s/map-of #{:tag} string? :count 1)
-        :units (s/map-of #{:units} ::decimal-or-int :count 1)))
+        :tag (s/map-of #{:tag} ::tag :count 1)
+        :units (s/map-of #{:units} ::units :count 1)))
 (s/def ::metadata (s/map-of keyword? ::metavalue))
 
 ;; txn fields
@@ -62,14 +61,9 @@
 ;; custom fields
 (s/def ::values (s/coll-of ::metavalue :kind vector?))
 
-;; posting fields
-(s/def ::acc string?)
-(s/def ::units ::decimal-or-int)
-(s/def ::cur string?)
-
 ;; cost/cost-spec/price/price-spec fields
-(s/def ::per-unit ::decimal-or-int)
-(s/def ::total ::decimal-or-int)
+(s/def ::per-unit ::units)
+(s/def ::total ::units)
 (s/def ::label string?)
 (s/def ::merge boolean?)
 
@@ -95,18 +89,19 @@
 (s/def :limabean.spec.booked/postings
   (s/coll-of :limabean.spec.booked/posting :kind vector?))
 
-;; directives
 
+;; directives
 (s/def ::base-directive
   (s/keys :req-un [::date] :opt-un [::tags ::links ::metadata]))
 
-(s/def :limabean.spec.raw/txn
+(s/def ::raw-txn
   (s/keys :req-un [::flag]
           :opt-un [::payee ::narration :limabean.spec.raw/postings]))
-(s/def :limabean.spec.booked/txn
+(s/def ::booked-txn
   (s/keys :req-un [::flag]
           :opt-un [::payee ::narration :limabean.spec.booked/postings]))
 
+;; the awkward name is because ::price is the basic value not the directive:
 (s/def :limabean.spec.dct/price (s/keys :req-un [::cur ::price]))
 (s/def ::balance (s/keys :req-un [::acc ::units ::cur] :opt-un [::tolerance]))
 (s/def ::open (s/keys :req-un [::acc] :opt-un [::currencies ::booking]))
@@ -119,42 +114,51 @@
 (s/def ::query (s/keys :req-un [::name ::content]))
 (s/def ::custom (s/keys :req-un [::type ::values]))
 
-(s/def :limabean.spec.raw/directive
-  (s/and ::base-directive (s/or
-                            :txn :limabean.spec.raw/txn
-                            :price :limabean.spec.dct/price
-                            :balance ::balance
-                            :open ::open
-                            :close ::close
-                            :commodity ::commodity
-                            :pad ::pad
-                            :document ::document
-                            :note ::note
-                            :event ::event
-                            :query ::query
-                            :custom ::custom)))
+(defmulti raw-dct :dct)
+(defmethod raw-dct :txn [_] ::raw-txn)
+(defmethod raw-dct :price [_] :limabean.spec.dct/price)
+(defmethod raw-dct :balance [_] ::balance)
+(defmethod raw-dct :open [_] ::open)
+(defmethod raw-dct :close [_] ::close)
+(defmethod raw-dct :commodity [_] ::commodity)
+(defmethod raw-dct :pad [_] ::pad)
+(defmethod raw-dct :document [_] ::document)
+(defmethod raw-dct :note [_] ::note)
+(defmethod raw-dct :event [_] ::event)
+(defmethod raw-dct :query [_] ::query)
+(defmethod raw-dct :custom [_] ::custom)
+(defmethod raw-dct nil [_] (s/and map? #(contains? % :dct)))
+(s/def ::raw-dct (s/and ::base-directive (s/multi-spec raw-dct :dct)))
 
-(s/def :limabean.spec.raw/directives (s/coll-of :limabean.spec.raw/directive))
+(defmulti booked-dct :dct)
+(defmethod booked-dct :txn [_] ::booked-txn)
+(defmethod booked-dct :price [_] :limabean.spec.dct/price)
+(defmethod booked-dct :balance [_] ::balance)
+(defmethod booked-dct :open [_] ::open)
+(defmethod booked-dct :close [_] ::close)
+(defmethod booked-dct :commodity [_] ::commodity)
+(defmethod booked-dct :pad [_] ::pad)
+(defmethod booked-dct :document [_] ::document)
+(defmethod booked-dct :note [_] ::note)
+(defmethod booked-dct :event [_] ::event)
+(defmethod booked-dct :query [_] ::query)
+(defmethod booked-dct :custom [_] ::custom)
+(defmethod booked-dct nil [_] (s/and map? #(contains? % :dct)))
+(s/def ::booked-dct (s/and ::base-directive (s/multi-spec booked-dct :dct)))
 
-(s/def :limabean.spec.booked/directive
-  (s/and ::base-directive (s/or
-                            :txn :limabean.spec.booked/txn
-                            :price :limabean.spec.dct/price
-                            :balance ::balance
-                            :open ::open
-                            :close ::close
-                            :commodity ::commodity
-                            :pad ::pad
-                            :document ::document
-                            :note ::note
-                            :event ::event
-                            :query ::query
-                            :custom ::custom)))
-
-(s/def :limabean.spec.booked/directives
-  (s/coll-of :limabean.spec.booked/directive))
+(s/def ::raw-directives (s/coll-of ::raw-directive))
+(s/def ::booked-directives (s/coll-of :booked-directive))
 
 (defn directive-spec
   "Directive spec for `kind` of directive"
   [kind]
-  (keyword (str "limabean.spec." (name kind) "/directive")))
+  (case kind
+    :raw ::raw-dct
+    :booked ::booked-dct))
+
+(defn directives-spec
+  "Directive spec for `kind` of directives"
+  [kind]
+  (case kind
+    :raw ::raw-directives
+    :booked ::booked-directives))
