@@ -84,6 +84,13 @@ jobs:
           clojure -T:build write-pom
           git diff --exit-code pom.xml
 
+      - name: Check Clojure test pom.xml
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd clj-test
+          clojure -T:build write-pom
+          git diff --exit-code pom.xml
+
       - name: Build uberjar
         run: |
           cd clj

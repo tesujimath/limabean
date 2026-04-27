@@ -28,8 +28,11 @@
                        slipset/deps-deploy {:mvn/version "0.2.1"}},
           :extra-paths ["dev"],
           :main-opts ["-m" "user"]},
-    :gen-golden {:exec-fn limabean.golden/generate,
-                 :extra-deps {zprint/zprint {:mvn/version "1.3.0"}},
+    :gen-golden {:exec-args {:root-dir "../test-cases"},
+                 :exec-fn limabean.test.create-golden/update-existing,
+                 :extra-deps {io.github.tesujimath/limabean-test
+                                {:local/root "../clj-test"},
+                              zprint/zprint {:mvn/version "1.3.0"}},
                  :extra-paths ["test" "test-plugins/src"]},
     :neil {:project {:name io.github.tesujimath/limabean}},
     :run-m {:main-opts ["-m" "limabean.main"]},
@@ -39,6 +42,8 @@
            :extra-deps {com.health-samurai/matcho {:mvn/version "0.3.11"},
                         io.github.cognitect-labs/test-runner
                           {:git/sha "dfb30dd", :git/tag "v0.5.1"},
+                        io.github.tesujimath/limabean-test {:local/root
+                                                              "../clj-test"},
                         org.clojure/test.check {:mvn/version "1.1.1"}},
            :extra-paths ["test" "test-plugins/src"],
            :main-opts ["-m" "cognitect.test-runner"]}},

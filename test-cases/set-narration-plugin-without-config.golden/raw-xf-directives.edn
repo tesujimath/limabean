@@ -3,14 +3,16 @@
  {:date #time/date "2023-05-29",
   :dct :txn,
   :flag "*",
-  :narration "Plugins rule ok!",
+  :narration "unspecified in config",
   :payee "New World",
   :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 10.00M}
-             {:acc "Assets:Bank:Current", :cur "NZD", :units -10.00M}]}
+             {:acc "Assets:Bank:Current"}],
+  :provenance ["limabean.test.plugins.set-narration"]}
  {:date #time/date "2023-05-30",
   :dct :txn,
   :flag "*",
-  :narration "Plugins rule ok!",
+  :narration "unspecified in config",
   :payee "Countdown",
   :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 17.50M}
-             {:acc "Assets:Bank:Current", :cur "NZD", :units -17.50M}]}]
+             {:acc "Assets:Bank:Current"}],
+  :provenance ["limabean.test.plugins.set-narration"]}]

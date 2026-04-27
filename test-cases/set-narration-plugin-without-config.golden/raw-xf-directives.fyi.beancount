@@ -1,0 +1,11 @@
+2016-03-01 open Assets:Bank:Current
+
+2016-03-01 open Expenses:Groceries
+
+2023-05-29 * "New World" "unspecified in config"
+  Expenses:Groceries 10.00 NZD
+  Assets:Bank:Current
+
+2023-05-30 * "Countdown" "unspecified in config"
+  Expenses:Groceries 17.50 NZD
+  Assets:Bank:Current

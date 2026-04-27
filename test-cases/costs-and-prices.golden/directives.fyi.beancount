@@ -1,0 +1,29 @@
+2025-01-01 open Assets:UK:Cash
+
+2025-01-01 open Assets:NZ:Cash
+
+2025-01-01 * "price per-unit"
+  Assets:UK:Cash -1000.00 GBP @ 1.914 NZD
+  Assets:NZ:Cash 1914.00 NZD
+
+2025-02-01 * "price total"
+  Assets:UK:Cash -197.00 GBP @ 1.9369035532994923857868020305 NZD
+  Assets:NZ:Cash -381.57 NZD
+
+2025-02-05 * "price total weight"
+  Assets:UK:Cash -197.00 GBP @ 1.9369035532994923857868020305 NZD
+  Assets:NZ:Cash -381.57 NZD
+
+2025-03-01 open Assets:Shares:IBM
+
+2025-03-01 * "cost per-unit"
+  Assets:Shares:IBM 5 IBM {300.00 NZD, 2025-03-01}
+  Assets:NZ:Cash -1500 NZD
+
+2025-04-01 * "cost total"
+  Assets:Shares:IBM 3 IBM {303.33333333333333333333333333 NZD, 2025-04-01}
+  Assets:NZ:Cash -910.00 NZD
+
+2025-04-05 * "cost total weight"
+  Assets:Shares:IBM 3 IBM {303.33333333333333333333333333 NZD, 2025-04-05}
+  Assets:NZ:Cash -910.00 NZD

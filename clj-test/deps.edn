@@ -1,0 +1,32 @@
+{:aliases
+   {:build {:deps {cheshire/cheshire {:mvn/version "6.1.0"},
+                   io.github.clojure/tools.build {:mvn/version "0.10.12"},
+                   slipset/deps-deploy {:mvn/version "0.2.1"}},
+            :ns-default build},
+    :cider/nrepl {:extra-deps
+                    {cider/cider-nrepl {:mvn/version "0.58.0"},
+                     com.health-samurai/matcho {:mvn/version "0.3.11"},
+                     org.clojure/test.check {:mvn/version "1.1.1"},
+                     refactor-nrepl/refactor-nrepl {:mvn/version "3.11.0"},
+                     zprint/zprint {:mvn/version "1.3.0"}},
+                  :extra-paths ["test" "test-plugins/src"],
+                  :jvm-opts ["-Djdk.attach.allowAttachSelf"]},
+    :dev {:extra-deps {io.github.clojure/tools.build {:mvn/version "0.10.12"},
+                       org.clojure/test.check {:mvn/version "1.1.1"},
+                       slipset/deps-deploy {:mvn/version "0.2.1"}},
+          :extra-paths ["dev"],
+          :main-opts ["-m" "user"]},
+    :run-m {:main-opts ["-m" "limabean.main"]},
+    :run-x
+      {:exec-args {:name "Clojure"}, :exec-fn greet, :ns-default limabean.main},
+    :test {:exec-fn cognitect.test-runner.api/test,
+           :extra-deps {com.health-samurai/matcho {:mvn/version "0.3.11"},
+                        io.github.cognitect-labs/test-runner
+                          {:git/sha "dfb30dd", :git/tag "v0.5.1"},
+                        org.clojure/test.check {:mvn/version "1.1.1"}},
+           :extra-paths ["test" "test-plugins/src"],
+           :main-opts ["-m" "cognitect.test-runner"]}},
+ :deps {io.github.tesujimath/limabean {:local/root "../clj"},
+        org.clojure/clojure {:mvn/version "1.12.4"},
+        org.clojure/tools.cli {:mvn/version "1.1.230"}},
+ :paths ["src"]}
