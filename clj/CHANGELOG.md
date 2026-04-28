@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file. This change
 - `income-statement` query for profit and loss
 - diagnostics for failed balance directives show all the sub-accounts
 - f/none-f combinator filter, the opposite of f/some-f
+- validation of directives against Clojure spec
 
 ### Changed
 
