@@ -77,6 +77,10 @@
         opts (jar-opts opts)]
     (println "\nCopying source...")
     (b/copy-dir {:src-dirs ["resources" "src"], :target-dir class-dir})
+    (println "\nCompiling required namespaces")
+    (b/compile-clj (assoc opts
+                     :basis basis
+                     :ns-compile '[limabean.test limabean.test.create-golden]))
     (println "\nBuilding jar" (:jar-file opts))
     (b/jar opts)
     opts))
