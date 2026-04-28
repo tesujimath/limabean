@@ -39,8 +39,7 @@
   "Update only golden test output files which exist"
   [{:keys [root-dir]}]
   (run! (fn [{:keys [beanfile golden-dir]}]
-          (let [beanpath (.getPath beanfile)
-                beans (loader/load-beanfile beanpath)
+          (let [beans (loader/load-beanfile beanfile)
                 bad-plugins (filter :err (:plugins beans))]
             (if (empty? bad-plugins)
               (run! (fn [[k output]]
@@ -62,6 +61,6 @@
                                                 (io/file golden-dir
                                                          fyi-file))))))
                     OUTPUTS)
-              (println "not creating output files for " beanpath
+              (println "not creating output files for " beanfile
                        "because bad plugins" bad-plugins))))
         (limabean.test/find-golden-tests root-dir)))
