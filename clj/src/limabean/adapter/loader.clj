@@ -13,7 +13,6 @@
             [limabean.core.type :as type]
             [limabean.macros :as macros]
             [limabean.adapter.print]
-            [limabean.spec]
             [limabean.spec :as spec]))
 
 (defn- resolve-idx
