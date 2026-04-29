@@ -108,6 +108,8 @@ user=&gt; (show (journal (f/date&gt;=&lt; 2013 2018)))
 <p>All the payees as a set</p>
 <pre><code>user=&gt; (set (keep :payee (journal)))
 </code></pre>
+<h3><a href="#representation-of-directives" id="representation-of-directives"></a>Representation of directives</h3>
+<p>Directives are represented as Clojure maps, where the <code>:dct</code> field identities the type of directive.  The <a href="../src/limabean/spec.clj">structure is defined here</a> in <a href="https://clojure.org/guides/spec">spec</a> format.</p>
 <h2><a href="#batch-usage" id="batch-usage"></a>Batch usage</h2>
 <p>While the REPL is envisaged as the primary interface to <code>limabean</code>, it is possible to invoke batch queries, for example:</p>
 <pre><code>kiri&gt; limabean --eval '(show (journal (fy 23)))'
