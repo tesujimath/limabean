@@ -25,20 +25,19 @@
 (defn find-golden-tests
   "Walk the filesystem from root-dir looking for beancount files and golden directories."
   [root-dir]
-  (into []
-        (comp (filter #(str/ends-with? (.getName %) ".beancount"))
-              (map (fn [beanfile]
-                     (let [base-path
-                             (str/replace (.getPath beanfile) #".beancount$" "")
-                           test-name (-> base-path
-                                         (str/replace-first (str root-dir) "")
-                                         (str/replace #"^/" ""))
-                           golden-dir (io/file (str base-path ".golden"))]
-                       {:test-name test-name,
-                        :beanfile (.getPath beanfile),
-                        :golden-dir golden-dir})))
-              (filter #(.exists (:golden-dir %))))
-        (file-seq (io/file root-dir))))
+  (let [root-dir (.getPath (io/file root-dir))]
+    (into []
+          (comp (filter #(str/ends-with? (.getName %) ".beancount"))
+                (map (fn [beanfile]
+                       (let [base-path (io/file (str/replace (.getPath beanfile) #".beancount$" ""))
+                             test-name (.getName base-path)
+                             golden-dir (io/file (str base-path ".golden"))]
+                         {:test-name test-name,
+                          :beanfile (.getPath beanfile),
+                          :golden-dir golden-dir})))
+                (filter #(.exists (:golden-dir %))))
+          (file-seq (io/file root-dir))))
+  )
 
 
 (defn- temp-file-path
