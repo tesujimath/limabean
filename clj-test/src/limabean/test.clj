@@ -29,15 +29,16 @@
     (into []
           (comp (filter #(str/ends-with? (.getName %) ".beancount"))
                 (map (fn [beanfile]
-                       (let [base-path (io/file (str/replace (.getPath beanfile) #".beancount$" ""))
+                       (let [base-path (io/file (str/replace (.getPath beanfile)
+                                                             #".beancount$"
+                                                             ""))
                              test-name (.getName base-path)
                              golden-dir (io/file (str base-path ".golden"))]
                          {:test-name test-name,
                           :beanfile (.getPath beanfile),
                           :golden-dir golden-dir})))
                 (filter #(.exists (:golden-dir %))))
-          (file-seq (io/file root-dir))))
-  )
+          (file-seq (io/file root-dir)))))
 
 
 (defn- temp-file-path
