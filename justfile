@@ -17,8 +17,12 @@ test-rust: build-rust
     cargo test
 
 [working-directory: 'clj']
-build-clj:
+build-clj: build-clj-test
     clojure -T:build uber
+
+[working-directory: 'clj-test']
+build-clj-test:
+    clojure -T:build jar
 
 [working-directory: 'clj']
 test-clj:
@@ -43,4 +47,4 @@ test-clj-offline: build-clj build-rust
 
 [working-directory: 'clj']
 refresh-golden-test-output:
-    clojure -X:gen-golden '{:refresh true}'
+    clojure -X:gen-golden

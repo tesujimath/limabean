@@ -1,5 +1,6 @@
 (ns limabean.adapter.plugins
   (:require [clojure.edn :as edn]
+            [clojure.spec.alpha :as s]
             [clojure.string :as str]))
 
 (defn- resolve-xfs
@@ -44,9 +45,9 @@
   [plugins options]
   (mapv (resolve-xfs-with-config options) plugins))
 
-(defn- tag-unknown
-  "Transducer to tag unknown directives"
-  [known-directives tagf]
+(defn- tag-and-validate-unseen
+  "Transducer to tag which haven't been seen before, and if spec is non-nil, validate"
+  [known-directives tagf spec]
   (fn [rf]
     (fn
       ;; init
@@ -60,7 +61,7 @@
            (vreset! known-directives
                     (conj! @known-directives
                            (System/identityHashCode tagged-d)))
-           (rf result tagged-d))
+           (rf result (if spec (s/assert spec tagged-d) tagged-d)))
          ;; otherwise emit the original directive, whatever it was
          (rf result d))))))
 
@@ -70,14 +71,15 @@
 
 (defn- compose-and-wrap-resolved-plugins
   "Compose the transducers in the plugins along with a tagging transducer to set the provenance"
-  [resolved-plugins sel known-directives]
+  [resolved-plugins sel directive-spec known-directives]
   (apply comp
-    (tag-unknown known-directives identity)
+    (tag-and-validate-unseen known-directives identity directive-spec)
     (keep (fn [plugin]
             (when-let [xf (get plugin sel)]
               (comp xf
-                    (tag-unknown known-directives
-                                 (provenance-tagf (:name plugin))))))
+                    (tag-and-validate-unseen known-directives
+                                             (provenance-tagf (:name plugin))
+                                             directive-spec))))
           resolved-plugins)))
 
 (defn has-specified-plugins?
@@ -87,13 +89,14 @@
 
 (defn run-plugins-of-kind
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
-  [directives resolved-plugins sel]
+  [directives resolved-plugins sel directive-spec]
   (let [known-directives (volatile! (transient #{}))]
     ;; TODO actually separate out directives and errors with plugin
     ;; transducers wrapper
     {:directives (into []
                        (compose-and-wrap-resolved-plugins resolved-plugins
                                                           sel
+                                                          directive-spec
                                                           known-directives)
                        directives),
      :errors []}))

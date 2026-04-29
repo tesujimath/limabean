@@ -83,13 +83,22 @@ jobs:
         with:
           cli: latest
 
-      - name: Deploy to Clojars
+      - name: Deploy application to Clojars
         if: matrix.os == 'ubuntu-latest'
         env:
-          CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
-          CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
+          CLOJARS_USERNAME: ${{ secrets.LIMABEAN_CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.LIMABEAN_CLOJARS_PASSWORD }}
         run: |
           cd clj
+          clojure -T:build deploy
+
+      - name: Deploy test library to Clojars
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          CLOJARS_USERNAME: ${{ secrets.LIMABEAN_TEST_CLOJARS_USERNAME }}
+          CLOJARS_PASSWORD: ${{ secrets.LIMABEAN_TEST_CLOJARS_PASSWORD }}
+        run: |
+          cd clj-test
           clojure -T:build deploy
 
       - name: Build uberjar

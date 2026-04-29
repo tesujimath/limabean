@@ -3,7 +3,12 @@
 
 (defn- dct-type
   [dct]
-  (let [type (:dct dct)] (if (= type :txn) (or (:flag dct) "txn") (name type))))
+  (let [t (:dct dct)]
+    (cond (= t :txn) (or (:flag dct) "txn")
+          (keyword? t) (name t)
+          ;; don't fail here, since spec validation will provide a clearer
+          ;; error message
+          :else "nil")))
 
 (defn- double-quote
   "Double quote a string, otherwise nil"

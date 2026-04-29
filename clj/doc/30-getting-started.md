@@ -138,6 +138,10 @@ All the payees as a set
 user=> (set (keep :payee (journal)))
 ```
 
+### Representation of directives
+
+Directives are represented as Clojure maps, where the `:dct` field identities the type of directive.  The [structure is defined here](../src/limabean/spec.clj) in [spec](https://clojure.org/guides/spec) format.
+
 ## Batch usage
 
 While the REPL is envisaged as the primary interface to `limabean`, it is possible to invoke batch queries, for example:

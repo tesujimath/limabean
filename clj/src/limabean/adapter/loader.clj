@@ -1,15 +1,19 @@
 (ns limabean.adapter.loader
   "Load from beanfile and run plugins"
-  (:require [limabean.adapter.plugins :as plugins]
-            [limabean.adapter.pod :as pod]
-            [limabean.core.registry :as registry]
-            [clojure.java.io :as io]
+  (:require [clojure.java.io :as io]
+            [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [limabean.adapter.debug :as debug]
-            [limabean.core.type :as type]
             [limabean.adapter.exception :as exception]
+            [limabean.adapter.json]
+            [limabean.adapter.plugins :as plugins]
+            [limabean.adapter.pod :as pod]
             [limabean.adapter.synthetic-spans :as synthetic-spans]
-            [limabean.macros :as macros]))
+            [limabean.core.registry :as registry]
+            [limabean.core.type :as type]
+            [limabean.macros :as macros]
+            [limabean.adapter.print]
+            [limabean.spec :as spec]))
 
 (defn- resolve-idx
   [[dct-idx pst-idx] directives]
@@ -75,33 +79,18 @@
           (debug/dump-configured?) (dump :raw-directives)))
       (throw (ex-info "unexpected parser failure on directives" err)))))
 
-(defn- format-plugin-error
-  [m kind message dct plugin]
-  (let [span
-          (case kind
-            :raw (if (:provenance dct)
-                   (get (synthetic-spans/create-with-provenance [dct] (:pod m))
-                        0)
-                   (:span dct))
-            :booked
-              (if (:provenance dct)
-                (get (synthetic-spans/create-with-provenance [dct] (:pod m)) 0)
-                (let [raw-directives (or (:raw-xf-directives m)
-                                         (:raw-directives m))]
-                  (get-in raw-directives [(:raw-idx dct) :span]))))]
-    (pod/format-errors
-      (:pod m)
-      [{:message (str (str/capitalize (name kind)) " plugin " plugin " failed"),
-        :reason message,
-        :span span}])))
+(defn- kind-name-key
+  "Return a map according to kind-name"
+  [kind-name]
+  (into {}
+        (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
+          [:xf :directives :xf-directives :xf-errors])))
 
 (defn- run-plugins
   "Run plugins, kind being :raw or :booked"
   [m kind]
   (let [kind-name (name kind)
-        key (into {}
-                  (map (fn [k] [k (keyword (str kind-name "-" (name k)))])
-                    [:xf :directives :xf-directives :xf-errors]))
+        key (kind-name-key kind-name)
         create-synthetic-spans-if-required
           (if (= kind :raw)
             #(synthetic-spans/create-and-merge-with-provenance % (:pod m))
@@ -111,7 +100,8 @@
       (try (let [{:keys [directives errors]} (plugins/run-plugins-of-kind
                                                (get m (:directives key))
                                                (:plugins m)
-                                               (:xf key))]
+                                               (:xf key)
+                                               (spec/directive-spec kind))]
              (cond-> (assoc m
                        (:xf-directives key)
                          (type/directives (create-synthetic-spans-if-required
@@ -119,24 +109,16 @@
                (debug/dump-configured?) (dump (:directives key))
                (seq errors) (assoc (:xf-errors key) errors)))
            (catch Exception e
-             (let [error-key (keyword (str kind-name "-plugin"))
-                   error
-                     (let [data (ex-data e)
-                           {:keys [dct plugin]} data]
-                       (if (and dct plugin)
-                         {:message (.getMessage e), :dct dct, :plugin plugin}
-                         {:message (str "Exception " (.getMessage e))}))]
-               (binding [*err* *out*]
-                 (if (:dct error)
-                   (println (format-plugin-error m
-                                                 kind
-                                                 (:message error)
-                                                 (:dct error)
-                                                 (:plugin error)))
-                   (do (println (:message error) "in" kind-name "plugin")
-                       (.printStackTrace e)))
-                 (println "All" kind-name "plugins ignored"))
-               (assoc-in m [:error error-key] error)))))))
+             (let [error-key (keyword (str kind-name "-plugin"))]
+               (assoc-in m
+                 [:error error-key :exception]
+                 (exception/handle-exception (ex-info (str "Error in "
+                                                           kind-name
+                                                           " plugin, all "
+                                                           kind-name
+                                                           " plugins ignored")
+                                                      {}
+                                                      e)))))))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
@@ -170,6 +152,7 @@
 (defn load-beanfile
   [path]
   (let [pod (pod/start path)]
+    (s/check-asserts true)
     (macros/bind->
       {:path path, :pod pod}
       (get-plugins-and-options)

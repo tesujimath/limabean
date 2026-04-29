@@ -1,0 +1,7 @@
+2022-08-25 open Assets:Cash
+
+2022-08-25 open Expenses:Other-Expense
+
+2022-08-25 * "Re install gate"
+  Assets:Cash -3000000 IDR
+  Expenses:Other-Expense 204 USD @ 14705.882352941176470588235294 IDR
