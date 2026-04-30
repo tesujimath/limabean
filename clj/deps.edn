@@ -29,7 +29,7 @@
           :extra-paths ["dev"],
           :main-opts ["-m" "user"]},
     :gen-golden {:exec-args {:root-dir "../test-cases"},
-                 :exec-fn limabean.test.create-golden/update,
+                 :exec-fn limabean.test.create-golden/update-all,
                  :extra-deps {io.github.tesujimath/limabean-test
                                 {:local/root "../clj-test"},
                               zprint/zprint {:mvn/version "1.3.0"}},

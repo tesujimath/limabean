@@ -59,10 +59,13 @@
     (if ok
       (let [plugins ok
             options (:ok (pod/options (:pod m)))
-            resolved-plugins (plugins/resolve-symbols plugins options)]
-        (assoc m
-          :plugins resolved-plugins
-          :options options))
+            resolved-plugins (plugins/resolve-symbols plugins options)
+            plugin-resolution-errors (vec (keep :err resolved-plugins))]
+        (cond-> (assoc m
+                  :plugins resolved-plugins
+                  :options options)
+          (seq plugin-resolution-errors) (assoc-in [:error :plugins]
+                                           plugin-resolution-errors)))
       (let [spanned-reports (:spanned-reports err)]
         (binding [*out* *err*]
           ;; this is where we first encounter parse errors

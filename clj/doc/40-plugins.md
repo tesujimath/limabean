@@ -20,11 +20,13 @@ plugin "limabean.contrib.plugins.examples.magic-money" "{:units 1000.00M :cur \"
 
 In fact, any Clojure value may be supplied, not necessarily a map.  But it must match what the particular plugin is expecting.
 
+Note that EDN does not support the [`#` dispatch macro](https://clojure.org/reference/reader#_dispatch), so in particular regular expressions in plugin config in Beancount files must be written as tagged literals, e.g. `#regex "i-am-a-regex"`.
+
 The Clojure namespace must define one or both of the functions `raw-xf` and `booked-xf`, each of which is a function returning a Clojure transducer on raw or booked directives respectively.
 
 ## Running plugins
 
-Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin will cause that plugin to be disabled (with an error message).  See `(:plugins *beans*)` to see what has been applied and what has not.
+Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin inhibit any further processing of the beanfile.
 
 The original directives loaded from the file are available in the REPL as `(:raw-directives *beans*)`, with the post-plugin raw directives available as `(:raw-xf-directives *beans*)`, booked directives as `(:booked-directives *beans*)`, and post-plugin booked directives as `(:booked-xf-directives *beans*)`.
 

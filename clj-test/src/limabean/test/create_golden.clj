@@ -44,32 +44,39 @@
              :f (fn [beans] (show/show (bean-queries/journal beans []))),
              :required-f (fn [_beans exists] exists)}})
 
-(defn update
+(defn- mkdir
+  [dir]
+  (.toFile (java.nio.file.Files/createDirectories
+             (java.nio.file.Paths/get dir (make-array String 0))
+             nil)))
+
+(defn update-all
   "Update any golden test output files which exist, or any required by plugins"
   [{:keys [root-dir]}]
-  (run! (fn [{:keys [beanfile golden-dir]}]
-          (let [beans (loader/load-beanfile beanfile)
-                bad-plugins (filter :err (:plugins beans))]
-            (if (empty? bad-plugins)
-              (run! (fn [[k output]]
-                      (let [output-file (io/file golden-dir (:filename output))
-                            exists (.exists output-file)
-                            fyi-filename (:fyi-filename output)
-                            fyi-f (:fyi-f output)
-                            required-f (:required-f output)]
-                        (when (required-f beans exists)
-                          (println "writing" (name k)
-                                   "to" (.getPath output-file))
-                          (create-output-file beans (:f output) output-file)
-                          (when (and fyi-filename fyi-f)
-                            (let [fyi-file (io/file golden-dir fyi-filename)]
-                              (println "writing"
-                                       (name k)
-                                       "to"
-                                       (.getPath fyi-file)
-                                       "for information only")
-                              (create-output-file beans fyi-f fyi-file))))))
-                    OUTPUTS)
-              (println "not creating output files for " beanfile
-                       "because bad plugins" bad-plugins))))
-        (limabean.test/find-golden-tests root-dir)))
+  (run!
+    (fn [{:keys [beanfile golden-dir]}]
+      (let [beans (loader/load-beanfile beanfile)
+            bad-plugins (filter :err (:plugins beans))
+            golden-dir (if (.exists golden-dir) golden-dir (mkdir golden-dir))]
+        (if (empty? bad-plugins)
+          (run! (fn [[k output]]
+                  (let [output-file (io/file golden-dir (:filename output))
+                        exists (.exists output-file)
+                        fyi-filename (:fyi-filename output)
+                        fyi-f (:fyi-f output)
+                        required-f (:required-f output)]
+                    (when (required-f beans exists)
+                      (println "writing" (name k) "to" (.getPath output-file))
+                      (create-output-file beans (:f output) output-file)
+                      (when (and fyi-filename fyi-f)
+                        (let [fyi-file (io/file golden-dir fyi-filename)]
+                          (println "writing"
+                                   (name k)
+                                   "to"
+                                   (.getPath fyi-file)
+                                   "for information only")
+                          (create-output-file beans fyi-f fyi-file))))))
+                OUTPUTS)
+          (println "not creating output files for " beanfile
+                   "because bad plugins" bad-plugins))))
+    (limabean.test/find-golden-tests root-dir :ignore-golden-dirs true)))

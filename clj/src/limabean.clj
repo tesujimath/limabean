@@ -40,7 +40,8 @@
                "directives loaded from" path)
       (let [bad-plugins (filter :err (:plugins beans))]
         (doseq [plugin bad-plugins]
-          (println "ERROR in plugin" (:name plugin) "-" (:err plugin))))
+          (println "ERROR in plugin" (:name plugin)
+                   "-" (get-in plugin [:err :message]))))
       (assign-limabean-globals beans)
       (if-let [err (:plugin-errors beans)]
         (println err)
