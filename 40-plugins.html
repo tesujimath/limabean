@@ -11,9 +11,10 @@
 <pre><code>plugin "limabean.contrib.plugins.examples.magic-money" "{:units 1000.00M :cur \"USD\" :acc \"Equity:Rich-American-Uncle\"}"
 </code></pre>
 <p>In fact, any Clojure value may be supplied, not necessarily a map.  But it must match what the particular plugin is expecting.</p>
+<p>Note that EDN does not support the <a href="https://clojure.org/reference/reader#_dispatch"><code>#</code> dispatch macro</a>, so in particular regular expressions in plugin config in Beancount files must be written as tagged literals, e.g. <code>#regex "i-am-a-regex"</code>.</p>
 <p>The Clojure namespace must define one or both of the functions <code>raw-xf</code> and <code>booked-xf</code>, each of which is a function returning a Clojure transducer on raw or booked directives respectively.</p>
 <h2><a href="#running-plugins" id="running-plugins"></a>Running plugins</h2>
-<p>Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin will cause that plugin to be disabled (with an error message).  See <code>(:plugins *beans*)</code> to see what has been applied and what has not.</p>
+<p>Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin inhibit any further processing of the beanfile.</p>
 <p>The original directives loaded from the file are available in the REPL as <code>(:raw-directives *beans*)</code>, with the post-plugin raw directives available as <code>(:raw-xf-directives *beans*)</code>, booked directives as <code>(:booked-directives *beans*)</code>, and post-plugin booked directives as <code>(:booked-xf-directives *beans*)</code>.</p>
 <p>Any errors in actually running any plugin cause the loader to abort with whatever partial state was reached, for further investigation by the user using the REPL.</p>
 <h3><a href="#configuration-required-to-resolve-plugins" id="configuration-required-to-resolve-plugins"></a>Configuration required to resolve plugins</h3>
