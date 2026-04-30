@@ -44,11 +44,19 @@
              :f (fn [beans] (show/show (bean-queries/journal beans []))),
              :required-f (fn [_beans exists] exists)}})
 
-(defn- mkdir
+(defn ->path
+  "Convert string or io/file to Java.nio Path"
+  [x]
+  (condp instance? x
+    java.nio.file.Path x
+    java.io.File (.toPath x)
+    String (java.nio.file.Paths/get x (make-array String 0))))
+
+(defn mkdir
   [dir]
   (.toFile (java.nio.file.Files/createDirectories
-             (java.nio.file.Paths/get dir (make-array String 0))
-             nil)))
+             (->path dir)
+             (make-array java.nio.file.attribute.FileAttribute 0))))
 
 (defn update-all
   "Update any golden test output files which exist, or any required by plugins"
