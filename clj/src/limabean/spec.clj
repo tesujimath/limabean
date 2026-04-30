@@ -2,6 +2,8 @@
   (:require [clojure.spec.alpha :as s]
             [java-time.api :as jt]))
 
+(defn- forbid "To specify forbidden keys" [& keys] #(not-any? % keys))
+
 ;; common fields
 (s/def ::date jt/local-date?)
 (s/def ::acc string?)
@@ -104,7 +106,9 @@
 ;; the awkward name is because ::price is the basic value not the directive:
 (s/def :limabean.spec.dct/price (s/keys :req-un [::cur ::price]))
 (s/def ::balance (s/keys :req-un [::acc ::units ::cur] :opt-un [::tolerance]))
-(s/def ::open (s/keys :req-un [::acc] :opt-un [::currencies ::booking]))
+(s/def ::open
+  (s/and (s/keys :req-un [::acc] :opt-un [::currencies ::booking])
+         (forbid :cur :curs :currency)))
 (s/def ::close (s/keys :req-un [::acc]))
 (s/def ::commodity (s/keys :req-un [::cur]))
 (s/def ::pad (s/keys :req-un [::acc ::source]))
