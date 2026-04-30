@@ -1,7 +1,7 @@
 (ns limabean.adapter.plugins
-  (:require [clojure.edn :as edn]
-            [clojure.spec.alpha :as s]
-            [clojure.string :as str]))
+  (:require [clojure.spec.alpha :as s]
+            [clojure.string :as str]
+            [limabean.adapter.edn :as limabean-edn]))
 
 (defn- resolve-xfs
   "Resolve a plugin by loading it from its namespace"
@@ -15,7 +15,8 @@
                          [[:booked-xf booked-xf-fn] [:raw-xf raw-xf-fn]])]
            (if (seq xfs)
              xfs
-             {:err "Failed to find either booked-xf or raw-xf in plugin"}))
+             {:err {:message
+                      "Failed to find either booked-xf or raw-xf in plugin"}}))
          (catch Exception _ {:err "could not load namespace for plugin"}))))
 
 (defn- resolve-xfs-with-config'
@@ -24,13 +25,14 @@
   (let [xfs (resolve-xfs name)]
     (if (:err xfs)
       xfs
-      (try (let [config-val (edn/read-string config)]
+      (try (let [config-val (limabean-edn/read-string config)]
              (into
                {}
                (map (fn [[k f]] [k (f {:config config-val, :options options})])
                  xfs)))
            (catch Exception e
-             {:err (str "Error resolving config: " (.getMessage e))})))))
+             {:err {:message (str "Error resolving config: " (.getMessage e)),
+                    :exception (Throwable->map e)}})))))
 
 (defn- resolve-xfs-with-config
   "Return a function which merges the plugin definition with its resolution"

@@ -5,7 +5,7 @@
             [clojure.string :as str]
             [clojure.test :refer [is testing]]
             [clojure.walk :as walk]
-            [limabean.adapter.edn :as edn]
+            [limabean.adapter.edn :as limabean-edn]
             [limabean.adapter.json]
             [limabean.adapter.loader :as loader]
             [limabean.adapter.print]
@@ -24,7 +24,7 @@
 
 (defn find-golden-tests
   "Walk the filesystem from root-dir looking for beancount files and golden directories."
-  [root-dir]
+  [root-dir & {:keys [ignore-golden-dirs]}]
   (let [root-dir (.getPath (io/file root-dir))]
     (into []
           (comp (filter #(str/ends-with? (.getName %) ".beancount"))
@@ -37,7 +37,7 @@
                          {:test-name test-name,
                           :beanfile (.getPath beanfile),
                           :golden-dir golden-dir})))
-                (filter #(.exists (:golden-dir %))))
+                (filter #(or ignore-golden-dirs (.exists (:golden-dir %)))))
           (file-seq (io/file root-dir)))))
 
 
@@ -107,7 +107,7 @@
           (let [expected-file (io/file golden-dir (str (name key) ".edn"))]
             (when (.exists expected-file)
               (let [actual (force beans)
-                    expected (edn/read-edn-string (slurp expected-file))
+                    expected (limabean-edn/read-string (slurp expected-file))
                     expected-strict (walk/postwalk
                                       (fn [x]
                                         (if (instance? clojure.lang.IObj x)
