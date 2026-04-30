@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.5.0...HEAD
+
+## [0.5.0] - 2026-04-30
+
 ### Fixed
 
 - balance directives now correctly apply to total of account and its sub-accounts #78
@@ -25,7 +29,7 @@ All notable changes to this project will be documented in this file. This change
 - testing support library broken out into `limabean-test` in `clj-test`, for external use
 - errors in resolving plugins inhibit further processing
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.4.1...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.4.1...0.5.0
 
 ## [0.4.1] - 2026-04-15
 
