@@ -4,13 +4,17 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.5.1...HEAD
+
+## [0.5.1] - 2026-05-05
+
 ### Fixed
 
 - metadata date: key failing to interpolate #92
 - bump limabean-booking to fix bad rounding of interpolated posting #93
 - create-golden ignores .fyi.beancount files
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.5.0...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.5.0...0.5.1
 
 ## [0.5.0] - 2026-04-30
 
