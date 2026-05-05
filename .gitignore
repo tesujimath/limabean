@@ -8,3 +8,5 @@ target/
 /debug
 limabean.log*
 .rebel_readline_history
+/.lsp/
+.clj-kondo/.cache

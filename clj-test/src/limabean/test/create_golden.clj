@@ -64,9 +64,8 @@
   (run!
     (fn [{:keys [beanfile golden-dir]}]
       (let [beans (loader/load-beanfile beanfile)
-            bad-plugins (filter :err (:plugins beans))
             golden-dir (if (.exists golden-dir) golden-dir (mkdir golden-dir))]
-        (if (empty? bad-plugins)
+        (if (not (:error beans))
           (run! (fn [[k output]]
                   (let [output-file (io/file golden-dir (:filename output))
                         exists (.exists output-file)
@@ -86,5 +85,5 @@
                           (create-output-file beans fyi-f fyi-file))))))
                 OUTPUTS)
           (println "not creating output files for " beanfile
-                   "because bad plugins" bad-plugins))))
+                   "because error" (:error beans)))))
     (limabean.test/find-golden-tests root-dir :ignore-golden-dirs true)))
