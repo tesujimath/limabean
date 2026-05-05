@@ -36,7 +36,7 @@
   (walk/postwalk
     (fn [x]
       (cond-> x
-        (and (map? x) (contains? x :date)) (update :date jt/local-date)
+        (and (map? x) (string? (:date x))) (update :date jt/local-date)
         (and (map? x) (contains? x :dct)) (update :dct keyword)
         (and (map? x) (contains? x :booking)) (update :booking keyword)))
     data))

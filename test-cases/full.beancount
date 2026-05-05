@@ -95,6 +95,8 @@ pushmeta drink: "alcoholic"
   key-for-link: ^mylink
   ; keywords are allowed as keys
   open: "for business"
+  ; actual dates should not be quoted, this is a metadata string, testing an edge case:
+  date: "2023-05-30"
 
 2023-05-31 document Expenses:Entertainment:Drinks-and-snacks "2023-05-31-emersons-receipt.png" #beer
   assessment: "worth-it"
@@ -112,6 +114,7 @@ pushmeta drink: "alcoholic"
   tagged-with: #mytag
   linked-to: ^mylink
   pre-dated: 2023-06-01
+  date: 2023-05-27
   exciting: TRUE
   guests-expected: 150
   wahoo:
