@@ -18,7 +18,7 @@
 
 2025-03-01 * "cost per-unit"
   Assets:Shares:IBM 5 IBM {300.00 NZD, 2025-03-01}
-  Assets:NZ:Cash -1500 NZD
+  Assets:NZ:Cash -1500.00 NZD
 
 2025-04-01 * "cost total"
   Assets:Shares:IBM 3 IBM {303.33333333333333333333333333 NZD, 2025-04-01}
