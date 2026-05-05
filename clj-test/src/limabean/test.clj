@@ -23,11 +23,14 @@
                  data))
 
 (defn find-golden-tests
-  "Walk the filesystem from root-dir looking for beancount files and golden directories."
+  "Walk the filesystem from root-dir looking for beancount files and golden directories, ignoring .fyi.beancount files."
   [root-dir & {:keys [ignore-golden-dirs]}]
   (let [root-dir (.getPath (io/file root-dir))]
     (into []
-          (comp (filter #(str/ends-with? (.getName %) ".beancount"))
+          (comp (filter #(let [filename (.getName %)]
+                           (and (str/ends-with? filename ".beancount")
+                                (not (str/ends-with? filename
+                                                     ".fyi.beancount")))))
                 (map (fn [beanfile]
                        (let [base-path (io/file (str/replace (.getPath beanfile)
                                                              #".beancount$"
