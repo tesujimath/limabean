@@ -1,0 +1,7 @@
+2020-07-23 open Assets:US:Robinhood:Cash                        USD
+
+2020-07-23 open Assets:US:Robinhood:ABCD                        ABCD
+
+2020-07-23 * "Bought 1 shares of ABCD" ""
+  Assets:US:Robinhood:ABCD       1 ABCD {55.84 USD, 2020-07-23}
+  Assets:US:Robinhood:Cash  -55.84 USD
