@@ -20,6 +20,14 @@
 </ol>
 <h2><a href="#manual-installation" id="manual-installation"></a>Manual Installation</h2>
 <p>Running from Clojars is recommended for anyone using the <a href="https://github.com/tesujimath/limabean/releases">GitHub release</a>, that is, not setting any of the environment variables listed above.</p>
+<h2><a href="#running-from-podman" id="running-from-podman"></a>Running from Podman</h2>
+<p>If you have Podman (or Docker) installed, you can build a local container to run limabean in standalone mode:</p>
+<pre><code>VERSION=$(bash ./scripts.dev/get-version.sh)
+podman build -f Containerfile --build-arg VERSION=$VERSION -t limabean:$VERSION
+</code></pre>
+<p>Then run it, mounting the directory where the beancount files are as <code>/data</code>:</p>
+<pre><code>podman run -it --rm --name limabean -v .:/data limabean:$VERSION --beanfile accounting.beancount
+</code></pre>
 <h2><a href="#running-from-clojars" id="running-from-clojars"></a>Running from Clojars</h2>
 <p>Requirements:</p>
 <ol>
