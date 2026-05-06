@@ -31,6 +31,21 @@ Selection of runtime is determined by the following:
 
 Running from Clojars is recommended for anyone using the [GitHub release](https://github.com/tesujimath/limabean/releases), that is, not setting any of the environment variables listed above.
 
+## Running from Podman
+
+If you have Podman (or Docker) installed, you can build a local container to run limabean in standalone mode:
+
+```
+VERSION=$(bash ./scripts.dev/get-version.sh)
+podman build -f Containerfile --build-arg VERSION=$VERSION -t limabean:$VERSION
+```
+
+Then run it, mounting the directory where the beancount files are as `/data`:
+
+```
+podman run -it --rm --name limabean -v .:/data limabean:$VERSION --beanfile accounting.beancount
+```
+
 ## Running from Clojars
 
 Requirements:
