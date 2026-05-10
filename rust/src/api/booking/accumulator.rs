@@ -1,6 +1,7 @@
 use beancount_parser_lima::{self as parser};
 use limabean_booking::{
-    Booking, Bookings, Interpolated, LimaParserBookingTypes, LimaTolerance, is_supported_method,
+    Booking, Bookings, Interpolated, LimaParserBookingTypes, LimaTolerance, Tolerance,
+    is_supported_method,
 };
 
 use rust_decimal::Decimal;
@@ -384,9 +385,24 @@ impl<'a, 't> Accumulator<'a, 't> {
         element: ElementIdx,
         booked_directives: &mut [booked::Directive<'a>],
     ) -> Result<booked::DirectiveVariant<'a>, IndexedReport> {
+        // Mirror beancount's get_balance_tolerance: infer from the balance amount's
+        // decimal scale with 2× multiplier (balance directives are hand-typed, so
+        // beancount is more generous than it is with transaction postings).
+        let effective_tolerance = balance.tolerance.unwrap_or_else(|| {
+            let scale = balance.units.scale();
+            if scale > 0 {
+                let multiplier = self
+                    .tolerance
+                    .inferred_tolerance_multiplier()
+                    .unwrap_or(Decimal::new(5, 1));
+                Decimal::new(1, scale) * multiplier * Decimal::TWO
+            } else {
+                Decimal::ZERO
+            }
+        });
         let margin = calculate_balance_margin(
             balance.units,
-            balance.tolerance.unwrap_or(Decimal::ZERO),
+            effective_tolerance,
             self.total_rollup_units_for_currency(balance.acc, balance.cur),
         );
 
