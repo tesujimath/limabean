@@ -1,0 +1,109 @@
+[{:cur "USD", :date #time/date "1970-01-01", :dct :commodity}
+ {:cur "AAPL", :date #time/date "1970-01-01", :dct :commodity}
+ {:acc "Assets:US:ETrade:Cash", :date #time/date "2010-03-01", :dct :open}
+ {:acc "Assets:US:ETrade:IBM", :date #time/date "2010-03-01", :dct :open}
+ {:acc "Expenses:Financial:Commissions",
+  :date #time/date "2010-03-01",
+  :dct :open}
+ {:acc "Income:US:ETrade:PnL", :date #time/date "2010-03-01", :dct :open}
+ {:date #time/date "2014-02-16",
+  :dct :txn,
+  :flag "*",
+  :narration "Buying some IBM",
+  :postings [{:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-02-16",
+                     :per-unit 160.00M,
+                     :total 1600.00M},
+              :cur "IBM",
+              :units 10}
+             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -1609.95M}
+             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+ {:date #time/date "2014-02-17",
+  :dct :txn,
+  :flag "*",
+  :narration "Selling some IBM",
+  :postings [{:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-02-16",
+                     :per-unit 160.00M,
+                     :total 1600.00M},
+              :cur "IBM",
+              :units -3}
+             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units 500.05M}
+             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}
+             {:acc "Income:US:ETrade:PnL", :cur "USD", :units -30.00M}]}
+ {:date #time/date "2014-02-18",
+  :dct :txn,
+  :flag "*",
+  :narration "I put my chips on big blue!",
+  :postings [{:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-02-18",
+                     :per-unit 180.00M,
+                     :total 900.00M},
+              :cur "IBM",
+              :units 5}
+             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -909.95M}
+             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+ {:date #time/date "2014-03-18",
+  :dct :txn,
+  :flag "*",
+  :narration "Selling all my blue chips.",
+  :postings [{:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-02-16",
+                     :per-unit 160.00M,
+                     :total 1600.00M},
+              :cur "IBM",
+              :units -7}
+             {:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-02-18",
+                     :per-unit 180.00M,
+                     :total 900.00M},
+              :cur "IBM",
+              :units -5}
+             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units 2054.05M}
+             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}
+             {:acc "Income:US:ETrade:PnL", :cur "USD", :units -44.00M}]}
+ {:date #time/date "2014-04-16",
+  :dct :txn,
+  :flag "*",
+  :narration "Buying some more IBM",
+  :postings [{:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-04-16",
+                     :per-unit 173.00M,
+                     :total 1730.00M},
+              :cur "IBM",
+              :units 10}
+             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -1739.95M}
+             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+ {:date #time/date "2014-04-26",
+  :dct :txn,
+  :flag "*",
+  :narration "Buying IBM yet again",
+  :postings [{:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-04-26",
+                     :per-unit 180.00M,
+                     :total 1800.00M},
+              :cur "IBM",
+              :units 10}
+             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -1809.95M}
+             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+ {:date #time/date "2014-05-01",
+  :dct :txn,
+  :flag "*",
+  :narration "Selling some older blue chips.",
+  :postings [{:acc "Assets:US:ETrade:IBM",
+              :cost {:cur "USD",
+                     :date #time/date "2014-04-16",
+                     :per-unit 173.00M,
+                     :total 1730.00M},
+              :cur "IBM",
+              :units -4}
+             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units 740.00M}
+             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}
+             {:acc "Income:US:ETrade:PnL", :cur "USD", :units -57.95M}]}]
