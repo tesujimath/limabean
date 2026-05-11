@@ -47,11 +47,9 @@
     :ok))
 
 (defn inventory
-  "Build inventory from `*beans*` after applying filters, if any.
-
-  Custom directives may be passed in after the filters using :directives."
-  [& args]
-  (bean-queries/inventory *beans* args))
+  "Build inventory from `*beans*` after applying filters, if any."
+  [& filters]
+  (bean-queries/inventory *beans* filters))
 
 (defn rollup
   "Build a rollup for the primary currency from an inventory.
@@ -65,26 +63,18 @@
   (bean-queries/rollup inv))
 
 (defn balances
-  "Build balances from `*beans*`, optionally further filtered.
-
-  Custom directives may be passed in after the filters using :directives.
-  "
-  [& args]
-  (bean-queries/balances *beans* args))
+  "Build balances from `*beans*`, optionally further filtered."
+  [& filters]
+  (bean-queries/balances *beans* filters))
 
 (defn income-statement
-  "Build balances from `*beans*`, optionally further filtered.
-
-  Custom directives may be passed in after the filters using :directives.
-  "
-  [& args]
-  (bean-queries/income-statement *beans* args))
+  "Build balances from `*beans*`, optionally further filtered."
+  [& filters]
+  (bean-queries/income-statement *beans* filters))
 
 (defn journal
-  "Build a journal of postings from `*beans*` with running balance.
-
-  Custom directives may be passed in after the filters using :directives."
-  [& args]
-  (bean-queries/journal *beans* args))
+  "Build a journal of postings from `*beans*` with running balance."
+  [& filters]
+  (bean-queries/journal *beans* filters))
 
 (defn show "Convert `x` to a cell and tabulate it." [x] (show/show x))

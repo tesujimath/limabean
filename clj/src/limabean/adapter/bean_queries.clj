@@ -7,35 +7,14 @@
             [limabean.core.registry :as registry]
             [limabean.core.rollup :as rollup]))
 
-(defn- split-args-and-opts
-  "Return a list of args and hashmap of opts, by splitting on the first keyword."
-  [args-and-opts]
-  (let [[args opts] (split-with (complement keyword?) args-and-opts)]
-    (when (odd? (count opts))
-      (throw (ex-info "bad usage"
-                      {:user-error "odd number of keyword/options"})))
-    (when-not (every? keyword? (take-nth 2 opts))
-      (throw (ex-info "bad usage"
-                      {:user-error "expected alternating keyword/options"})))
-    [args (apply hash-map opts)]))
-
-(defn- join-args-and-opts
-  "Splice them back together again."
-  [args opts]
-  (concat args (mapcat identity opts)))
-
 (defn- postings
-  [beans args]
-  (let [[filters opts] (split-args-and-opts args)]
-    (eduction (comp (xf/postings) (xf/all-of filters))
-              (get opts :directives (:directives beans)))))
+  [beans filters]
+  (eduction (comp (xf/postings) (xf/all-of filters)) (:directives beans)))
 
 (defn inventory
-  "Build inventory from `beans` after applying filters, if any.
-
-  Custom directives may be passed in after the filters using :directives."
-  [beans args]
-  (inventory/build (postings beans args)
+  "Build inventory from `beans` after applying filters, if any."
+  [beans filters]
+  (inventory/build (postings beans filters)
                    (partial registry/acc-booking (:registry beans))))
 
 (defn rollup
@@ -51,36 +30,28 @@
     (rollup/build inv primary-cur)))
 
 (defn balances
-  "Build balances from `beans`, optionally further filtered.
-
-  Custom directives may be passed in after the filters using :directives.
-  "
-  [beans args]
-  (let [[filters opts] (split-args-and-opts args)]
-    (inventory beans
-               (join-args-and-opts
-                 (conj filters
-                       (f/sub-acc (:name-assets (:options beans))
-                                  (:name-liabilities (:options beans))))
-                 opts))))
+  "Build balances from `beans`, optionally further filtered."
+  [beans filters]
+  (inventory beans
+             (conj filters
+                   (f/sub-acc (:name-assets (:options beans))
+                              (:name-liabilities (:options beans))))))
 
 (defn income-statement
   "Build balances from `beans`, optionally further filtered.
 
   Custom directives may be passed in after the filters using :directives.
   "
-  [beans args]
-  (let [[filters opts] (split-args-and-opts args)]
-    (inventory beans
-               (join-args-and-opts (conj filters
-                                         (f/sub-acc
-                                           (:name-income (:options beans))
-                                           (:name-expenses (:options beans))))
-                                   opts))))
+  [beans filters]
+  (inventory beans
+             (conj filters
+                   (f/sub-acc (:name-income (:options beans))
+                              (:name-expenses (:options beans)))))
+  ())
 
 (defn journal
   "Build a journal of postings from `beans` with running balance.
 
   Custom directives may be passed in after the filters using :directives."
-  [beans args]
-  (journal/build (postings beans args)))
+  [beans filters]
+  (journal/build (postings beans filters)))
