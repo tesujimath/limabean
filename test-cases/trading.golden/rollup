@@ -5,7 +5,7 @@ Assets:US:ETrade:Cash                                         -2775.70
 Expenses                           69.65                              
 Expenses:Financial                           69.65                    
 Expenses:Financial:Commissions                                   69.65
-Income                          -3304.95                              
-Income:US                                 -3304.95                    
-Income:US:ETrade                                    -3304.95          
-Income:US:ETrade:PnL                                          -3304.95
+Income                           -131.95                              
+Income:US                                  -131.95                    
+Income:US:ETrade                                     -131.95          
+Income:US:ETrade:PnL                                           -131.95
