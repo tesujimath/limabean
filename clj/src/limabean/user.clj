@@ -1,6 +1,7 @@
 (ns limabean.user
   "Top-level limabean functions for use from the REPL."
-  (:require [limabean.adapter.loader :as loader]
+  (:require [limabean.adapter.error :as error]
+            [limabean.adapter.loader :as loader]
             [limabean.adapter.logging :as logging]
             [limabean.adapter.show :as show]
             [limabean.adapter.pod :as pod]
@@ -37,13 +38,9 @@
     (binding [*out* *err*]
       (println "[limabean]" (count (:raw-directives beans))
                "directives loaded from" path)
-      (let [bad-plugins (filter :err (:plugins beans))]
-        (doseq [plugin bad-plugins]
-          (println "ERROR in plugin" (:name plugin)
-                   "-" (get-in plugin [:err :message]))))
+      (error/print-errors beans)
       (assign-limabean-globals beans)
-      (if-let [err (:plugin-errors beans)]
-        (println err)
+      (when-not (:error beans)
         (println "[limabean]"
                  (count (:directives beans))
                  "directives resulting from booking and running plugins")))

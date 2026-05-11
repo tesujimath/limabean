@@ -5,43 +5,13 @@
             [clojure.string :as str]
             [limabean.adapter.debug :as debug]
             [limabean.adapter.exception :as exception]
-            [limabean.adapter.json]
             [limabean.adapter.plugins :as plugins]
             [limabean.adapter.pod :as pod]
             [limabean.adapter.synthetic-spans :as synthetic-spans]
             [limabean.core.registry :as registry]
             [limabean.core.type :as type]
             [limabean.macros :as macros]
-            [limabean.adapter.print]
             [limabean.spec :as spec]))
-
-(defn- resolve-idx
-  [[dct-idx pst-idx] directives]
-  (let [dct (get directives dct-idx)
-        pst (get (:postings dct) pst-idx)]
-    (cond-> {:kind (if pst "posting" (name (:dct dct))),
-             :span (or (:span pst) (:span dct))}
-      pst (assoc :context ["txn" (:span dct)]))))
-
-(defn- resolve-related
-  [directives]
-  (fn [idx]
-    (let [{:keys [kind span]} (resolve-idx idx directives)] [kind span])))
-
-(defn- resolve-indexed-report
-  [report directives]
-  (let [{:keys [kind span context]} (resolve-idx (:idx report) directives)]
-    (cond-> (assoc (select-keys report [:reason :annotation])
-              :message (str "invalid " kind)
-              :span span)
-      context (assoc :context context)
-      (:related report) (assoc :related
-                          (mapv (resolve-related directives)
-                            (:related report))))))
-
-(defn- resolve-indexed-reports
-  [reports directives]
-  (map #(resolve-indexed-report % directives) reports))
 
 (defn- dump
   "Dump the beans and return the map"
@@ -60,17 +30,15 @@
       (let [plugins ok
             options (:ok (pod/options (:pod m)))
             resolved-plugins (plugins/resolve-symbols plugins options)
-            plugin-resolution-errors (vec (keep :err resolved-plugins))]
+            plugin-resolution-errors (vec (filter :err resolved-plugins))]
         (cond-> (assoc m
                   :plugins resolved-plugins
                   :options options)
           (seq plugin-resolution-errors) (assoc-in [:error :plugins]
                                            plugin-resolution-errors)))
       (let [spanned-reports (:spanned-reports err)]
-        (binding [*out* *err*]
-          ;; this is where we first encounter parse errors
-          (println (pod/format-errors (:pod m) spanned-reports))
-          (assoc-in m [:error :parser] spanned-reports))))))
+        ;; this is where we first encounter parse errors
+        (assoc-in m [:error :parser :spanned-reports] spanned-reports)))))
 
 (defn- get-raw-directives
   [m]
@@ -114,43 +82,26 @@
            (catch Exception e
              (let [error-key (keyword (str kind-name "-plugin"))]
                (assoc-in m
-                 [:error error-key :exception]
-                 (exception/handle-exception (ex-info (str "Error in "
-                                                           kind-name
-                                                           " plugin, all "
-                                                           kind-name
-                                                           " plugins ignored")
-                                                      {}
-                                                      e)))))))))
+                 [:error error-key]
+                 {:message (str "Exception thrown by "
+                                kind-name
+                                " plugin, all "
+                                kind-name
+                                " plugins ignored"),
+                  :exception e})))))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
   [m]
-  (binding [*err* *out*]
-    (try (let [{:keys [ok err]} (pod/book (:pod m) (:raw-xf-directives m))]
-           (if ok
-             (let [{:keys [directives warnings]} ok]
-               (cond-> (assoc m :booked-directives (type/directives directives))
-                 (debug/dump-configured?) (dump :booked-directives)
-                 (seq warnings) (assoc :booked-warnings warnings)))
-             (let [{:keys [spanned-reports indexed-reports message]} err
-                   raw-directives (or (:raw-xf-directives m)
-                                      (:raw-directives m))
-                   resolved-reports (or spanned-reports
-                                        (and indexed-reports
-                                             (resolve-indexed-reports
-                                               indexed-reports
-                                               raw-directives)))
-                   message (if resolved-reports
-                             (pod/format-errors (:pod m) resolved-reports)
-                             message)]
-               (println "Booking failed\n" message)
-               (assoc-in m [:error :booking] err))))
-         (catch Exception e
-           (println "Booking failed")
-           (assoc-in m
-             [:error :booking]
-             {:exception (exception/handle-exception e)})))))
+  (try (let [{:keys [ok err]} (pod/book (:pod m) (:raw-xf-directives m))]
+         (if ok
+           (let [{:keys [directives warnings]} ok]
+             (cond-> (assoc m :booked-directives (type/directives directives))
+               (debug/dump-configured?) (dump :booked-directives)
+               (seq warnings) (assoc :booked-warnings warnings)))
+           (assoc-in m [:error :booking] err)))
+       (catch Exception e
+         (assoc-in m [:error :booking] {:exception (Throwable->map e)}))))
 
 (defn load-beanfile
   [path]

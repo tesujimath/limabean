@@ -1,5 +1,7 @@
 (ns limabean
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io]
+            [limabean.adapter.json]
+            [limabean.adapter.print]))
 
 (defn version
   "Get the library version from pom.properties, else returns \"unknown\"."

@@ -17,7 +17,8 @@
              xfs
              {:err {:message
                       "Failed to find either booked-xf or raw-xf in plugin"}}))
-         (catch Exception _ {:err "could not load namespace for plugin"}))))
+         (catch Exception _
+           {:err {:message "could not load namespace for plugin"}}))))
 
 (defn- resolve-xfs-with-config'
   "Resolve a plugin and apply config and options"
@@ -39,7 +40,7 @@
   [options]
   (fn [plugin]
     (let [resolved (try (resolve-xfs-with-config' plugin options)
-                        (catch Exception e {:err (.getMessage e)}))]
+                        (catch Exception e {:err {:message (.getMessage e)}}))]
       (merge plugin resolved))))
 
 (defn resolve-symbols
