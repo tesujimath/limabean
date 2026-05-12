@@ -1,5 +1,6 @@
 (ns limabean.app
-  (:require [limabean.user]
+  (:require [clojure.pprint :refer [pprint]]
+            [limabean.user]
             [limabean.adapter.exception :as exception]
             [limabean.adapter.user-clj :as user-clj]
             [rebel-readline.clojure.main :as rebel-clj-main]))
@@ -22,10 +23,12 @@
   (try (let [expr (read-string expr-str)]
          ((init options))
          (eval expr))
-       (catch Exception e
-         (binding [*out* *err*]
-           (exception/handle-exception e)
-           (System/exit 1)))))
+       (catch Exception exc
+         (let [e (Throwable->map exc)]
+           (binding [*out* *err*]
+             (println "Exception:" (.getMessage exc))
+             (pprint e)
+             (System/exit 1))))))
 
 (defn run
   "Run the REPL or evaluate an expression and exit"

@@ -4,7 +4,6 @@
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [limabean.adapter.debug :as debug]
-            [limabean.adapter.exception :as exception]
             [limabean.adapter.plugins :as plugins]
             [limabean.adapter.pod :as pod]
             [limabean.adapter.synthetic-spans :as synthetic-spans]
