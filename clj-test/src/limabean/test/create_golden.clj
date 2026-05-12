@@ -1,6 +1,6 @@
 (ns limabean.test.create-golden
   (:require [clojure.java.io :as io]
-            [limabean.adapter.bean-queries :as bean-queries]
+            [limabean]
             [limabean.adapter.json]
             [limabean.adapter.loader :as loader]
             [limabean.adapter.print]
@@ -33,15 +33,14 @@
                                      (or (contains? beans :raw-xf-directives)
                                          exists))},
    :inventory {:filename "inventory",
-               :f (fn [beans] (show/show (bean-queries/inventory beans))),
+               :f (fn [beans] (show/show (limabean/inventory beans))),
                :required-f (fn [_beans exists] exists)},
    :rollup {:filename "rollup",
             :f (fn [beans]
-                 (show/show (bean-queries/rollup (bean-queries/inventory
-                                                   beans)))),
+                 (show/show (limabean/rollup (limabean/inventory beans)))),
             :required-f (fn [_beans exists] exists)},
    :journal {:filename "journal",
-             :f (fn [beans] (show/show (bean-queries/journal beans))),
+             :f (fn [beans] (show/show (limabean/journal beans))),
              :required-f (fn [_beans exists] exists)}})
 
 (defn ->path

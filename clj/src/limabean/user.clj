@@ -1,11 +1,11 @@
 (ns limabean.user
   "Top-level limabean functions for use from the REPL."
-  (:require [limabean.adapter.error :as error]
+  (:require [limabean]
+            [limabean.adapter.error :as error]
             [limabean.adapter.loader :as loader]
             [limabean.adapter.logging :as logging]
             [limabean.adapter.show :as show]
-            [limabean.adapter.pod :as pod]
-            [limabean.adapter.bean-queries :as bean-queries]))
+            [limabean.adapter.pod :as pod]))
 
 (def ^:dynamic *beans*
   "An aggregate of the elements which were used in deriving the directives for the current beanfile.
@@ -49,7 +49,7 @@
 (defn inventory
   "Build inventory from `*beans*` after applying filters, if any."
   [& filters]
-  (bean-queries/inventory *beans* filters))
+  (limabean/inventory *beans* filters))
 
 (defn rollup
   "Build a rollup for the primary currency from an inventory.
@@ -60,21 +60,21 @@
   ```
   "
   [inv]
-  (bean-queries/rollup inv))
+  (limabean/rollup inv))
 
 (defn balances
   "Build balances from `*beans*`, optionally further filtered."
   [& filters]
-  (bean-queries/balances *beans* filters))
+  (limabean/balances *beans* filters))
 
 (defn income-statement
   "Build balances from `*beans*`, optionally further filtered."
   [& filters]
-  (bean-queries/income-statement *beans* filters))
+  (limabean/income-statement *beans* filters))
 
 (defn journal
   "Build a journal of postings from `*beans*` with running balance."
   [& filters]
-  (bean-queries/journal *beans* filters))
+  (limabean/journal *beans* filters))
 
 (defn show "Convert `x` to a cell and tabulate it." [x] (show/show x))
