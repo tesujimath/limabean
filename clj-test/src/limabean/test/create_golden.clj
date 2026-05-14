@@ -58,7 +58,9 @@
              (make-array java.nio.file.attribute.FileAttribute 0))))
 
 (defn update-all
-  "Update any golden test output files which exist, or any required by plugins"
+  "Update any golden test output files which exist, or any required by plugins.
+
+   Any errors will be written irrespective of existing golden output."
   [{:keys [root-dir]}]
   (run!
     (fn [{:keys [beanfile golden-dir]}]
@@ -83,6 +85,9 @@
                                    "for information only")
                           (create-output-file beans fyi-f fyi-file))))))
                 OUTPUTS)
-          (println "not creating output files for " beanfile
-                   "because error" (:error beans)))))
+          (let [error-file (io/file golden-dir "error.edn")]
+            (println "ERROR loading" beanfile
+                     "written to" (.getPath error-file))
+            (with-open [w (io/writer error-file)]
+              (binding [*out* w] (zprint (:error beans))))))))
     (limabean.test/find-golden-tests root-dir :ignore-golden-dirs true)))
