@@ -5,9 +5,9 @@
             [clojure.string :as str]
             [clojure.test :refer [is testing]]
             [clojure.walk :as walk]
+            [limabean]
             [limabean.adapter.edn :as limabean-edn]
             [limabean.adapter.json]
-            [limabean.adapter.loader :as loader]
             [limabean.adapter.print]
             [limabean.app :as app]
             [matcho.core :as matcho])
@@ -94,20 +94,24 @@
                              actual
                              (.getPath expected)))))))))
 
-(defn loader-tests
+(defn api-tests
   [root-dir]
   (doseq [{:keys [test-name beanfile golden-dir]} (find-golden-tests root-dir)]
     (testing test-name
       (let [beans (delay (try (println "loading" beanfile)
-                              (loader/load-beanfile beanfile)
+                              (limabean/load-beanfile beanfile)
                               (catch Exception e
                                 (println "Exception while processing"
                                          beanfile
                                          (.getMessage e))
                                 (pprint (Throwable->map e))
                                 nil)))]
-        (doseq [key [:raw-xf-directives :directives]]
-          (let [expected-file (io/file golden-dir (str (name key) ".edn"))]
+        (doseq [key [:raw-xf-directives :directives :error]]
+          (let [expected-file (io/file golden-dir (str (name key) ".edn"))
+                clean-actual-f (if (contains? #{:raw-xf-directives :directives}
+                                              key)
+                                 limabean.test/remove-spans-and-indexes
+                                 identity)]
             (when (.exists expected-file)
               (let [actual (force beans)
                     expected (limabean-edn/read-string (slurp expected-file))
@@ -118,5 +122,4 @@
                                           x))
                                       expected)]
                 (matcho/assert expected-strict
-                               (limabean.test/remove-spans-and-indexes
-                                 (get actual key)))))))))))
+                               (clean-actual-f (get actual key)))))))))))

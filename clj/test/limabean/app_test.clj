@@ -6,4 +6,4 @@
 
 (deftest app-tests (limabean.test/app-tests TEST-CASES))
 
-(deftest loader-tests (limabean.test/loader-tests TEST-CASES))
+(deftest api-tests (limabean.test/api-tests TEST-CASES))

@@ -1,0 +1,5 @@
+{:parser
+   {:spanned-reports
+      [{:message "found 'T' expected transaction, directive, or end of input",
+        :reason "found 'T' expected transaction, directive, or end of input",
+        :span [0 0 1]}]}}
