@@ -11,11 +11,13 @@ All notable changes to this project will be documented in this file. This change
 - correct error returned when prior posting depletes inventory limabean-booking#12
 - tolerance for balance directives #103
 - metavalue numbers or amounts in the presence of plugins #106 #108
+- honour `LIMABEAN_CLJ_DEPS` when running from Clojars #111
 
 ### Added
 
 - Containerfile for podman/docker #94
 - tests for spec validation with plugins
+- warn if `LIMABEAN_CLJ_DEPS` defined when running from uberjar
 
 ### Changed
 

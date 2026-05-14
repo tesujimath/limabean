@@ -16,6 +16,13 @@ const JVM_OPTIONS: &[&str] = &[
     "--enable-native-access=ALL-UNNAMED", // inhibit warning triggered by JLine
 ];
 
+fn warn_uberjar_extra_deps_ignored() {
+    eprintln!(
+        "warning: {} not supported when running from uberjar - ignored",
+        LIMABEAN_CLJ_DEPS
+    );
+}
+
 impl Runtime {
     fn clojure(limabean_coord: String) -> Self {
         Runtime::Clojure(format!(
@@ -38,11 +45,21 @@ impl Runtime {
                 extra_deps.unwrap_or("".to_string())
             ))
         } else if let Ok(uberjar) = std::env::var(LIMABEAN_UBERJAR) {
+            if extra_deps.is_ok() {
+                warn_uberjar_extra_deps_ignored();
+            }
             Runtime::java(uberjar)
         } else if let Some(uberjar) = LIMABEAN_UBERJAR_BUILDTIME {
+            if extra_deps.is_ok() {
+                warn_uberjar_extra_deps_ignored();
+            }
             Runtime::java(uberjar.to_string())
         } else {
-            Runtime::clojure(format!(r###"{{:mvn/version "{}"}}"###, VERSION))
+            Runtime::clojure(format!(
+                r###"{{:mvn/version "{}"}}{}"###,
+                VERSION,
+                extra_deps.unwrap_or("".to_string())
+            ))
         }
     }
 

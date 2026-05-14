@@ -27,6 +27,8 @@ Selection of runtime is determined by the following:
 3. If the environment variable `LIMABEAN_UBERJAR` was defined at buildtime, that is the path to the standalone application jarfile, which is run using `java`
 4. Otherwise, the application whose version matches `limabean` is run from Clojars using `clojure`
 
+Note that when running standalone plugins from arbitrary sources are not supported.  Only the core plugins are available in this case.
+
 ## Manual Installation
 
 Running from Clojars is recommended for anyone using the [GitHub release](https://github.com/tesujimath/limabean/releases), that is, not setting any of the environment variables listed above.
