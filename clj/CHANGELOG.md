@@ -21,7 +21,7 @@ All notable changes to this project will be documented in this file. This change
 
 - appending :directives to filters to pass custom directives is no longer supported
 - refactoring of namespaces so limabean.user is the REPL and limabean the API
-- full.beancount test now uses identity test plugin via LIMABEAN_CLJ_DEPS
+- full.beancount test now uses identity test plugin, so skipped in uberjar tests
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.5.1...HEAD
 
