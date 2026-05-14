@@ -10,10 +10,12 @@ All notable changes to this project will be documented in this file. This change
 - {} lot reduction - limabean-booking#10
 - correct error returned when prior posting depletes inventory limabean-booking#12
 - tolerance for balance directives #103
+- metavalue numbers or amounts in the presence of plugins #106 #108
 
 ### Added
 
 - Containerfile for podman/docker #94
+- tests for spec validation with plugins
 
 ### Changed
 
