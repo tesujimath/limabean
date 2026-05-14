@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file. This change
 ### Changed
 
 - appending :directives to filters to pass custom directives is no longer supported
+- refactoring of namespaces so limabean.user is the REPL and limabean the API
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.5.1...HEAD
 
