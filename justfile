@@ -33,6 +33,7 @@ test-clj-offline: build-clj build-rust
     VERSION=$(bash ./scripts.dev/get-version.sh)
     export LIMABEAN_UBERJAR="./clj/target/limabean-${VERSION}-standalone.jar"
     unset LIMABEAN_CLJ_LOCAL_ROOT
+    export LIMABEAN_CLJ_DEPS="limabean/test-plugins {:local/root \"$(pwd)/clj/test-plugins\"}"
     export PATH=./rust/target/debug:$PATH
     for golden in test-cases/*.golden/{inventory,journal,rollup}; do
         query=${golden##*/}
