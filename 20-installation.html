@@ -18,6 +18,7 @@
 <li>If the environment variable <code>LIMABEAN_UBERJAR</code> was defined at buildtime, that is the path to the standalone application jarfile, which is run using <code>java</code></li>
 <li>Otherwise, the application whose version matches <code>limabean</code> is run from Clojars using <code>clojure</code></li>
 </ol>
+<p>Note that when running standalone plugins from arbitrary sources are not supported.  Only the core plugins are available in this case.</p>
 <h2><a href="#manual-installation" id="manual-installation"></a>Manual Installation</h2>
 <p>Running from Clojars is recommended for anyone using the <a href="https://github.com/tesujimath/limabean/releases">GitHub release</a>, that is, not setting any of the environment variables listed above.</p>
 <h2><a href="#running-from-podman" id="running-from-podman"></a>Running from Podman</h2>

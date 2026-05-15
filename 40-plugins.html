@@ -17,7 +17,9 @@
 <p>Plugins are run automatically when loading a beanfile.  Any errors resolving a particular plugin inhibit any further processing of the beanfile.</p>
 <p>The original directives loaded from the file are available in the REPL as <code>(:raw-directives *beans*)</code>, with the post-plugin raw directives available as <code>(:raw-xf-directives *beans*)</code>, booked directives as <code>(:booked-directives *beans*)</code>, and post-plugin booked directives as <code>(:booked-xf-directives *beans*)</code>.</p>
 <p>Any errors in actually running any plugin cause the loader to abort with whatever partial state was reached, for further investigation by the user using the REPL.</p>
-<h3><a href="#configuration-required-to-resolve-plugins" id="configuration-required-to-resolve-plugins"></a>Configuration required to resolve plugins</h3>
+<h3><a href="#core-plugins" id="core-plugins"></a>Core plugins</h3>
+<p>The core plugins previously available with OG Beancount are intended to be bundled with <code>limabean</code>.  Currently this list comprises only <code>auto-accounts</code>.  Adding to these is a work-in-progress.  These plugins live in the <a href="../src/beancount/plugins"><code>beancount.plugins</code></a> namespace.</p>
+<h3><a href="#configuration-required-to-resolve-other-plugins" id="configuration-required-to-resolve-other-plugins"></a>Configuration required to resolve other plugins</h3>
 <p>Plugins are Clojure code, so they must be on the Java class-path in order to be resolvable at runtime.  The <code>limabean</code> launcher supports running the clojure command line with the <a href="https://clojure.org/guides/deps_and_cli#command_line_deps"><code>-Sdeps</code> option to pass the required dependencies</a>.</p>
 <p>In order to run anything beyond the bundled plugins, the Clojure package containing the desired plugin should be passed in the environment variable <code>LIMABEAN_CLJ_DEPS</code>, as e.g. <code>io.github.tesujimath/limabean-contrib {:mvn/version "0.1.0"}</code>.  This environment variable comprises a space-separated list of package name, co-ordinate pairs, that is without the <code>{:deps {...} }</code> wrapper.</p>
 <p>See the <a href="https://clojure.org/reference/deps_edn#deps">Clojure deps reference</a> for what is possible, which includes local directories and git repos.</p>
@@ -26,7 +28,7 @@
 <p>To use a library directly from GitHub: <code>io.github.tesujimath/limabean-contrib {:git/sha "bc55aa4105ca1b050fffe12301e1829c908a4689"}</code> - in this case the GitHub organization and repo are inferred from the library name, <a href="https://clojure.org/reference/deps_edn#deps_git">unless overridden</a> using <code>:git/url</code>.</p>
 <p>To use a library from a local path: <code>io.github.tesujimath/limabean-contrib {:local/root "/path/to/limabean-contrib"}</code></p>
 <p>As always, run with <code>limabean -v</code> to see what is going on with the Clojure invocation.</p>
-<p>Note: it is not possible to load additional plugins when running in the standalone mode, which uses <code>java</code> rather than <code>clojure</code>.</p>
+<p>Note: it is not possible to load additional plugins when running in the standalone mode, which uses <code>java</code> rather than <code>clojure</code>.  This is essentially a constraint imposed by the Clojure tools.</p>
 <h2><a href="#writing-plugins" id="writing-plugins"></a>Writing plugins</h2>
 <h3><a href="#plugin-namespaces" id="plugin-namespaces"></a>Plugin namespaces</h3>
 <p>A limabean plugin namespace is simply a <a href="https://guide.clojure.style/#naming-ns-naming-schemas">Clojure namespace</a>.  Please avoid defining your own plugins in the <code>limabean</code> namespace, although <a href="https://github.com/tesujimath/limabean-contrib">limabean.contrib.plugins</a> is a good choice if you want to contribute your plugin there (please do!).  Otherwise, use your own domain.</p>
