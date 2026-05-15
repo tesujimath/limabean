@@ -9,6 +9,7 @@
             [limabean.adapter.synthetic-spans :as synthetic-spans]
             [limabean.core.registry :as registry]
             [limabean.core.type :as type]
+            [limabean.core.validation :as validation]
             [limabean.macros :as macros]
             [limabean.spec :as spec]))
 
@@ -115,6 +116,14 @@
        (catch Exception e
          (assoc-in m [:error :booking] {:exception (Throwable->map e)}))))
 
+(defn- validate-if-booked-plugins
+  "If there are booked plugins, validate the directives they produced"
+  [m]
+  (run! identity
+        (eduction (validation/post-booking-xf (:options m))
+                  (:booked-xf-directives m)))
+  m)
+
 (defn load-beanfile
   [path]
   (let [pod (pod/start path)]
@@ -126,6 +135,7 @@
       (run-plugins :raw)
       (book-raw-directives)
       (run-plugins :booked)
+      (validate-if-booked-plugins)
       (as-> m (assoc m
                 :directives
                   (or (:booked-xf-directives m) (:booked-directives m) [])))
