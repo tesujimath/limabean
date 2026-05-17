@@ -4,6 +4,17 @@ plugin "limabean.test.plugins.adjust-postings-after-booking" "{\"Assets:Bank\" 1
 
 2026-04-01 open Expenses:Groceries
 
+2026-04-01 open Income:Unknown
+
 2026-05-01 txn
   Assets:Bank                                                           -150.00 NZD
   Expenses:Groceries
+
+2026-05-02 txn
+  Assets:Bank                                                            100.00 NZD
+  Assets:Bank                                                             50.00 GBP
+  Expenses:Groceries                                                       10.1 NZD
+  Income:Unknown                                                                GBP
+  Income:Unknown                                                                NZD
+
+

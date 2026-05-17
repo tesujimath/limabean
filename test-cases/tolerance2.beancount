@@ -1,0 +1,21 @@
+plugin "limabean.test.plugins.identity"
+
+option "inferred_tolerance_multiplier" "2"
+
+2026-04-01 open Assets:Bank
+
+2026-04-01 open Expenses:Donations
+
+2026-04-01 open Expenses:Groceries
+
+2026-04-01 open Income:Unknown
+
+2026-05-01 txn
+  Assets:Bank                                                           -150.00 NZD
+  Expenses:Groceries                                                     150.01 NZD
+
+2026-05-02 txn
+  Assets:Bank                                                            -100.1 NZD
+  Assets:Bank                                                            -50.00 GBP
+  Expenses:Groceries                                                      100.2 NZD
+  Expenses:Donations                                                      50.01 GBP
