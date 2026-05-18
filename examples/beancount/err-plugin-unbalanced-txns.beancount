@@ -1,0 +1,9 @@
+plugin "limabean.test.plugins.adjust-postings-after-booking" "{\"Assets:Bank\" 10}"
+
+2026-04-01 open Assets:Bank
+
+2026-04-01 open Expenses:Groceries
+
+2026-05-01 txn
+  Assets:Bank                                                           -150.00 NZD
+  Expenses:Groceries

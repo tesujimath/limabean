@@ -2,21 +2,34 @@
   :date #time/date "1970-01-01",
   :dct :commodity,
   :links #{"money.co.nz"},
+  :span [0 278 413],
   :tags #{"downunder"}}
  {:acc "Assets:AccountsReceivable:Taxes",
   :currencies #{"CAD" "USD"},
   :date #time/date "1972-05-28",
-  :dct :open}
+  :dct :open,
+  :span [0 528 588]}
  {:acc "Assets:US:TD:Checking",
   :currencies #{"USD"},
   :date #time/date "1972-05-28",
-  :dct :open}
- {:acc "Equity:Opening-Balances", :date #time/date "1972-05-28", :dct :open}
- {:acc "Assets:US:ETrade:IBM", :date #time/date "2010-03-01", :dct :open}
+  :dct :open,
+  :span [0 588 631]}
+ {:acc "Equity:Opening-Balances",
+  :date #time/date "1972-05-28",
+  :dct :open,
+  :span [0 631 672]}
+ {:acc "Assets:US:ETrade:IBM",
+  :date #time/date "2010-03-01",
+  :dct :open,
+  :span [0 672 710]}
  {:acc "Expenses:Financial:Commissions",
   :date #time/date "2010-03-01",
-  :dct :open}
- {:acc "Assets:US:ETrade:Cash", :date #time/date "2010-03-01", :dct :open}
+  :dct :open,
+  :span [0 710 758]}
+ {:acc "Assets:US:ETrade:Cash",
+  :date #time/date "2010-03-01",
+  :dct :open,
+  :span [0 758 797]}
  {:date #time/date "2012-01-09",
   :dct :txn,
   :flag "*",
@@ -24,12 +37,14 @@
   :narration
     "VISA DDA PUR 444500     WHOLEFDS -- VISA DDA PUR 444500     WHOLEFDS HOU 10236          NEW YORK      * NY",
   :postings [],
+  :span [0 1476 1599],
   :tags #{"essential"}}
  {:acc "Assets:CA:RBC-Investing:Taxable-CAD:Cash",
   :currencies #{"CAD"},
   :date #time/date "2013-01-01",
   :dct :open,
   :metadata {:price {:string "expensive"}},
+  :span [0 1599 1670],
   :tags #{"essential"}}
  {:date #time/date "2013-01-01",
   :dct :txn,
@@ -40,7 +55,10 @@
   :postings [{:acc "Assets:CA:RBC-Investing:Taxable-CAD:Cash",
               :cur "CAD",
               :price-spec {:cur "USD", :per-unit 0.6861M},
-              :units -1395.43M} {:acc "Assets:US:TD:Checking"}],
+              :span [0 1724 1820],
+              :units -1395.43M}
+             {:acc "Assets:US:TD:Checking", :span [0 1823 1844]}],
+  :span [0 1670 1846],
   :tags #{"essential"}}
  {:cur "HOOL",
   :date #time/date "2014-07-09",
@@ -48,44 +66,55 @@
   :links #{"cool.co"},
   :metadata {:heat {:string "on"}},
   :price {:cur "USD", :per-unit 579.18M},
+  :span [0 413 528],
   :tags #{"watcha"}}
- {:acc "Assets:Bank:Savings", :date #time/date "2016-03-01", :dct :open}
+ {:acc "Assets:Bank:Savings",
+  :date #time/date "2016-03-01",
+  :dct :open,
+  :span [0 797 834]}
  {:acc "Assets:Bank:Current",
   :currencies #{"NZD"},
   :date #time/date "2016-03-01",
   :dct :open,
   :links #{"www.bank.com"},
+  :span [0 834 927],
   :tags #{"money"}}
  {:acc "Expenses:Groceries",
   :booking :fifo,
   :currencies #{"NZD"},
   :date #time/date "2016-03-01",
-  :dct :open}
+  :dct :open,
+  :span [0 1095 1173]}
  {:acc "Expenses:Entertainment:Drinks-and-snacks",
   :booking :strict-with-size,
   :date #time/date "2016-03-01",
-  :dct :open}
+  :dct :open,
+  :span [0 1173 1281]}
  {:acc "Assets:US:TD:Checking",
   :date #time/date "2017-11-17",
   :dct :pad,
   :metadata {:price {:string "expensive"}},
   :source "Equity:Opening-Balances",
+  :span [0 1330 1391],
   :tags #{"essential"}}
  {:acc "Assets:US:TD:Checking",
   :cur "USD",
   :date #time/date "2017-11-18",
   :dct :balance,
   :metadata {:price {:string "expensive"}},
+  :span [0 1391 1476],
   :tags #{"essential"},
   :units 23954.04M}
  {:acc "Expenses:Car",
   :currencies #{"NZD"},
   :date #time/date "2022-01-30",
-  :dct :open}
+  :dct :open,
+  :span [0 3612 3646]}
  {:acc "Expenses:Car:Fuel",
   :currencies #{"NZD"},
   :date #time/date "2022-01-30",
-  :dct :open}
+  :dct :open,
+  :span [0 3646 3685]}
  {:date #time/date "2022-01-30",
   :dct :txn,
   :flag "*",
@@ -93,7 +122,9 @@
   :postings [{:acc "Assets:Bank:Current",
               :cur "NZD",
               :metadata {:ofxid {:string "0.12-3456-1234567-01.31May2023.3"}},
-              :units -125.00M} {:acc "Expenses:Car:Fuel"}],
+              :span [0 3728 3809],
+              :units -125.00M} {:acc "Expenses:Car:Fuel", :span [0 3856 3873]}],
+  :span [0 3685 3875],
   :tags #{"car" "petrol"}}
  {:date #time/date "2023-05-28",
   :dct :event,
@@ -110,6 +141,7 @@
              :state {:string "anticipation"},
              :tagged-with {:tag "mytag"},
              :wahoo nil},
+  :span [0 3311 3596],
   :tags #{"exciting"},
   :type "planning"}
  {:date #time/date "2023-05-29",
@@ -121,18 +153,22 @@
   :postings [{:acc "Assets:Bank:Current",
               :cur "NZD",
               :metadata {:ofxid {:string "0.12-3456-1234567-01.29May2023.1"}},
-              :units -39.65M} {:acc "Expenses:Groceries"}],
+              :span [0 1913 1969],
+              :units -39.65M} {:acc "Expenses:Groceries", :span [0 2040 2058]}],
+  :span [0 1846 2060],
   :tags #{"essential"}}
  {:acc "Assets:Bank:Current",
   :date #time/date "2023-05-29",
   :dct :pad,
   :metadata {:evil {:string "unseen"}},
   :source "Equity:Opening-Balances",
+  :span [0 2226 2310],
   :tags #{"fudge"}}
  {:acc "Assets:Bank:Current",
   :cur "NZD",
   :date #time/date "2023-05-30",
   :dct :balance,
+  :span [0 2310 2404],
   :tags #{"richman"},
   :tolerance 0.01M,
   :units 1000}
@@ -141,6 +177,7 @@
   :date #time/date "2023-05-30",
   :dct :balance,
   :metadata {:meals {:string "cheap"}},
+  :span [0 2404 2506],
   :units 39.65M}
  {:date #time/date "2023-05-31",
   :dct :txn,
@@ -150,6 +187,7 @@
   :postings [{:acc "Assets:Bank:Current",
               :cur "NZD",
               :metadata {:ofxid {:string "0.12-3456-1234567-01.31May2023.3"}},
+              :span [0 2601 2682],
               :units -25.00M}
              {:acc "Expenses:Entertainment:Drinks-and-snacks",
               :links #{"mylink1"},
@@ -158,41 +196,56 @@
                          :key-for-link {:link "mylink"},
                          :open {:string "for business"},
                          :related_account {:acc "Expenses:Groceries"}},
-              :tags #{"mytag1"}}]}
+              :span [0 2729 2769],
+              :tags #{"mytag1"}}],
+  :span [0 2535 3044]}
  {:acc "Expenses:Entertainment:Drinks-and-snacks",
   :date #time/date "2023-05-31",
   :dct :document,
   :metadata {:assessment {:string "worth-it"}, :drink {:string "alcoholic"}},
   :path "2023-05-31-emersons-receipt.png",
+  :span [0 3044 3171],
   :tags #{"beer"}}
  {:acc "Expenses:Entertainment:Drinks-and-snacks",
   :comment
     "met with Mickey and Minnie\n  *  Pluto couldn't come,\n  ;  which made me sad.\n  ",
   :date #time/date "2023-05-31",
   :dct :note,
-  :metadata {:drink {:string "alcoholic"}}}
+  :metadata {:drink {:string "alcoholic"}},
+  :span [0 3171 3311]}
  {:date #time/date "2023-05-31",
   :dct :txn,
   :flag "'Z",
   :narration "Rather expensive",
   :payee "Z Energy ;",
-  :postings
-    [{:acc "Assets:Bank:Current", :cur "NZD", :flag "'B", :units -130.00M}
-     {:acc "Expenses:Car:Fuel", :flag "!"}],
+  :postings [{:acc "Assets:Bank:Current",
+              :cur "NZD",
+              :flag "'B",
+              :span [0 3931 3991],
+              :units -130.00M}
+             {:acc "Expenses:Car:Fuel", :flag "!", :span [0 3994 4013]}],
+  :span [0 3875 4015],
   :tags #{"petrol"}}
  {:date #time/date "2023-06-02",
   :dct :txn,
   :flag "*",
   :payee "Repco",
-  :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -25.00M}
-             {:acc "Expenses:Car"}]}
+  :postings [{:acc "Assets:Bank:Current",
+              :cur "NZD",
+              :span [0 4041 4122],
+              :units -25.00M} {:acc "Expenses:Car", :span [0 4125 4137]}],
+  :span [0 4015 4139]}
  {:date #time/date "2023-06-10",
   :dct :txn,
   :flag "*",
   :metadata {:price {:string "expensive"}},
   :narration "Transfer",
-  :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -100.00M}
-             {:acc "Assets:Bank:Savings"}],
+  :postings [{:acc "Assets:Bank:Current",
+              :cur "NZD",
+              :span [0 2086 2167],
+              :units -100.00M}
+             {:acc "Assets:Bank:Savings", :span [0 2170 2189]}],
+  :span [0 2060 2191],
   :tags #{"essential"}}
  {:date #time/date "2024-02-16",
   :dct :txn,
@@ -202,23 +255,31 @@
               :cost-spec
                 {:cur "USD", :label "first\nsecond", :per-unit 160.00M},
               :cur "IBM",
-              :units 10} {:acc "Assets:US:ETrade:Cash"}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+              :span [0 4172 4283],
+              :units 10} {:acc "Assets:US:ETrade:Cash", :span [0 4286 4307]}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :span [0 4310 4391],
+              :units 9.95M}],
+  :span [0 4139 4393]}
  {:acc "Assets:Bank:Current",
   :date #time/date "2024-03-01",
   :dct :close,
   :links #{"solong.and.thanks"},
+  :span [0 927 1095],
   :tags #{"seeya"}}
  {:content "SELECT money FROM accounts;",
   :date #time/date "2025-01-01",
   :dct :query,
   :metadata {:status {:string "bogus"}},
   :name "fictional SQL",
+  :span [0 4393 4488],
   :tags #{"for-testing"}}
  {:date #time/date "2025-02-10",
   :dct :custom,
   :links #{"i-am-a-meta-link"},
   :metadata {:i-am-meta {:string "yay!"}},
+  :span [0 4488 4682],
   :tags #{"i-am-a-meta-tag"},
   :type "all the things!",
   :values [{:cur "USD", :units 10.50M} {:string "anticipation"} {:cur "CAD"}

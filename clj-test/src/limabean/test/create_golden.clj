@@ -15,18 +15,14 @@
 
 (def ^{:private true} OUTPUTS
   {:directives {:filename "directives.edn",
-                :f (fn [beans]
-                     (zprint (limabean.test/remove-spans-and-indexes
-                               (:directives beans)))),
+                :f (fn [beans] (zprint (:directives beans))),
                 :fyi-filename "directives.fyi.beancount",
                 :fyi-f (fn [beans] (print (:directives beans))),
                 :required-f (fn [beans exists]
                               (or (contains? beans :booked-xf-directives)
                                   exists))},
    :raw-xf-directives {:filename "raw-xf-directives.edn",
-                       :f (fn [beans]
-                            (zprint (limabean.test/remove-spans-and-indexes
-                                      (:raw-xf-directives beans)))),
+                       :f (fn [beans] (zprint (:raw-xf-directives beans))),
                        :fyi-filename "raw-xf-directives.fyi.beancount",
                        :fyi-f (fn [beans] (print (:raw-xf-directives beans))),
                        :required-f (fn [beans exists]

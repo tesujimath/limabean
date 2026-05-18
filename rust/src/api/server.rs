@@ -4,7 +4,7 @@ use beancount_parser_lima::{
 use serde::Serialize;
 use std::{
     borrow::Cow,
-    io::{self, BufRead, BufReader, Read, Write, stdin, stdout},
+    io::{self, stdin, stdout, BufRead, BufReader, Read, Write},
     path::Path,
 };
 
@@ -12,11 +12,11 @@ use crate::api::{
     booking::{self, BookingFailure},
     json_rpc::*,
     types::{
-        IndexedReport, Report, SyntheticSpan,
         parser_type_conversions::{
             create_reports_from_booking_errors, create_reports_from_parser_errors,
         },
         raw::*,
+        IndexedReport, Report, SyntheticSpan,
     },
 };
 
@@ -159,8 +159,8 @@ impl<'a> Server<'a> {
                             .parser_format_report::<parser::WarningKind, W>(id, &params, w)
                             .unwrap(),
 
-                        (Ok(healthy), Method::ParserResolveSpan(Params { params })) => {
-                            healthy.parser_resolve_span(id, &params, w).unwrap()
+                        (Ok(healthy), Method::ParserResolveSpans(Params { params })) => {
+                            healthy.parser_resolve_spans(id, &params, w).unwrap()
                         }
 
                         (Ok(healthy), Method::ParserCreateSyntheticSpans(Params { params })) => {
@@ -295,16 +295,20 @@ impl<'a> HealthyServer<'a> {
         write_response(&response, w)
     }
 
-    fn parser_resolve_span<W>(&self, id: Option<Id>, span: &Span, w: &mut W) -> io::Result<()>
+    fn parser_resolve_spans<W>(&self, id: Option<Id>, spans: &[Span], w: &mut W) -> io::Result<()>
     where
         W: Write,
     {
-        let span = span.into();
-        let spanned_source = self.sources.resolve_span(&span);
-        let response = ResultResponse::new(id, ResultData::ResolvedSpan(spanned_source.into()));
+        let spanned_sources = spans
+            .iter()
+            .map(|span| {
+                let span = span.into();
+                self.sources.resolve_span(&span).into()
+            })
+            .collect::<Vec<_>>();
+        let response = ResultResponse::new(id, ResultData::ResolvedSpans(spanned_sources));
         write_response(&response, w)
     }
-
     fn parser_create_synthetic_spans<W>(
         &mut self,
         id: Option<Id>,

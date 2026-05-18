@@ -18,14 +18,21 @@ All notable changes to this project will be documented in this file. This change
 - Containerfile for podman/docker #94
 - tests for spec validation with plugins
 - warn if `LIMABEAN_CLJ_DEPS` defined when running from uberjar
+- spans and provenance from raw directives propagated into booked directives
+- provenance tag :booked for booked plugins
+- create synthetic spans for new directives created by booked plugins in addition to raw
 
 ### Changed
 
 - removed native Windows as a supported platform in favour of WSL #114
 - appending :directives to filters to pass custom directives is no longer supported
 - refactoring of namespaces so limabean.user is the REPL and limabean the API
+- printing of errors nor encapsulated in error/print-errors
 - full.beancount test now uses identity test plugin, so skipped in uberjar tests
 - limabean.test/loader-tests renamed as api-tests, now supports tests returning errors
+- raw-idx field on booked directives renamed to idx
+- deprecate plugin/error! in favour of plugin/dct-error! for plugin errors
+- JSON-RPC method parser.resolve-span replaced by parser.resolve-spans
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.5.1...HEAD
 

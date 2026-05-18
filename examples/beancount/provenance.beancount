@@ -1,0 +1,12 @@
+plugin "limabean.test.plugins.set-narration"
+plugin "limabean.test.plugins.adjust-postings-after-booking" "{\"Assets:Bank:Current\" 10}"
+
+2016-03-01 open Assets:Bank:Current
+
+2016-03-01 open Expenses:Donations
+
+2023-04-10 * "WIKIMEDIA" "WIKIMEDIA ;"
+  Assets:Bank:Current                                                    -10.00 NZD
+  Expenses:Donations
+
+2024-12-31 event "Failure" "Doomed"
