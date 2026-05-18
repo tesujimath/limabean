@@ -3,7 +3,7 @@
 
 (defn raw-xf
   "Transducer on raw directives to fail on matching directives."
-  [{:keys [config options]}]
+  [{:keys [config]}]
   (let [matching (or (:matching config) {:unmatched true})
         keys (vec (keys matching))
         message (or (:message config) "bad directive")]
@@ -15,6 +15,7 @@
         ([result] (rf result))
         ;; step
         ([result dct]
-         (if (= (select-keys dct keys) matching)
-           (plugin/error! dct message)
-           (rf result dct)))))))
+         (let [dct' (if (= (select-keys dct keys) matching)
+                      (plugin/dct-error! dct message)
+                      dct)]
+           (rf result dct')))))))

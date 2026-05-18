@@ -68,7 +68,7 @@ Legacy plugins appear with their original names, e.g. `beancount.plugins.auto-ac
 
 ### Errors
 
-Any errors detected by plugins may be reported using the `limabean.plugin/error!` macro, as shown for example in the [`limabean.test.plugins.fail`](../test-plugins/src/limabean/test/plugins/fail.clj) plugin.
+Any errors detected by plugins may be reported using the `limabean.plugin/dct-error!` macro, as shown for example in the [`limabean.test.plugins.fail`](../test-plugins/src/limabean/test/plugins/fail.clj) plugin, which annotates the directive emitted with the error indication.
 
 Errors reported to the user do not include a full stack trace, but this may be found in `*exception*`.
 

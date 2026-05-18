@@ -93,13 +93,14 @@
 (defn run-plugins-of-kind
   "Run the non-error plugins selected by `sel`, one of `:raw-xf,` `:booked-xf`"
   [directives resolved-plugins sel directive-spec]
-  (let [known-directives (volatile! (transient #{}))]
-    ;; TODO actually separate out directives and errors with plugin
-    ;; transducers wrapper
-    {:directives (into []
-                       (compose-and-wrap-resolved-plugins resolved-plugins
-                                                          sel
-                                                          directive-spec
-                                                          known-directives)
-                       directives),
-     :errors []}))
+  (let [known-directives (volatile! (transient #{}))
+        xf-directives (into []
+                            (compose-and-wrap-resolved-plugins resolved-plugins
+                                                               sel
+                                                               directive-spec
+                                                               known-directives)
+                            directives)
+        dct-errors (filterv :err xf-directives)]
+    (cond-> {:directives xf-directives}
+      (seq dct-errors)
+        (assoc :error {(keyword (str (name sel) "-directives")) dct-errors}))))

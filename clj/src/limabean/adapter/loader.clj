@@ -61,33 +61,33 @@
   [m kind]
   (let [kind-name (name kind)
         key (kind-name-key kind-name)
+        error-key (keyword (str kind-name "-plugin"))
         create-synthetic-spans-if-required
           (if (= kind :raw)
             #(synthetic-spans/create-and-merge-with-provenance % (:pod m))
             identity)]
     (if-not (plugins/has-specified-plugins? (:plugins m) (:xf key))
       m
-      (try (let [{:keys [directives errors]} (plugins/run-plugins-of-kind
-                                               (get m (:directives key))
-                                               (:plugins m)
-                                               (:xf key)
-                                               (spec/directive-spec kind))]
+      (try (let [{:keys [directives error]} (plugins/run-plugins-of-kind
+                                              (get m (:directives key))
+                                              (:plugins m)
+                                              (:xf key)
+                                              (spec/directive-spec kind))]
              (cond-> (assoc m
                        (:xf-directives key)
                          (type/directives (create-synthetic-spans-if-required
                                             directives)))
                (debug/dump-configured?) (dump (:directives key))
-               (seq errors) (assoc (:xf-errors key) errors)))
+               error (assoc-in [:error error-key] error)))
            (catch Exception e
-             (let [error-key (keyword (str kind-name "-plugin"))]
-               (assoc-in m
-                 [:error error-key]
-                 {:message (str "Exception thrown by "
-                                kind-name
-                                " plugin, all "
-                                kind-name
-                                " plugins ignored"),
-                  :exception e})))))))
+             (assoc-in m
+               [:error error-key]
+               {:message (str "Exception thrown by "
+                              kind-name
+                              " plugin, all "
+                              kind-name
+                              " plugins ignored"),
+                :exception e}))))))
 
 (defn- book-raw-directives
   "Book the raw-xf directives if any, otherwise use the raw directives as parsed."
