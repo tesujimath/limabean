@@ -1,24 +1,30 @@
 (ns limabean.adapter.error
-  (:require [limabean.adapter.pod :as pod]))
+  (:require [clojure.string :as str]
+            [limabean.adapter.pod :as pod]))
 
 (defn- resolve-idx
   [[dct-idx pst-idx] directives]
   (let [dct (get directives dct-idx)
         pst (get (:postings dct) pst-idx)]
-    (cond-> {:kind (if pst "posting" (name (:dct dct))),
-             :span (or (:span pst) (:span dct))}
+    (cond-> {:description (if pst "posting" (name (:dct dct))),
+             :span (or (:span pst) (:span-p pst) (:span dct) (:span-p dct))}
+      (and (:provenance dct) (or (:span pst) (:span dct)))
+        (update :description
+                #(str % ", modified by " (str/join " " (:provenance dct))))
       pst (assoc :context ["txn" (:span dct)]))))
 
 (defn- resolve-related
   [directives]
   (fn [idx]
-    (let [{:keys [kind span]} (resolve-idx idx directives)] [kind span])))
+    (let [{:keys [description span]} (resolve-idx idx directives)]
+      [description span])))
 
 (defn- resolve-indexed-report
   [report directives]
-  (let [{:keys [kind span context]} (resolve-idx (:idx report) directives)]
+  (let [{:keys [description span context]} (resolve-idx (:idx report)
+                                                        directives)]
     (cond-> (assoc (select-keys report [:reason :annotation])
-              :message (str "invalid " kind)
+              :message (str "invalid " description)
               :span span)
       context (assoc :context context)
       (:related report) (assoc :related

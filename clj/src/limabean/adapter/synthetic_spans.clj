@@ -11,7 +11,7 @@
     span))
 
 (defn- merge-with-directives
-  "Stateful transducer to merge synthetic spans back in with directives"
+  "Stateful transducer to merge synthetic spans back in with directives as :span-p"
   [synthetic-spans]
   (fn [rf]
     (let [spans (volatile! synthetic-spans)]
@@ -23,15 +23,13 @@
         ;; step
         ([result dct]
          (if (:provenance dct)
-           (let [dct' (if (= (:dct dct) :txn)
-                        ;; merge txn along with its posting spans
-                        (assoc dct
-                          :span (pop-span! spans)
-                          :postings (mapv (fn [pst]
-                                            (assoc pst :span (pop-span! spans)))
-                                      (:postings dct)))
-                        ;; non-transaction
-                        (assoc dct :span (pop-span! spans)))]
+           (let [synthetic-dct-span (pop-span! spans)
+                 dct' (cond-> (assoc dct :span-p synthetic-dct-span)
+                        ;; merge any posting spans missing from txn
+                        (= (:dct dct) :txn)
+                          (assoc :postings
+                            (mapv #(assoc % :span-p (pop-span! spans))
+                              (:postings dct))))]
              (rf result dct'))
            (rf result dct)))))))
 
@@ -52,7 +50,7 @@
       [])))
 
 (defn create-and-merge-with-provenance
-  "Create and merge synthetic spans for all directives/postings with provenance, if required."
+  "Create and merge synthetic spans as :span-p for all directives/postings with provenance, if required."
   [directives pod]
   (let [synthetic-spans (create-with-provenance directives pod)]
     (if (seq synthetic-spans)
