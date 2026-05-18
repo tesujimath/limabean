@@ -49,7 +49,7 @@
   (mapv (resolve-xfs-with-config options) plugins))
 
 (defn- tag-and-validate-unseen
-  "Transducer to tag which haven't been seen before, and if spec is non-nil, validate"
+  "Transducer to tag non-error directives which haven't been seen before, and if spec is non-nil, validate"
   [known-directives tagf spec]
   (fn [rf]
     (fn
@@ -59,7 +59,8 @@
       ([result] (rf result))
       ;; step
       ([result d]
-       (if (not (contains? @known-directives (System/identityHashCode d)))
+       (if (and (not (:err d))
+                (not (contains? @known-directives (System/identityHashCode d))))
          (let [tagged-d (tagf d)]
            (vreset! known-directives
                     (conj! @known-directives
@@ -99,8 +100,5 @@
                                                                sel
                                                                directive-spec
                                                                known-directives)
-                            directives)
-        dct-errors (filterv :err xf-directives)]
-    (cond-> {:directives xf-directives}
-      (seq dct-errors)
-        (assoc :error {(keyword (str (name sel) "-directives")) dct-errors}))))
+                            directives)]
+    xf-directives))

@@ -5,13 +5,15 @@
 (defn- resolve-idx
   [[dct-idx pst-idx] directives]
   (let [dct (get directives dct-idx)
-        pst (get (:postings dct) pst-idx)]
+        dct-span (or (:span dct) (:span-p dct))
+        pst (get (:postings dct) pst-idx)
+        pst-span (or (:span pst) (:span-p pst))]
     (cond-> {:description (if pst "posting" (name (:dct dct))),
-             :span (or (:span pst) (:span-p pst) (:span dct) (:span-p dct))}
+             :span (or pst-span dct-span)}
       (and (:provenance dct) (or (:span pst) (:span dct)))
         (update :description
                 #(str % ", modified by " (str/join " " (:provenance dct))))
-      pst (assoc :context ["txn" (:span dct)]))))
+      pst (assoc :context ["txn" dct-span]))))
 
 (defn- resolve-related
   [directives]
@@ -35,15 +37,32 @@
   [reports directives]
   (map #(resolve-indexed-report % directives) reports))
 
+(defn dct-errors->reports
+  [dct-errors]
+  (vec (mapcat (fn [dct]
+                 (map (fn [err]
+                        (cond-> {:message (:plugin err),
+                                 :reason (:message err),
+                                 :span (or (:span-p dct) (:span dct))}
+                          (and (:span dct) (:span-p :dct))
+                            (assoc :related [["source" (:span dct)]])))
+                   (:err dct)))
+         dct-errors)))
+
 (defn- print-error
   [err directives pod]
-  (let [{:keys [spanned-reports indexed-reports message exception]} err
-        resolved-reports (or spanned-reports
+  (let [{:keys [spanned-reports raw-xf-directives indexed-reports message
+                exception]}
+          err
+        spanned-reports' (or spanned-reports
+                             (dct-errors->reports raw-xf-directives))
+        resolved-reports (or (seq spanned-reports')
                              (and indexed-reports
                                   (resolve-indexed-reports indexed-reports
                                                            directives)))]
     (when message (println message))
     (when resolved-reports (println (pod/format-errors pod resolved-reports)))
+    (when raw-xf-directives nil)
     (when exception (println (:message exception)))))
 
 (defn print-errors

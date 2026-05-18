@@ -68,17 +68,20 @@
             identity)]
     (if-not (plugins/has-specified-plugins? (:plugins m) (:xf key))
       m
-      (try (let [{:keys [directives error]} (plugins/run-plugins-of-kind
-                                              (get m (:directives key))
-                                              (:plugins m)
-                                              (:xf key)
-                                              (spec/directive-spec kind))]
-             (cond-> (assoc m
-                       (:xf-directives key)
-                         (type/directives (create-synthetic-spans-if-required
-                                            directives)))
+      (try (let [xf-directives- (plugins/run-plugins-of-kind
+                                  (get m (:directives key))
+                                  (:plugins m)
+                                  (:xf key)
+                                  (spec/directive-spec kind))
+                 xf-directives (type/directives
+                                 (create-synthetic-spans-if-required
+                                   xf-directives-))
+                 xf-errors (filterv :err xf-directives)]
+             (cond-> (assoc m (:xf-directives key) xf-directives)
                (debug/dump-configured?) (dump (:directives key))
-               error (assoc-in [:error error-key] error)))
+               (seq xf-errors) (assoc-in [:error error-key]
+                                 {(keyword (str kind-name "-xf-directives"))
+                                    xf-errors})))
            (catch Exception e
              (assoc-in m
                [:error error-key]

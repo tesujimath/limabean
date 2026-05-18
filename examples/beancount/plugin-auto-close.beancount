@@ -1,12 +1,10 @@
 plugin "limabean.test.plugins.tag-matching"  "{:matching {:dct :close} :tag \"not-auto-closed\"}"
 plugin "limabean.test.plugins.tag-matching"  "{:matching {:dct :txn} :tag \"tag-youre-it\"}"
-;plugin "limabean.test.plugins.auto-close" "#{\"Assets:Bank:Current\"}"
+plugin "limabean.test.plugins.auto-close" "{:phase :raw :accs #{\"Assets:Bank:Current\"}}"
 
 2016-03-01 open Assets:Bank:Current
 
 2016-03-01 open Expenses:Donations
-
-2016-03-02 close Assets:Bank:Current
 
 2023-04-10 * "WIKIMEDIA" "WIKIMEDIA ;"
   Assets:Bank:Current                                                    -10.00 NZD
