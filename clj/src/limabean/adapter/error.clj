@@ -18,14 +18,19 @@
   (:require [clojure.string :as str]
             [limabean.adapter.pod :as pod]))
 
-(defn- resolve-idx
+(defn dct-name
+  [dct]
+  (let [variant (:dct dct)] (if (= :txn variant) "transaction" (name variant))))
+
+(defn resolve-idx
   [[dct-idx pst-idx] directives]
   (let [dct (get directives dct-idx)
         dct-span (or (:span dct) (:span-p dct))
         pst (get (:postings dct) pst-idx)
         pst-span (or (:span pst) (:span-p pst))]
-    (cond-> {:description (if pst "posting" (name (:dct dct))),
-             :span (or pst-span dct-span)}
+    (cond-> {}
+      (or pst dct) (assoc :description (if pst "posting" (dct-name dct)))
+      (or pst-span dct-span) (assoc :span (or pst-span dct-span))
       (and (:provenance dct) (or (:span pst) (:span dct)))
         (update :description
                 #(str % ", modified by " (str/join " " (:provenance dct))))
@@ -65,10 +70,21 @@
                    (:err dct)))
          dct-errors)))
 
+(defn resolve-maybe-indexed-dct-errors
+  [maybe-indexed-dct-errors directives]
+  (mapv (fn [dct]
+          (let [{:keys [span]} (resolve-idx [(:idx dct) nil] directives)]
+            (cond-> dct span (assoc :span span))))
+    maybe-indexed-dct-errors))
+
+(defn- print-maybe-indexed-dct-errors
+  [maybe-indexed-dct-errors directives pod]
+  (let [maybe-spans nil] nil))
+
 (defn- print-error
   [error directives pod]
-  (let [{:keys [spanned-reports spanned-dct-errors indexed-reports message
-                exception]}
+  (let [{:keys [spanned-reports spanned-dct-errors indexed-reports
+                maybe-indexed-dct-errors message exception]}
           error
         spanned-reports' (or spanned-reports
                              (spanned-dct-errors->reports spanned-dct-errors))
@@ -78,7 +94,8 @@
                                                            directives)))]
     (when message (println message))
     (when resolved-reports (println (pod/format-errors pod resolved-reports)))
-    (when spanned-dct-errors nil)
+    (when maybe-indexed-dct-errors
+      (print-maybe-indexed-dct-errors maybe-indexed-dct-errors directives pod))
     (when exception (println (:message exception)))))
 
 (defn print-errors
