@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file. This change
 - refactoring of namespaces so limabean.user is the REPL and limabean the API
 - full.beancount test now uses identity test plugin, so skipped in uberjar tests
 - limabean.test/loader-tests renamed as api-tests, now supports tests returning errors
+- raw-idx field on booked directives renamed to idx
 
 [commit log]: https://github.com/tesujimath/limabean/compare/0.5.1...HEAD
 

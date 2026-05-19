@@ -82,8 +82,8 @@ impl<'a, 't> Accumulator<'a, 't> {
         let mut errors = Vec::default();
         let mut booked_directives = Vec::default();
 
-        for (raw_idx, raw) in directives.into_iter().enumerate() {
-            let raw_element_idx = raw_idx.into();
+        for (idx, raw) in directives.into_iter().enumerate() {
+            let raw_element_idx = idx.into();
             match self.directive(raw, raw_element_idx, &mut booked_directives) {
                 Ok((booked_variant, pad_txn)) => {
                     if let booked::DirectiveVariant::Balance(booked::Balance {
@@ -109,7 +109,7 @@ impl<'a, 't> Accumulator<'a, 't> {
                     }
 
                     booked_directives.push(booked::Directive {
-                        raw_idx,
+                        idx,
                         date: raw.date,
                         tags: raw.tags.clone(),
                         links: raw.links.clone(),
@@ -119,7 +119,7 @@ impl<'a, 't> Accumulator<'a, 't> {
 
                     if let Some(pad_txn) = pad_txn {
                         booked_directives.push(booked::Directive {
-                            raw_idx,
+                            idx,
                             date: raw.date,
                             tags: raw.tags.clone(),
                             links: raw.links.clone(),
@@ -258,7 +258,7 @@ impl<'a, 't> Accumulator<'a, 't> {
                             costs
                                 .into_currency_costs()
                                 .map(|(cost_cur, cost)| booked::Posting {
-                                    raw_idx: Some(posting_idx),
+                                    idx: Some(posting_idx),
                                     flag: posting.flag.clone(),
                                     acc: account,
                                     units: cost.units,
@@ -272,7 +272,7 @@ impl<'a, 't> Accumulator<'a, 't> {
                                 .collect::<Vec<_>>()
                         } else {
                             vec![booked::Posting {
-                                raw_idx: Some(posting_idx),
+                                idx: Some(posting_idx),
                                 flag: posting.flag.clone(),
                                 acc: account,
                                 units,
@@ -713,7 +713,7 @@ fn calculate_balance_pad_postings<'a>(
 ) -> Vec<booked::Posting<'a>> {
     vec![
         booked::Posting {
-            raw_idx: None,
+            idx: None,
             flag: Some(Cow::Borrowed(PAD_FLAG)),
             acc: balance_account,
             units: margin,
@@ -725,7 +725,7 @@ fn calculate_balance_pad_postings<'a>(
             metadata: None,
         },
         booked::Posting {
-            raw_idx: None,
+            idx: None,
             flag: Some(Cow::Borrowed(PAD_FLAG)),
             acc: pad_source,
             units: -margin,

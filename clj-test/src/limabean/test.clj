@@ -16,8 +16,7 @@
 (defn remove-spans-and-indexes
   "Remove spans and indexes from all maps"
   [data]
-  (walk/postwalk (fn [x] (if (map? x) (dissoc x :span :span-p :raw-idx) x))
-                 data))
+  (walk/postwalk (fn [x] (if (map? x) (dissoc x :span :span-p :idx) x)) data))
 
 (defn find-golden-tests
   "Walk the filesystem from root-dir looking for beancount files and golden directories, ignoring .fyi.beancount files."
