@@ -16,10 +16,7 @@
 (defn remove-spans-and-indexes
   "Remove spans and indexes from all maps"
   [data]
-  (walk/postwalk (fn [x]
-                   (cond-> x
-                     (and (map? x) (contains? x :span)) (dissoc :span)
-                     (and (map? x) (contains? x :raw-idx)) (dissoc :raw-idx)))
+  (walk/postwalk (fn [x] (if (map? x) (dissoc x :span :span-p :raw-idx) x))
                  data))
 
 (defn find-golden-tests
