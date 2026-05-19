@@ -59,13 +59,23 @@
 (defn- run-plugins
   "Run plugins, kind being :raw or :booked"
   [m kind]
-  (let [kind-name (name kind)
-        key (kind-name-key kind-name)
-        error-key (keyword (str kind-name "-plugin"))
+  (let [key (get {:raw {:xf :raw-xf,
+                        :plugins :raw-plugins,
+                        :directives :raw-directives,
+                        :xf-directives :raw-xf-directives,
+                        :dct-errors :spanned-dct-errors},
+                  :booked {:xf :booked-xf,
+                           :plugins :booked-plugins,
+                           :directives :booked-directives,
+                           :xf-directives :booked-xf-directives,
+                           :dct-errors :maybe-indexed-dct-errors}}
+                 kind)
         create-synthetic-spans-if-required
-          (if (= kind :raw)
-            #(synthetic-spans/create-and-merge-with-provenance % (:pod m))
-            identity)]
+          (get {:raw #(synthetic-spans/create-and-merge-with-provenance %
+                                                                        (:pod
+                                                                          m)),
+                :booked identity}
+               kind)]
     (if-not (plugins/has-specified-plugins? (:plugins m) (:xf key))
       m
       (try (let [xf-directives- (plugins/run-plugins-of-kind
@@ -76,20 +86,20 @@
                  xf-directives (type/directives
                                  (create-synthetic-spans-if-required
                                    xf-directives-))
-                 xf-errors (filterv :err xf-directives)]
+                 dct-errors (filterv :err xf-directives)]
              (cond-> (assoc m (:xf-directives key) xf-directives)
                (debug/dump-configured?) (dump (:directives key))
-               (seq xf-errors) (assoc-in [:error error-key]
-                                 {(keyword (str kind-name "-xf-directives"))
-                                    xf-errors})))
+               (seq dct-errors) (assoc-in [:error (:plugins key)]
+                                  {(:dct-errors key) dct-errors})))
            (catch Exception e
              (assoc-in m
-               [:error error-key]
-               {:message (str "Exception thrown by "
-                              kind-name
-                              " plugin, all "
-                              kind-name
-                              " plugins ignored"),
+               [:error (:plugins key)]
+               {:message (let [kind-name (name kind)]
+                           (str "Exception thrown by "
+                                kind-name
+                                " plugin, all "
+                                kind-name
+                                " plugins ignored")),
                 :exception e}))))))
 
 (defn- book-raw-directives
