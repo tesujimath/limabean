@@ -43,7 +43,7 @@ podman build -f Containerfile --build-arg VERSION=$VERSION -t limabean:$VERSION
 <p>Options for installing the Rust binaries:</p>
 <ol>
 <li>
-<p>Tarballs and zipfiles are provided for each <a href="https://github.com/tesujimath/limabean/releases">GitHub release</a> for Linux, macOS, and Windows</p>
+<p>Tarballs and zipfiles are provided for each <a href="https://github.com/tesujimath/limabean/releases">GitHub release</a> for Linux and macOS.</p>
 </li>
 <li>
 <p>If you have a Rust toolchain installed, <code>cargo install limabean</code> will install the two binaries <code>limabean</code> and <code>limabean-pod</code> into <code>~/.cargo/bin</code>.  Add this directory to your path before running <code>limabean</code></p>
@@ -54,12 +54,7 @@ podman build -f Containerfile --build-arg VERSION=$VERSION -t limabean:$VERSION
 <pre><code>xattr -rd com.apple.quarantine ./limabean/bin
 </code></pre>
 <h3><a href="#windows" id="windows"></a>Windows</h3>
-<ul>
-<li>install <a href="https://learn.microsoft.com/en-us/java/openjdk/download">OpenJDK 25 MSI</a></li>
-<li>install <a href="https://github.com/casselc/clj-msi">Clojure 1.12 MSI</a></li>
-<li>download limabean zipfile from GitHub releases and extract somewhere</li>
-<li>add that directory to path</li>
-</ul>
+<p>Native Windows is no longer supported.  Ubuntu on WSL 2 is recommended as an alternative on that platform.</p>
 <h2><a href="#standalone" id="standalone"></a>Standalone</h2>
 <p>Requirements:</p>
 <ol>
