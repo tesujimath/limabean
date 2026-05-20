@@ -17,7 +17,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -47,11 +50,24 @@ jobs:
           cd rust
           cargo build --release --all-targets
 
-      - name: Package binaries
+      - name: Package binaries (Unix-like)
+        if: runner.os != 'Windows'
         run: |
           mkdir -p release
           cp rust/target/release/{limabean,limabean-pod} release/
           tar czvf limabean-${{ matrix.os }}.tar.gz -C release .
+
+      - name: Package binaries (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          mkdir -p release
+          $bins = @(
+            "rust\target\release\limabean.exe",
+            "rust\target\release\limabean-pod.exe"
+          )
+          Copy-Item $bins release\
+          Compress-Archive -Path release\* -DestinationPath limabean-${{ matrix.os }}.zip
 
       - name: Upload Rust binaries
         uses: actions/upload-artifact@v6
