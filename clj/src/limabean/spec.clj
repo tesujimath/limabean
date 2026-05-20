@@ -97,8 +97,7 @@
 
 
 ;; directives
-(s/def ::base-directive
-  (s/keys :req-un [::date] :opt-un [::tags ::links ::metadata]))
+(s/def ::base-dct (s/keys :req-un [::date] :opt-un [::tags ::links ::metadata]))
 
 (s/def ::raw-txn
   (s/keys :req-un [::flag]
@@ -136,7 +135,7 @@
 (defmethod raw-dct :query [_] ::query)
 (defmethod raw-dct :custom [_] ::custom)
 (defmethod raw-dct nil [_] (s/and map? #(contains? % :dct)))
-(s/def ::raw-dct (s/and ::base-directive (s/multi-spec raw-dct :dct)))
+(s/def ::raw-dct (s/and ::base-dct (s/multi-spec raw-dct :dct)))
 
 (defmulti booked-dct :dct)
 (defmethod booked-dct :txn [_] ::booked-txn)
@@ -152,10 +151,10 @@
 (defmethod booked-dct :query [_] ::query)
 (defmethod booked-dct :custom [_] ::custom)
 (defmethod booked-dct nil [_] (s/and map? #(contains? % :dct)))
-(s/def ::booked-dct (s/and ::base-directive (s/multi-spec booked-dct :dct)))
+(s/def ::booked-dct (s/and ::base-dct (s/multi-spec booked-dct :dct)))
 
-(s/def ::raw-directives (s/coll-of ::raw-directive))
-(s/def ::booked-directives (s/coll-of :booked-directive))
+(s/def ::raw-dcts (s/coll-of ::raw-dct))
+(s/def ::booked-dcts (s/coll-of :booked-dct))
 
 (defn directive-spec
   "Directive spec for `kind` of directive"
@@ -168,5 +167,5 @@
   "Directive spec for `kind` of directives"
   [kind]
   (case kind
-    :raw ::raw-directives
-    :booked ::booked-directives))
+    :raw ::raw-dcts
+    :booked ::booked-dcts))

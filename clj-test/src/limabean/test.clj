@@ -13,15 +13,6 @@
             [matcho.core :as matcho])
   (:import [java.nio.file Files]))
 
-(defn remove-spans-and-indexes
-  "Remove spans and indexes from all maps"
-  [data]
-  (walk/postwalk (fn [x]
-                   (cond-> x
-                     (and (map? x) (contains? x :span)) (dissoc :span)
-                     (and (map? x) (contains? x :raw-idx)) (dissoc :raw-idx)))
-                 data))
-
 (defn find-golden-tests
   "Walk the filesystem from root-dir looking for beancount files and golden directories, ignoring .fyi.beancount files."
   [root-dir & {:keys [ignore-golden-dirs]}]
@@ -107,11 +98,7 @@
                                 (pprint (Throwable->map e))
                                 nil)))]
         (doseq [key [:raw-xf-directives :directives :error]]
-          (let [expected-file (io/file golden-dir (str (name key) ".edn"))
-                clean-actual-f (if (contains? #{:raw-xf-directives :directives}
-                                              key)
-                                 limabean.test/remove-spans-and-indexes
-                                 identity)]
+          (let [expected-file (io/file golden-dir (str (name key) ".edn"))]
             (when (.exists expected-file)
               (let [actual (force beans)
                     expected (limabean-edn/read-string (slurp expected-file))
@@ -121,5 +108,4 @@
                                           (with-meta x {:matcho/strict true})
                                           x))
                                       expected)]
-                (matcho/assert expected-strict
-                               (clean-actual-f (get actual key)))))))))))
+                (matcho/assert expected-strict (get actual key))))))))))

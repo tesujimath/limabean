@@ -1,14 +1,37 @@
-[{:cur "USD", :date #time/date "1970-01-01", :dct :commodity}
- {:cur "AAPL", :date #time/date "1970-01-01", :dct :commodity}
- {:acc "Assets:US:ETrade:Cash", :date #time/date "2010-03-01", :dct :open}
- {:acc "Assets:US:ETrade:IBM", :date #time/date "2010-03-01", :dct :open}
+[{:cur "USD",
+  :date #time/date "1970-01-01",
+  :dct :commodity,
+  :idx 0,
+  :span [0 82 108]}
+ {:cur "AAPL",
+  :date #time/date "1970-01-01",
+  :dct :commodity,
+  :idx 1,
+  :span [0 108 135]}
+ {:acc "Assets:US:ETrade:Cash",
+  :date #time/date "2010-03-01",
+  :dct :open,
+  :idx 2,
+  :span [0 135 173]}
+ {:acc "Assets:US:ETrade:IBM",
+  :date #time/date "2010-03-01",
+  :dct :open,
+  :idx 3,
+  :span [0 173 210]}
  {:acc "Expenses:Financial:Commissions",
   :date #time/date "2010-03-01",
-  :dct :open}
- {:acc "Income:US:ETrade:PnL", :date #time/date "2010-03-01", :dct :open}
+  :dct :open,
+  :idx 4,
+  :span [0 210 257]}
+ {:acc "Income:US:ETrade:PnL",
+  :date #time/date "2010-03-01",
+  :dct :open,
+  :idx 5,
+  :span [0 257 295]}
  {:date #time/date "2014-02-16",
   :dct :txn,
   :flag "*",
+  :idx 6,
   :narration "Buying some IBM",
   :postings [{:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -16,12 +39,24 @@
                      :per-unit 160.00M,
                      :total 1600.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 328 422],
               :units 10}
-             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -1609.95M}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+             {:acc "Assets:US:ETrade:Cash",
+              :cur "USD",
+              :idx 1,
+              :span [0 425 506],
+              :units -1609.95M}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :idx 2,
+              :span [0 509 590],
+              :units 9.95M}],
+  :span [0 295 592]}
  {:date #time/date "2014-02-17",
   :dct :txn,
   :flag "*",
+  :idx 7,
   :narration "Selling some IBM",
   :postings [{:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -29,13 +64,29 @@
                      :per-unit 160.00M,
                      :total 1600.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 626 733],
               :units -3}
-             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units 500.05M}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}
-             {:acc "Income:US:ETrade:PnL", :cur "USD", :units -30.00M}]}
+             {:acc "Assets:US:ETrade:Cash",
+              :cur "USD",
+              :idx 1,
+              :span [0 736 817],
+              :units 500.05M}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :idx 2,
+              :span [0 820 901],
+              :units 9.95M}
+             {:acc "Income:US:ETrade:PnL",
+              :cur "USD",
+              :idx 3,
+              :span [0 904 924],
+              :units -30.00M}],
+  :span [0 592 926]}
  {:date #time/date "2014-02-18",
   :dct :txn,
   :flag "*",
+  :idx 8,
   :narration "I put my chips on big blue!",
   :postings [{:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -43,12 +94,24 @@
                      :per-unit 180.00M,
                      :total 900.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 971 1065],
               :units 5}
-             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -909.95M}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+             {:acc "Assets:US:ETrade:Cash",
+              :cur "USD",
+              :idx 1,
+              :span [0 1068 1149],
+              :units -909.95M}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :idx 2,
+              :span [0 1152 1233],
+              :units 9.95M}],
+  :span [0 926 1235]}
  {:date #time/date "2014-03-18",
   :dct :txn,
   :flag "*",
+  :idx 9,
   :narration "Selling all my blue chips.",
   :postings [{:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -56,6 +119,8 @@
                      :per-unit 160.00M,
                      :total 1600.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 1279 1376],
               :units -7}
              {:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -63,13 +128,29 @@
                      :per-unit 180.00M,
                      :total 900.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 1279 1376],
               :units -5}
-             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units 2054.05M}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}
-             {:acc "Income:US:ETrade:PnL", :cur "USD", :units -44.00M}]}
+             {:acc "Assets:US:ETrade:Cash",
+              :cur "USD",
+              :idx 1,
+              :span [0 1379 1460],
+              :units 2054.05M}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :idx 2,
+              :span [0 1463 1544],
+              :units 9.95M}
+             {:acc "Income:US:ETrade:PnL",
+              :cur "USD",
+              :idx 3,
+              :span [0 1547 1567],
+              :units -44.00M}],
+  :span [0 1235 1569]}
  {:date #time/date "2014-04-16",
   :dct :txn,
   :flag "*",
+  :idx 10,
   :narration "Buying some more IBM",
   :postings [{:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -77,12 +158,24 @@
                      :per-unit 173.00M,
                      :total 1730.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 1607 1701],
               :units 10}
-             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -1739.95M}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+             {:acc "Assets:US:ETrade:Cash",
+              :cur "USD",
+              :idx 1,
+              :span [0 1704 1785],
+              :units -1739.95M}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :idx 2,
+              :span [0 1788 1869],
+              :units 9.95M}],
+  :span [0 1569 1871]}
  {:date #time/date "2014-04-26",
   :dct :txn,
   :flag "*",
+  :idx 11,
   :narration "Buying IBM yet again",
   :postings [{:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -90,12 +183,24 @@
                      :per-unit 180.00M,
                      :total 1800.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 1909 2003],
               :units 10}
-             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units -1809.95M}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}]}
+             {:acc "Assets:US:ETrade:Cash",
+              :cur "USD",
+              :idx 1,
+              :span [0 2006 2087],
+              :units -1809.95M}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :idx 2,
+              :span [0 2090 2171],
+              :units 9.95M}],
+  :span [0 1871 2173]}
  {:date #time/date "2014-05-01",
   :dct :txn,
   :flag "*",
+  :idx 12,
   :narration "Selling some older blue chips.",
   :postings [{:acc "Assets:US:ETrade:IBM",
               :cost {:cur "USD",
@@ -103,7 +208,22 @@
                      :per-unit 173.00M,
                      :total 1730.00M},
               :cur "IBM",
+              :idx 0,
+              :span [0 2221 2328],
               :units -4}
-             {:acc "Assets:US:ETrade:Cash", :cur "USD", :units 740.00M}
-             {:acc "Expenses:Financial:Commissions", :cur "USD", :units 9.95M}
-             {:acc "Income:US:ETrade:PnL", :cur "USD", :units -57.95M}]}]
+             {:acc "Assets:US:ETrade:Cash",
+              :cur "USD",
+              :idx 1,
+              :span [0 2331 2412],
+              :units 740.00M}
+             {:acc "Expenses:Financial:Commissions",
+              :cur "USD",
+              :idx 2,
+              :span [0 2415 2496],
+              :units 9.95M}
+             {:acc "Income:US:ETrade:PnL",
+              :cur "USD",
+              :idx 3,
+              :span [0 2499 2519],
+              :units -57.95M}],
+  :span [0 2173 3014]}]

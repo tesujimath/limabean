@@ -1,18 +1,38 @@
-[{:acc "Assets:Bank:Current", :date #time/date "2016-03-01", :dct :open}
- {:acc "Expenses:Groceries", :date #time/date "2016-03-01", :dct :open}
+[{:acc "Assets:Bank:Current",
+  :date #time/date "2016-03-01",
+  :dct :open,
+  :span [0 46 83]}
+ {:acc "Expenses:Groceries",
+  :date #time/date "2016-03-01",
+  :dct :open,
+  :span [0 83 119]}
  {:date #time/date "2023-05-29",
   :dct :txn,
   :flag "*",
   :narration "unspecified in config",
   :payee "New World",
-  :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 10.00M}
-             {:acc "Assets:Bank:Current"}],
-  :provenance ["limabean.test.plugins.set-narration"]}
+  :postings
+    [{:acc "Expenses:Groceries",
+      :cur "NZD",
+      :span [0 149 178],
+      :span-p [1 48 79],
+      :units 10.00M}
+     {:acc "Assets:Bank:Current", :span [0 181 200], :span-p [1 79 101]}],
+  :provenance ["limabean.test.plugins.set-narration"],
+  :span [0 119 202],
+  :span-p [1 0 48]}
  {:date #time/date "2023-05-30",
   :dct :txn,
   :flag "*",
   :narration "unspecified in config",
   :payee "Countdown",
-  :postings [{:acc "Expenses:Groceries", :cur "NZD", :units 17.50M}
-             {:acc "Assets:Bank:Current"}],
-  :provenance ["limabean.test.plugins.set-narration"]}]
+  :postings
+    [{:acc "Expenses:Groceries",
+      :cur "NZD",
+      :span [0 232 261],
+      :span-p [1 149 180],
+      :units 17.50M}
+     {:acc "Assets:Bank:Current", :span [0 264 283], :span-p [1 180 202]}],
+  :provenance ["limabean.test.plugins.set-narration"],
+  :span [0 202 284],
+  :span-p [1 101 149]}]

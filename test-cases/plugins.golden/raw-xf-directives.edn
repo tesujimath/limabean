@@ -2,34 +2,44 @@
   :date #time/date "2020-01-01",
   :dct :open,
   :metadata {:opened-with {:string "can opener"}},
-  :provenance ["limabean.test.plugins.set-metadata"]}
+  :provenance ["limabean.test.plugins.set-metadata"],
+  :span [0 219 256],
+  :span-p [1 0 64]}
  {:acc "Expenses:Donations",
   :date #time/date "2023-04-10",
   :dct :open,
   :metadata {:auto nil, :opened-with {:string "can opener"}},
   :provenance ["beancount.plugins.auto_accounts"
-               "limabean.test.plugins.set-metadata"]}
+               "limabean.test.plugins.set-metadata"],
+  :span-p [2 0 71]}
  {:date #time/date "2023-04-10",
   :dct :txn,
   :flag "*",
   :narration "WIKIMEDIA ;",
   :payee "WIKIMEDIA",
-  :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -10.00M}
-             {:acc "Expenses:Donations"}]}
+  :postings
+    [{:acc "Assets:Bank:Current", :cur "NZD", :span [0 297 328], :units -10.00M}
+     {:acc "Expenses:Donations", :span [0 331 349]}],
+  :span [0 256 351]}
  {:acc "Expenses:Donations:Other",
   :date #time/date "2023-04-12",
   :dct :open,
   :metadata {:auto nil, :opened-with {:string "can opener"}},
   :provenance ["beancount.plugins.auto_accounts"
-               "limabean.test.plugins.set-metadata"]}
+               "limabean.test.plugins.set-metadata"],
+  :span-p [2 71 148]}
  {:date #time/date "2023-04-12",
   :dct :txn,
   :flag "*",
   :payee "Tear Fund",
-  :postings [{:acc "Assets:Bank:Current", :cur "NZD", :units -20.00M}
-             {:acc "Expenses:Donations:Other"}]}
+  :postings
+    [{:acc "Assets:Bank:Current", :cur "NZD", :span [0 381 412], :units -20.00M}
+     {:acc "Expenses:Donations:Other", :span [0 415 439]}],
+  :span [0 351 441]}
  {:acc "Expenses:Donations:Other",
   :date #time/date "2026-01-31",
   :dct :close,
   :metadata {:finished {:bool true}},
-  :provenance ["limabean.test.plugins.set-metadata"]}]
+  :provenance ["limabean.test.plugins.set-metadata"],
+  :span [0 441 483],
+  :span-p [1 64 123]}]

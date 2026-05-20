@@ -108,10 +108,10 @@
   "Format warnings"
   [pod warnings]
   (ok-or-throw (invoke pod "parser.format-warnings" warnings)))
-(defn resolve-span
-  "Resolve a span in terms of original sources"
-  [pod span]
-  (ok-or-throw (invoke pod "parser.resolve-span" span)))
+(defn resolve-spans
+  "Resolve spans in terms of original sources"
+  [pod spans]
+  (ok-or-throw (invoke pod "parser.resolve-spans" spans)))
 (defn create-synthetic-spans
   "Create spans for synthetic sources, e.g. the output of plugins"
   [pod requests]
