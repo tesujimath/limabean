@@ -16,6 +16,8 @@ Rust is purely used for parsing and the booking algorithm, with essentially no v
 - [Design and rationale](clj/doc/70-design-and-rationale.md)
 - [Reference manual](https://tesujimath.github.io/limabean)
 
+`limabean` runs natively on Linux and macOS.  For Windows, it requires Windows Subsystem for Linux (WSL).
+
 Also, for a new approach to import see [limabean-harvest](https://github.com/tesujimath/limabean-harvest).
 
 Note for developers: the limabean implementation of the **Beancount booking algorithm** is [limabean-booking](https://github.com/tesujimath/limabean-booking), a [separate crate](https://crates.io/crates/limabean-booking) which is entirely generic, having no dependencies on either the Lima parser types nor limabean itself.

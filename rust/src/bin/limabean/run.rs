@@ -112,37 +112,6 @@ fn run_or_fail(mut cmd: Command) {
     std::process::exit(1);
 }
 
-#[cfg(windows)]
-fn run_or_fail(mut cmd: Command) {
-    let cmd = cmd
-        .stdin(std::process::Stdio::inherit())
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit());
-
-    match cmd.spawn() {
-        Ok(mut child) => {
-            let exit_status = child
-                .wait()
-                .unwrap_or_else(|e| panic!("limabean unexpected wait failure: {}", e));
-
-            // any error message is already written on stderr, so we're done
-            // TODO improve error path here, early exit is nasty
-            if !exit_status.success() {
-                std::process::exit(exit_status.code().unwrap_or(1));
-            }
-        }
-
-        Err(e) => {
-            eprintln!(
-                "limabean can't run {}: {}",
-                cmd.get_program().to_string_lossy(),
-                &e
-            );
-            std::process::exit(1);
-        }
-    }
-}
-
 pub(crate) fn run(runtime: &Runtime, args: &[String]) {
     let verbose = args.iter().any(|arg| arg == "-v" || arg == "--verbose");
     let version = args.iter().any(|arg| arg == "--version");

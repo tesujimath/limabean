@@ -1,2 +1,0 @@
-# Force LF-only for all test files to avoid Windows breakage
-test-cases/** text eol=lf

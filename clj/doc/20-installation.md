@@ -60,7 +60,7 @@ The corresponding `limabean` Clojure code is downloaded automatically on first r
 
 Options for installing the Rust binaries:
 
-1. Tarballs and zipfiles are provided for each [GitHub release](https://github.com/tesujimath/limabean/releases) for Linux, macOS, and Windows
+1. Tarballs and zipfiles are provided for each [GitHub release](https://github.com/tesujimath/limabean/releases) for Linux and macOS.
 
 2. If you have a Rust toolchain installed, `cargo install limabean` will install the two binaries `limabean` and `limabean-pod` into `~/.cargo/bin`.  Add this directory to your path before running `limabean`
 
@@ -74,10 +74,7 @@ xattr -rd com.apple.quarantine ./limabean/bin
 
 ### Windows
 
-- install [OpenJDK 25 MSI](https://learn.microsoft.com/en-us/java/openjdk/download)
-- install [Clojure 1.12 MSI](https://github.com/casselc/clj-msi)
-- download limabean zipfile from GitHub releases and extract somewhere
-- add that directory to path
+Native Windows is no longer supported.  Ubuntu on WSL 2 is recommended as an alternative on that platform.
 
 ## Standalone
 
