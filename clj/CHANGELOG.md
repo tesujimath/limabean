@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## [Unreleased]
 
+[commit log]: https://github.com/tesujimath/limabean/compare/0.6.0...HEAD
+
+## [0.6.0] - 2026-05-20
+
 ### Fixed
 
 - sort Open directives before transactions - beancount-parser-lima#66
@@ -34,7 +38,7 @@ All notable changes to this project will be documented in this file. This change
 - deprecate plugin/error! in favour of plugin/dct-error! for plugin errors
 - JSON-RPC method parser.resolve-span replaced by parser.resolve-spans
 
-[commit log]: https://github.com/tesujimath/limabean/compare/0.5.1...HEAD
+[commit log]: https://github.com/tesujimath/limabean/compare/0.5.1...0.6.0
 
 ## [0.5.1] - 2026-05-05
 
